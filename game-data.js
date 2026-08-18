@@ -190,6 +190,16 @@ const ACHIEVEMENTS = [
   { id: 'trib_huashen',   name: '化神雷劫',   desc: '渡过化神天劫',           icon: '🌩️' },
   { id: 'trib_feisheng',  name: '飞升之劫',   desc: '渡过飞升劫',             icon: '☀️' },
   { id: 'boss_zhulong',   name: '烛龙陨落',   desc: '击败隐藏boss烛龙',       icon: '🐉' },
+  // ===== 洞府 / 宗门 / 竞技 / 心魔玩法成就 =====
+  { id: 'cave_harvest', name: '春华秋实',   desc: '首次收获洞府灵药',         icon: '🌿' },
+  { id: 'cave_lv3',     name: '初具规模',   desc: '洞府升到 3 级',             icon: '🏠' },
+  { id: 'cave_lv7',     name: '仙府落成',   desc: '洞府升到满级 7 级',         icon: '🏯' },
+  { id: 'sect_join',    name: '拜入山门',   desc: '加入一个宗门',               icon: '🏛️' },
+  { id: 'sect_contrib', name: '中流砥柱',   desc: '宗门贡献达到 300',           icon: '🎖️' },
+  { id: 'arena_win10',  name: '斗法新秀',   desc: '竞技斗法获胜 10 场',         icon: '⚔️' },
+  { id: 'arena_tier',   name: '斗法扬名',   desc: '斗法段位达到金丹斗尊',       icon: '🏆' },
+  { id: 'xinmo_win',    name: '斩却心魔',   desc: '首次斩灭心魔化身',           icon: '🖤' },
+  { id: 'xinjing_100',  name: '心如止水',   desc: '心境达到 100',               icon: '🧘' },
 ];
 
 // ========== 合成配方 ==========
@@ -1706,9 +1716,9 @@ const STORY_NODES = {
 
   ending_bad: {
     title: '陨落',
-    text: '魔尊的力量远超你的想象。你终究没能撑到最后……\n\n修仙一途，本就是逆天而行。败了，便是身死道消。\n\n（提示：手动存档不会被删除，可在下方「读取存档」中继续。）',
+    text: '魔尊的力量远超你的想象。你终究没能撑到最后……\n\n修仙一途，本就是逆天而行。败了，便是身死道消。\n\n然而道心不灭，一缕真灵不散——转世重修，来世再战！',
     choices: [
-      { label: '重新来过', action: () => { restartGame(); } },
+      { label: '转世重修', action: () => { reincarnate(Game.state); } },
       { label: '读取存档', action: () => { UI.openSidePanel('save'); } },
     ],
   },
@@ -2117,6 +2127,8 @@ const STORY_NODES = {
       s.stone += stone;
       s.fame += 10;
       s.hp = s.maxHp;
+      if (s.arena.wins >= 10) grantAchievement('arena_win10');
+      if (s.arena.score >= 300) grantAchievement('arena_tier');
       setNodeText(`你赢得胜利！斗法积分 +${gain}，灵石 +${stone}，名望 +10。`);
     },
     choices: [
@@ -2197,6 +2209,8 @@ const STORY_NODES = {
       s.mind.xinjing += 30;
       s.hp = s.maxHp;
       realignRealm(s);
+      grantAchievement('xinmo_win');
+      if (s.mind.xinjing >= 100) grantAchievement('xinjing_100');
       setNodeText(`你斩灭心魔，道心澄澈！心境 +30（当前 ${s.mind.xinjing}）。`);
     },
     choices: [

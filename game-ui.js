@@ -50,6 +50,7 @@ const UI = {
       dailyTasks: document.getElementById('daily-tasks'),
     };
     this.updateStats();
+    updateSoundIcon();
   },
 
   // ========== 登录界面 ==========
@@ -59,7 +60,7 @@ const UI = {
     this.els.loginContinue.classList.toggle('hidden', !has);
     this.els.loginOverlay.classList.toggle('has-save', has);
     if (has) {
-      const realm = saved.realmIndex != null && REALMS[saved.realmIndex] ? REALMS[saved.realmIndex].name : '';
+      const realm = saved.realmIndex != null ? getRealm(saved.realmIndex).name : '';
       this.els.loginContinue.textContent = `继续修炼 · ${saved.name || '无名'}（${realm}）`;
       this.els.loginStart.textContent = '重新开始';
       this.els.loginName.value = saved.name || '';
@@ -1298,7 +1299,7 @@ const UI = {
   },
 
   _desc(data) {
-    const realm = data.realmIndex != null && REALMS[data.realmIndex] ? REALMS[data.realmIndex].name : '';
+    const realm = data.realmIndex != null ? getRealm(data.realmIndex).name : '';
     return `${data.name || '无名'} · ${realm || '?'} · ${this._formatSaveTime(data.savedAt)}`;
   },
 
@@ -1506,7 +1507,95 @@ UI.renderStatDetail = function() {
   `;
 };
 
-// ========== 音效占位 ==========
+// ========== 音效系统（Web Audio 合成） ==========
+let _audioCtx = null;
+let _soundEnabled = (() => {
+  try { return localStorage.getItem('fantu_sound') !== '0'; } catch (e) { return true; }
+})();
+
+function ensureAudioCtx() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { _audioCtx = null; }
+  }
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+// 播放单音：freq 频率、dur 时长、type 波形、vol 音量、delay 延迟秒
+function playTone(freq, dur, type = 'sine', vol = 0.15, delay = 0) {
+  if (!_soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
+// 按钮点击：短促清脆
 function playClickSound() {
-  // 轻量静音占位，需要时可加 WebAudio
+  playTone(760, 0.05, 'triangle', 0.1);
+}
+
+// 突破：上行音阶
+function playBreakthroughSound() {
+  [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.16, 'sine', 0.14, i * 0.09));
+}
+
+// 战斗命中
+function playBattleHitSound() {
+  playTone(160, 0.09, 'square', 0.11);
+  playTone(90, 0.12, 'sawtooth', 0.07, 0.02);
+}
+
+// 战斗胜利：上行大调
+function playWinSound() {
+  [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.18, 'triangle', 0.13, i * 0.1));
+}
+
+// 战斗失败：下行
+function playLoseSound() {
+  [392, 330, 262, 196].forEach((f, i) => playTone(f, 0.22, 'sine', 0.13, i * 0.14));
+}
+
+// 抽卡：琶音
+function playGachaSound() {
+  [659, 880, 1175, 1568].forEach((f, i) => playTone(f, 0.14, 'triangle', 0.13, i * 0.08));
+}
+
+// 渡劫：低鸣 + 上行
+function playTribulationSound() {
+  playTone(98, 0.5, 'sawtooth', 0.16, 0);
+  [392, 523, 659, 784].forEach((f, i) => playTone(f, 0.2, 'sine', 0.14, 0.3 + i * 0.1));
+}
+
+// 获得物品：轻快双音
+function playItemSound() {
+  playTone(660, 0.08, 'triangle', 0.12, 0);
+  playTone(990, 0.1, 'triangle', 0.12, 0.07);
+}
+
+// 音效开关
+function toggleSound() {
+  _soundEnabled = !_soundEnabled;
+  try { localStorage.setItem('fantu_sound', _soundEnabled ? '1' : '0'); } catch (e) {}
+  updateSoundIcon();
+  if (_soundEnabled) playClickSound();
+}
+
+function updateSoundIcon() {
+  const btn = document.getElementById('sound-toggle');
+  if (btn) {
+    btn.textContent = _soundEnabled ? '🔊' : '🔇';
+    btn.classList.toggle('off', !_soundEnabled);
+    btn.title = _soundEnabled ? '音效：开' : '音效：关';
+  }
 }

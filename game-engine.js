@@ -91,6 +91,7 @@ function newGame() {
     contribution: 0,
     arena: { score: 0, wins: 0, losses: 0 },
     mind: { xinjing: 0 },
+    reincarnation: 0,
   };
 }
 
@@ -114,11 +115,33 @@ function restartGame() {
   UI.showToast('已重新开始（手动存档已保留）');
 }
 
+// 转世永久加成：每次转世全属性 +10%（乘法叠加）
+function getReincarnationBonus(s) {
+  return 1 + 0.1 * (s.reincarnation || 0);
+}
+
+// 死亡转世重修：保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）
+function reincarnate(s) {
+  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements };
+  const reincarnation = (s.reincarnation || 0) + 1;
+  newGame();
+  const ns = Game.state;
+  ns.name = keep.name;
+  ns.gongfa = keep.gongfa;
+  ns.achievements = keep.achievements;
+  ns.reincarnation = reincarnation;
+  realignRealm(ns); // 用炼气一层 + 转世加成重算属性
+  goToNode('start');
+  autoSave();
+  UI.showToast(`转世重修成功！第 ${reincarnation} 世，全属性 +${reincarnation * 10}%`);
+}
+
 // ========== 存档 ==========
 function saveGame(slot = 0) {
   if (!Game.state) return false;
   const key = slot === 0 ? 'fantu_save' : `fantu_save_${slot}`;
   Game.state.nodeId = Game.currentNode;
+  Game.state.realmIndex = getRealmIndex(Game.state);
   Game.state.savedAt = Date.now();
   try {
     // 自动档：写入前先把上一版备份，防止单个存档损坏导致进度全丢
@@ -191,28 +214,55 @@ function rollLinggen(s) {
 }
 
 // ========== 境界 ==========
+// 仙帝（idx 35）之后的无限境界命名：循环尊号 + 重天
+const REALM_NAMES_BEYOND = ['圣人', '道祖', '混沌', '鸿蒙', '无量', '无极'];
+const REALM_LAST_FIXED_IDX = REALMS.length - 1; // 35，仙帝
+
+// 统一境界访问：idx < REALMS.length 用固定数组，之后用公式无限生成
+function getRealm(idx) {
+  if (idx < REALMS.length) return REALMS[idx];
+  const n = idx - REALM_LAST_FIXED_IDX; // 仙帝后第 n 个境界（n >= 1）
+  const honor = REALM_NAMES_BEYOND[(n - 1) % REALM_NAMES_BEYOND.length];
+  const tier = Math.floor((n - 1) / REALM_NAMES_BEYOND.length);
+  const name = tier === 0 ? honor : `${honor}${tier + 1}重天`;
+  return {
+    name,
+    max: Math.round(1750000 * Math.pow(1.30, n)),
+    atk: Math.round(15000 * Math.pow(1.18, n)),
+    def: Math.round(2560 * Math.pow(1.17, n)),
+  };
+}
+
 function getRealmIndex(s) {
-  // REALMS[i].max 是累计修为上限，直接比较即可，无需累加
-  for (let i = 0; i < REALMS.length; i++) {
-    if (s.xp < REALMS[i].max) {
-      return i;
+  const xp = s.xp;
+  const lastFixedMax = REALMS[REALMS.length - 1].max;
+  if (xp < lastFixedMax) {
+    // 二分在固定境界内查找
+    let lo = 0, hi = REALMS.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (xp < REALMS[mid].max) hi = mid; else lo = mid + 1;
     }
+    return lo;
   }
-  return REALMS.length - 1;
+  // 仙帝之后：按公式累加找境界（累计上限指数增长，循环次数极低）
+  let idx = REALMS.length - 1;
+  while (xp >= getRealm(idx).max) idx++;
+  return idx;
 }
 
 function getRealmInfo(s) {
   if (!s) s = Game.state;
   const idx = getRealmIndex(s);
-  return REALMS[idx];
+  return getRealm(idx);
 }
 
 function getXpToNext(s) {
   const idx = getRealmIndex(s);
-  const prev = idx > 0 ? REALMS[idx - 1].max : 0;
+  const prev = idx > 0 ? getRealm(idx - 1).max : 0;
   let cur = s.xp - prev;
-  const max = REALMS[idx].max - prev;
-  if (cur > max) cur = max; // 满级封顶，进度条保持满
+  const max = getRealm(idx).max - prev;
+  if (cur > max) cur = max; // 防御性 clamp（无限境界下正常不会触发）
   return { cur, max };
 }
 
@@ -242,8 +292,8 @@ function backfillTribulations(s) {
 function clampByTribulation(s) {
   if (!s.tribulations) s.tribulations = {};
   for (const g of TRIBULATION_GATES) {
-    if (!s.tribulations[g.key] && s.xp >= REALMS[g.gateIdx].max) {
-      s.xp = REALMS[g.gateIdx].max - 1;
+    if (!s.tribulations[g.key] && s.xp >= getRealm(g.gateIdx).max) {
+      s.xp = getRealm(g.gateIdx).max - 1;
       UI.showToast(`境界桎梏：需渡过${g.name}天劫方可晋升`);
     }
   }
@@ -254,7 +304,7 @@ function passTribulation(s, key, gateIdx) {
   if (!s.tribulations) s.tribulations = {};
   s.tribulations[key] = true;
   const oldIdx = getRealmIndex(s);
-  const threshold = REALMS[gateIdx].max;
+  const threshold = getRealm(gateIdx).max;
   if (s.xp < threshold) s.xp = threshold;
   const newIdx = getRealmIndex(s);
   if (newIdx > oldIdx) {
@@ -262,6 +312,7 @@ function passTribulation(s, key, gateIdx) {
   }
   updateStatsFromRealm(s);
   autoSave();
+  playTribulationSound();
 }
 
 function addXp(s, amount) {
@@ -277,12 +328,11 @@ function addXp(s, amount) {
 }
 
 function breakthrough(s, oldIdx, newIdx) {
-  const oldRealm = REALMS[oldIdx];
-  const newRealm = REALMS[newIdx];
+  const newRealm = getRealm(newIdx);
   // 每突破一个小境界都加点
   for (let i = oldIdx + 1; i <= newIdx; i++) {
-    const r = REALMS[i];
-    s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
+    const r = getRealm(i);
+    s.maxHp = Math.floor((r.max * 0.6 + 50) * getReincarnationBonus(s)) + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
     s.atk = r.atk;
     s.def = r.def;
     s.matk = r.atk;
@@ -290,6 +340,7 @@ function breakthrough(s, oldIdx, newIdx) {
   }
   s.hp = s.maxHp;
   UI.showToast(`突破！${newRealm.name}`);
+  playBreakthroughSound();
   if (newIdx >= 10) grantAchievement('realm_zhuji');
   if (newIdx >= 14) grantAchievement('realm_jindan');
   if (newIdx >= 18) grantAchievement('realm_yuanying');
@@ -308,7 +359,7 @@ function updateStatsFromRealm(s) {
 // 依据当前修为重新对齐境界属性（用于纠正旧存档/渡劫后）
 function realignRealm(s) {
   const r = getRealmInfo(s);
-  s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
+  s.maxHp = Math.floor((r.max * 0.6 + 50) * getReincarnationBonus(s)) + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
   s.atk = r.atk;
   s.def = r.def;
   s.matk = r.atk;
@@ -404,6 +455,7 @@ function harvestPlot(s, index) {
   if (y.item) { grantItem(s, y.item, y.count || 1); const it = ITEMS[y.item]; text += `${it ? it.name : '道具'} ×${y.count || 1}`; }
   if (y.xp) { addXp(s, y.xp); text += `修为 +${y.xp}`; }
   if (y.dao) { s.dao += y.dao; text += `道韵 +${y.dao}`; }
+  grantAchievement('cave_harvest');
   autoSave();
   return { ok: true, msg: text };
 }
@@ -416,6 +468,8 @@ function upgradeCave(s) {
   if ((s.stone || 0) < next.cost) return { ok: false, msg: `灵石不足（需 ${next.cost}）` };
   s.stone -= next.cost;
   s.cave.level = c.level + 1;
+  if (s.cave.level >= 3) grantAchievement('cave_lv3');
+  if (s.cave.level >= 7) grantAchievement('cave_lv7');
   autoSave();
   return { ok: true, msg: `洞府升到 ${s.cave.level} 级，灵田 +1，修炼加成提升` };
 }
@@ -437,6 +491,7 @@ function joinSect(s, sectId) {
   if (!sect) return;
   s.sect = sectId;
   s.contribution = 0;
+  grantAchievement('sect_join');
   autoSave();
 }
 
@@ -461,6 +516,7 @@ function doSectTask(s, taskId) {
     removeItemFromState(s, task.cost.item, need);
   }
   s.contribution = (s.contribution || 0) + task.reward;
+  if (s.contribution >= 300) grantAchievement('sect_contrib');
   autoSave();
   return { ok: true, msg: `任务完成，贡献 +${task.reward}` };
 }
@@ -497,6 +553,7 @@ function startSectHunt() {
   const winCb = () => {
     s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
     s.contribution = (s.contribution || 0) + 60;
+    if (s.contribution >= 300) grantAchievement('sect_contrib');
     checkAchievements();
   };
   const loseCb = () => {
@@ -597,6 +654,7 @@ function applyXinmoChoice(delta) {
   const diff = s.mind.xinjing - before;
   Game.currentXinmo = null;
   realignRealm(s);
+  if (s.mind.xinjing >= 100) grantAchievement('xinjing_100');
   autoSave();
   Game.xinmoResult = diff >= 0 ? `心境 +${diff}（当前 ${s.mind.xinjing}）。道心愈发坚定。` : `心境 ${diff}（当前 ${s.mind.xinjing}）。需砥砺道心。`;
   goToNode('xinmo_result');
@@ -788,7 +846,7 @@ function getTotalAtk(s) {
   atk += getGongfaBonus(s, 'atk');
   atk += getSectBonus(s, 'atk');
   atk += getXinjingBonus(s);
-  return Math.floor(atk * PLAYER_ATK_SCALE);
+  return Math.floor(atk * PLAYER_ATK_SCALE * getReincarnationBonus(s));
 }
 function getTotalMatk(s) {
   let matk = (s.matkBase != null) ? s.matkBase : (s.atkBase || s.atk);
@@ -797,7 +855,7 @@ function getTotalMatk(s) {
   matk += getGongfaBonus(s, 'matk');
   matk += getSectBonus(s, 'matk');
   matk += getXinjingBonus(s);
-  return Math.floor(matk * PLAYER_ATK_SCALE);
+  return Math.floor(matk * PLAYER_ATK_SCALE * getReincarnationBonus(s));
 }
 function getTotalDef(s) {
   let def = s.defBase || s.def;
@@ -806,7 +864,7 @@ function getTotalDef(s) {
   def += getGongfaBonus(s, 'def');
   def += getSectBonus(s, 'def');
   def += getXinjingBonus(s);
-  return def;
+  return Math.floor(def * getReincarnationBonus(s));
 }
 function getTotalMdef(s) {
   let mdef = (s.mdefBase != null) ? s.mdefBase : (s.defBase || s.def);
@@ -815,7 +873,7 @@ function getTotalMdef(s) {
   mdef += getGongfaBonus(s, 'mdef');
   mdef += getSectBonus(s, 'mdef');
   mdef += getXinjingBonus(s);
-  return mdef;
+  return Math.floor(mdef * getReincarnationBonus(s));
 }
 function getTotalPen(s) {
   let pen = s.pen || 0;
@@ -825,7 +883,7 @@ function getTotalPen(s) {
   pen += getGongfaBonus(s, 'pen');
   pen += getSectBonus(s, 'pen');
   pen += getXinjingBonus(s);
-  return pen;
+  return Math.floor(pen * getReincarnationBonus(s));
 }
 
 // ========== 功法 ==========
@@ -1123,6 +1181,7 @@ function gachaDraw() {
   }
   s.stone -= GACHA_COST;
   const r = rollGachaOnce(s);
+  playGachaSound();
   autoSave();
   UI.updateStats();
   UI.updateBag();
@@ -1142,6 +1201,7 @@ function gachaDrawTen() {
   for (let i = 0; i < 10; i++) {
     results.push(rollGachaOnce(s));
   }
+  playGachaSound();
   autoSave();
   UI.updateStats();
   UI.updateBag();
@@ -1582,6 +1642,7 @@ function checkBattleEnd() {
     s.stats.battleLoss++;
     s.stats.winStreak = 0;
     logBattle('你倒了下去……', 'sys');
+    playLoseSound();
     setTimeout(() => {
       Game.battle.loseCallback && Game.battle.loseCallback();
       UI.battleEnd(false, Game.battle.loseNext || Game.state.nodeId);
@@ -1601,6 +1662,7 @@ function checkBattleEnd() {
     s.stone += stoneGain;
     if (e.fame) s.fame += e.fame;
     logBattle(`你硬生生扛过了 ${Game.battle.turns} 重天雷，劫云随之散去！获得 ${e.xp} 修为、${stoneGain} 灵石。`, 'sys');
+    playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();
       UI.battleEnd(true, Game.battle.winNext || Game.state.nodeId);
@@ -1634,6 +1696,7 @@ function checkBattleEnd() {
       });
     }
     logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石。${dropText ? '掉落：' + dropText : ''}`, 'sys');
+    playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();
       UI.battleEnd(true, Game.battle.winNext || Game.state.nodeId);
