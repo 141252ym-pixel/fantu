@@ -42,6 +42,8 @@ const UI = {
       loginOverlay: document.getElementById('login-overlay'),
       loginName: document.getElementById('login-name'),
       loginContinue: document.getElementById('login-continue'),
+      loginStart: document.getElementById('login-start'),
+      loginTip: document.getElementById('login-tip'),
       redeemInput: document.getElementById('redeem-input'),
       redeemResult: document.getElementById('redeem-result'),
       dailySignin: document.getElementById('daily-signin'),
@@ -61,10 +63,12 @@ const UI = {
       this.els.loginContinue.textContent = `继续修炼 · ${saved.name || '无名'}（${realm}）`;
       this.els.loginStart.textContent = '重新开始';
       this.els.loginName.value = saved.name || '';
+      this.els.loginTip.textContent = saved.savedAt ? `上次修炼 · ${this._formatSaveTime(saved.savedAt)}` : '道号将伴随你的整个仙途';
     } else {
       this.els.loginContinue.textContent = '继续上次修炼';
       this.els.loginStart.textContent = '踏入仙途';
       this.els.loginName.value = '';
+      this.els.loginTip.textContent = '道号将伴随你的整个仙途';
     }
     this.els.loginOverlay.classList.remove('hidden');
     if (!has) setTimeout(() => this.els.loginName.focus(), 0);
