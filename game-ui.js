@@ -1338,8 +1338,17 @@ const UI = {
       return;
     }
     Game.state = data;
+    if (!Game.state.equipLevel) Game.state.equipLevel = {};
+    if (!Game.state.tribulations) Game.state.tribulations = {};
     migratePets(Game.state);
     migrateGongfa(Game.state);
+    migrateCave(Game.state);
+    migrateSect(Game.state);
+    migrateArena(Game.state);
+    migrateMind(Game.state);
+    backfillTribulations(Game.state);
+    clampByTribulation(Game.state);
+    realignRealm(Game.state);
     goToNode(Game.state.nodeId || 'start');
     this.showToast('读档成功');
     this.closeSidePanel();
@@ -1401,6 +1410,10 @@ const UI = {
     if (!Game.state.tribulations) Game.state.tribulations = {};
     migratePets(Game.state);
     migrateGongfa(Game.state);
+    migrateCave(Game.state);
+    migrateSect(Game.state);
+    migrateArena(Game.state);
+    migrateMind(Game.state);
     backfillTribulations(Game.state);
     clampByTribulation(Game.state);
     realignRealm(Game.state);

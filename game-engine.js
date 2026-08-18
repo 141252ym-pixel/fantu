@@ -422,7 +422,7 @@ function upgradeCave(s) {
 
 // ========== 宗门系统 ==========
 function migrateSect(s) {
-  if (s.sect && !SECTS[s.sect]) s.sect = null;
+  if (!s.sect || !SECTS[s.sect]) s.sect = null;
   if (typeof s.contribution !== 'number') s.contribution = 0;
 }
 
@@ -437,7 +437,6 @@ function joinSect(s, sectId) {
   if (!sect) return;
   s.sect = sectId;
   s.contribution = 0;
-  realignRealm(s);
   autoSave();
 }
 
@@ -480,6 +479,33 @@ function buySectItem(s, shopId) {
   if (r.gongfa) { const res = learnGongfa(s, r.gongfa); text += res.duplicate ? `功法重复，转 ${res.refund} 灵石` : `功法【${res.name}】`; }
   autoSave();
   return { ok: true, msg: text };
+}
+
+// 宗门讨伐任务：进入一场战斗，胜利后获得贡献
+function startSectHunt() {
+  const s = Game.state;
+  if (!s.sect) return;
+  const enemyId = ['stone_monkey', 'blood_cultist'][Math.floor(Math.random() * 2)];
+  const enemyData = ENEMIES[enemyId];
+  if (!enemyData) return;
+  const orig = { atk: s.atk, def: s.def, matk: s.matk, mdef: s.mdef, pen: s.pen };
+  s.atk = getTotalAtk(s);
+  s.def = getTotalDef(s);
+  s.matk = getTotalMatk(s);
+  s.mdef = getTotalMdef(s);
+  s.pen = getTotalPen(s);
+  const winCb = () => {
+    s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
+    s.contribution = (s.contribution || 0) + 60;
+    checkAchievements();
+  };
+  const loseCb = () => {
+    s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
+    s.hp = Math.max(1, Math.floor(s.maxHp * 0.3));
+  };
+  startBattle(enemyId, 1.0, winCb, loseCb, 'sect_tasks', 'sect_tasks');
+  UI.els.battleOverlay.classList.remove('hidden');
+  UI.updateBattle();
 }
 
 // ========== 竞技斗法 ==========
