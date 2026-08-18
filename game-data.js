@@ -2246,6 +2246,7 @@ const STORY_NODES = {
 //   dao   : 道韵
 //   fame  : 名望
 //   item  : { id: '物品ID', count: 数量 }  物品ID见上方 ITEMS 定义
+//   tribulations : true 时直接标记所有天劫已渡（修为不会被天劫卡住，测试用）
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
@@ -2255,6 +2256,7 @@ const REDEEM_CODES = {
   'MINGWANG88':  { fame: 88 },
   'HUIQI99':     { item: { id: 'huiqi_pill', count: 5 } },
   'FANTUXINREN': { stone: 500, xp: 300, item: { id: 'g_yanlingzhu', count: 1 } },
+  'TEST10W':     { stone: 100000, xp: 10000000, tribulations: true },  // 测试码：10万灵石+1000万修为、天劫全渡（上线前务必删除）
 };
 
 // ========== 签到与日常 ==========

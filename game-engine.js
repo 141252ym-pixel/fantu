@@ -1732,6 +1732,11 @@ function redeemCode(code) {
     const it = ITEMS[reward.item.id];
     parts.push(`${it ? it.name : reward.item.id}×${cnt}`);
   }
+  if (reward.tribulations) {
+    if (!s.tribulations) s.tribulations = {};
+    for (const g of TRIBULATION_GATES) s.tribulations[g.key] = true;
+    parts.push('天劫已渡');
+  }
 
   s.redeemed.push(key);
   autoSave();
