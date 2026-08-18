@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>凡途修仙 — 文字修仙</title>
+  <meta name="creative-medium" content="interactive-prototype" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 登录/取名界面 -->
+    <div id="login-overlay" class="login-overlay">
+      <div class="login-panel">
+        <div class="login-title">凡途修仙</div>
+        <div class="login-subtitle">凡途问道 · 一念成仙</div>
+        <input id="login-name" class="login-input" type="text" maxlength="12" placeholder="请取一个道号" autocomplete="off" />
+        <button class="ink-btn login-start" onclick="UI.loginStart()">踏入仙途</button>
+        <button class="ink-btn login-continue hidden" onclick="UI.loginContinue()">继续上次修炼</button>
+        <div class="login-tip">道号将伴随你的整个仙途</div>
+      </div>
+    </div>
+
+    <!-- 顶栏 -->
+    <header class="top-bar">
+      <div class="top-left">
+        <span id="top-name">—</span>
+        <span class="sep">·</span>
+        <span id="top-realm">炼气一层</span>
+      </div>
+      <div class="top-right">
+        <button class="icon-btn" onclick="UI.toggleSidePanel('bag')" title="储物袋">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7h14l-1 13H6L5 7z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg>
+        </button>
+        <button class="icon-btn" onclick="UI.toggleSidePanel('stats')" title="修为">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </button>
+        <button class="icon-btn" onclick="UI.toggleSidePanel('achievements')" title="成就">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="9" r="6"/><path d="M8 14l-2 7 6-3 6 3-2-7"/></svg>
+        </button>
+        <button class="icon-btn" onclick="UI.toggleSidePanel('save')" title="存档">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 14h8v7H8z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 主舞台 -->
+    <main id="main-stage">
+      <!-- 状态条 -->
+      <div class="stat-row">
+        <div class="stat-bar hp">
+          <div class="stat-label">气血</div>
+          <div class="bar"><div class="bar-fill" id="hp-fill"></div></div>
+          <div class="stat-val" id="hp-val">0/0</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-bar xp">
+          <div class="stat-label">修为</div>
+          <div class="bar"><div class="bar-fill" id="xp-fill"></div></div>
+          <div class="stat-val" id="xp-val">0/0</div>
+        </div>
+      </div>
+      <div class="resource-row">
+        <div class="res-item">
+          <span class="res-icon">💎</span>
+          <span class="res-label">灵石</span>
+          <span class="res-val" id="res-stone">0</span>
+        </div>
+        <div class="res-item">
+          <span class="res-icon">🏅</span>
+          <span class="res-label">名望</span>
+          <span class="res-val" id="res-fame">0</span>
+        </div>
+        <div class="res-item">
+          <span class="res-icon">☯️</span>
+          <span class="res-label">道韵</span>
+          <span class="res-val" id="res-dao">0</span>
+        </div>
+      </div>
+
+      <!-- 故事区 -->
+      <section id="story-box" class="story-box">
+        <div id="scene-title" class="scene-title">—</div>
+        <div id="scene-text" class="scene-text"></div>
+        <div id="scene-image" class="scene-image"></div>
+        <div id="action-area" class="action-area"></div>
+      </section>
+    </main>
+
+    <!-- 战斗遮罩 -->
+    <div id="battle-overlay" class="battle-overlay hidden">
+      <div class="battle-panel">
+        <div class="battle-header">
+          <div class="battle-title">⚔ 战斗</div>
+          <div class="battle-enemy">
+            <div id="enemy-name" class="enemy-name">—</div>
+            <div class="enemy-hp-bar">
+              <div class="bar"><div class="bar-fill" id="enemy-hp-fill"></div></div>
+              <div class="enemy-hp-val" id="enemy-hp-val">0/0</div>
+            </div>
+          </div>
+        </div>
+        <div id="battle-log" class="battle-log"></div>
+        <div id="battle-actions" class="battle-actions"></div>
+      </div>
+    </div>
+
+    <!-- 抽卡结果弹窗 -->
+    <div id="gacha-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card">
+        <div id="gacha-rarity" class="gacha-rarity">凡品</div>
+        <div id="gacha-icon" class="gacha-icon">🗡️</div>
+        <div id="gacha-name" class="gacha-name">—</div>
+        <div id="gacha-desc" class="gacha-desc">—</div>
+        <button class="ink-btn" onclick="UI.closeGacha()">收下</button>
+      </div>
+    </div>
+
+    <!-- 十连抽结果弹窗 -->
+    <div id="gacha-ten-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card gacha-ten-card">
+        <div class="gacha-ten-title">十连抽结果</div>
+        <div id="gacha-ten-list" class="gacha-ten-list"></div>
+        <button class="ink-btn" onclick="UI.closeGachaTen()">收下</button>
+      </div>
+    </div>
+
+    <!-- 侧边面板 -->
+    <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
+    <aside id="side-panel" class="side-panel">
+      <div class="side-tabs">
+        <button class="side-tab active" data-tab="stats" onclick="UI.switchSideTab('stats')">修为</button>
+        <button class="side-tab" data-tab="bag" onclick="UI.switchSideTab('bag')">储物袋</button>
+        <button class="side-tab" data-tab="achievements" onclick="UI.switchSideTab('achievements')">成就</button>
+        <button class="side-tab" data-tab="redeem" onclick="UI.switchSideTab('redeem')">兑换</button>
+        <button class="side-tab" data-tab="save" onclick="UI.switchSideTab('save')">存档</button>
+      </div>
+
+      <div class="tab-pane active" id="tab-stats">
+        <div class="pane-title">人物</div>
+        <div id="stat-detail" class="stat-detail"></div>
+        <div class="pane-title">灵根</div>
+        <div id="linggen-detail" class="linggen-detail"></div>
+        <div class="pane-title">统计</div>
+        <div id="stat-total" class="stat-total"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-bag">
+        <div class="pane-title">储物袋</div>
+        <div class="bag-cats">
+          <button class="cat-btn active" data-cat="all" onclick="UI.updateBag('all')">全部</button>
+          <button class="cat-btn" data-cat="pill" onclick="UI.updateBag('pill')">丹药</button>
+          <button class="cat-btn" data-cat="weapon" onclick="UI.updateBag('weapon')">法器</button>
+          <button class="cat-btn" data-cat="material" onclick="UI.updateBag('material')">材料</button>
+          <button class="cat-btn" data-cat="misc" onclick="UI.updateBag('misc')">杂物</button>
+        </div>
+        <div id="bag-list" class="bag-list"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-achievements">
+        <div class="pane-title">成就</div>
+        <div id="achievement-list" class="achievement-list"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-redeem">
+        <div class="pane-title">兑换码</div>
+        <div class="redeem-box">
+          <input id="redeem-input" class="redeem-input" type="text" placeholder="输入兑换码" autocomplete="off" onkeydown="if(event.key==='Enter')UI.redeem()" />
+          <button class="ink-btn" onclick="UI.redeem()">兑换</button>
+        </div>
+        <div id="redeem-result" class="redeem-result"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-save">
+        <div class="pane-title">存档</div>
+        <div class="save-actions">
+          <button class="ink-btn" onclick="UI.saveToSlot(1)">存档 1</button>
+          <button class="ink-btn" onclick="UI.loadFromSlot(1)">读档 1</button>
+        </div>
+        <div class="save-actions">
+          <button class="ink-btn" onclick="UI.saveToSlot(2)">存档 2</button>
+          <button class="ink-btn" onclick="UI.loadFromSlot(2)">读档 2</button>
+        </div>
+        <div class="save-actions">
+          <button class="ink-btn" onclick="UI.saveToSlot(3)">存档 3</button>
+          <button class="ink-btn" onclick="UI.loadFromSlot(3)">读档 3</button>
+        </div>
+        <div class="pane-title">风险操作</div>
+        <button class="ink-btn danger" onclick="UI.resetAll()">重新开始（删档）</button>
+        <div id="save-status" class="save-status"></div>
+      </div>
+    </aside>
+
+    <!-- 飘字提示 -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="game-data.js"></script>
+  <script src="game-engine.js"></script>
+  <script src="game-ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initGame();
+    });
+  </script>
+</body>
+</html>
