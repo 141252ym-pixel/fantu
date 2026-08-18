@@ -188,6 +188,31 @@ const RECIPES = [
   { id: 'r_daopei', name: '炼制道佩',   icon: '🔮', result: 'daopei',    cost: { yaowanggu_lingzhi: 1, hanbingxue: 1 } },
 ];
 
+// ========== 炼丹炉（随机炼丹） ==========
+// 投入材料随机炼出丹药，品质数量随机（weight 为概率权重）
+const ALCHEMY_RECIPES = [
+  { id: 'a_huixue', name: '气血丹方', icon: '💊', cost: { hanbingxue: 2, yaowanggu_lingzhi: 1 },
+    results: [
+      { id: 'zhixie_san', count: 1, weight: 50 },
+      { id: 'huiqi_pill', count: 1, weight: 35 },
+      { id: 'huichun_pill', count: 1, weight: 12 },
+      { id: 'dahuan_pill', count: 1, weight: 3 },
+    ] },
+  { id: 'a_xiuwei', name: '修为丹方', icon: '🧪', cost: { lieyangshi: 2, fengyuteng: 1 },
+    results: [
+      { id: 'juqi_pill', count: 1, weight: 65 },
+      { id: 'juqi_pill', count: 2, weight: 25 },
+      { id: 'juqi_pill', count: 3, weight: 10 },
+    ] },
+  { id: 'a_dahuan', name: '大还丹方', icon: '💛', cost: { lieyangshi: 3, hanbingxue: 2, yaowanggu_lingzhi: 2 },
+    results: [
+      { id: 'huichun_pill', count: 1, weight: 45 },
+      { id: 'dahuan_pill', count: 1, weight: 30 },
+      { id: 'jiuzhuan_pill', count: 1, weight: 15 },
+      { id: 'dahuan_pill', count: 2, weight: 10 },
+    ] },
+];
+
 // ========== 敌人设定 ==========
 const ENEMIES = {
   // 新手区
@@ -570,6 +595,7 @@ const STORY_NODES = {
       { label: '法器铺', next: 'weapon_shop' },
       { label: '材料铺', next: 'material_shop' },
       { label: '炼器坊', next: 'craft_hall' },
+      { label: '炼丹炉', next: 'danlu' },
       { label: '藏宝阁（抽奖）', next: 'gacha_hall' },
       { label: '返回', next: 'qingyun_gate' },
     ],
@@ -631,6 +657,13 @@ const STORY_NODES = {
     title: '炼器坊',
     text: '坊市角落有一家炼器坊，炉火正旺，叮叮当当的敲击声不绝于耳。掌柜的愿意用你带来的材料，帮你锻造法器、炼制丹药。',
     craft: true,
+    choices: [],
+  },
+
+  danlu: {
+    title: '炼丹炉',
+    text: '一尊古朴的青铜丹炉立在坊市一角，炉内丹火熊熊。你可将材料投入炉中，随机炼出丹药，成色全凭运气。',
+    alchemy: true,
     choices: [],
   },
 

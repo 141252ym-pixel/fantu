@@ -116,6 +116,12 @@ const UI = {
       return;
     }
 
+    // 如果是炼丹炉节点
+    if (node.alchemy) {
+      this.renderAlchemy();
+      return;
+    }
+
     // 如果是抽卡节点
     if (node.gacha) {
       this.renderGacha();
@@ -213,6 +219,42 @@ const UI = {
       });
       this.els.actionArea.appendChild(btn);
     });
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('fangshi'));
+    this.els.actionArea.appendChild(backBtn);
+  },
+
+  // ========== 炼丹炉 ==========
+  renderAlchemy() {
+    const s = Game.state;
+    this.els.actionArea.innerHTML = '';
+    ALCHEMY_RECIPES.forEach(r => {
+      const costDesc = Object.keys(r.cost).map(id => `${ITEMS[id] ? ITEMS[id].name : id}×${r.cost[id]}`).join('、');
+      const canAlchemy = Object.keys(r.cost).every(id => (s.bag[id] || 0) >= r.cost[id]);
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      btn.textContent = `${r.icon} ${r.name}（${costDesc}）`;
+      if (!canAlchemy) {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+        btn.textContent += ' （材料不足）';
+      }
+      btn.addEventListener('click', () => {
+        playClickSound();
+        if (alchemy(r.id)) {
+          UI.renderAlchemy();
+          UI.updateBag();
+          UI.updateStats();
+        }
+      });
+      this.els.actionArea.appendChild(btn);
+    });
+    const tip = document.createElement('div');
+    tip.className = 'gacha-pity';
+    tip.textContent = '炼丹结果随机，投入越珍贵的材料，越有机会炼出上等丹药。';
+    this.els.actionArea.appendChild(tip);
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
     backBtn.textContent = '返回';

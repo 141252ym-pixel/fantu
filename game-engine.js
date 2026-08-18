@@ -515,6 +515,34 @@ function craftItem(recipeId) {
   return true;
 }
 
+// ========== 炼丹（随机炼丹炉） ==========
+function alchemy(recipeId) {
+  const s = Game.state;
+  const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
+  if (!recipe) return false;
+  for (const matId in recipe.cost) {
+    if ((s.bag[matId] || 0) < recipe.cost[matId]) { UI.showToast('材料不足'); return false; }
+  }
+  for (const matId in recipe.cost) {
+    removeItemFromState(s, matId, recipe.cost[matId]);
+  }
+  // 按权重随机结果
+  const total = recipe.results.reduce((a, r) => a + r.weight, 0);
+  let roll = Math.random() * total;
+  let chosen = recipe.results[0];
+  for (const r of recipe.results) {
+    roll -= r.weight;
+    if (roll < 0) { chosen = r; break; }
+  }
+  grantItem(s, chosen.id, chosen.count);
+  const item = ITEMS[chosen.id];
+  UI.showToast(`炼丹成功！炼得 ${item.name}×${chosen.count}`);
+  autoSave();
+  UI.updateStats();
+  UI.updateBag();
+  return true;
+}
+
 // 强化已装备的武器/防具
 const EQUIP_MAX_LEVEL = 5;
 function strengthenItem(id) {
