@@ -391,6 +391,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-color: #5c3a1a;
 }
 .login-continue.hidden { display: none; }
+/* 有存档时：继续是主入口（金色置顶），重新开始降级为次要 */
+.login-overlay.has-save .login-continue {
+  background: linear-gradient(180deg, #e8d5a0, #c9a962);
+  border-color: #a0823f;
+  color: #3a2a10;
+  font-weight: 700;
+  font-size: 15px;
+}
+.login-overlay.has-save .login-continue:hover {
+  background: linear-gradient(180deg, #f0e0b0, #d8b878);
+  border-color: #5c3a1a;
+}
+.login-overlay.has-save .login-start {
+  background: transparent;
+  border-color: #8b6b3d;
+  color: #b09a6a;
+  font-weight: 400;
+  font-size: 13px;
+}
+.login-overlay.has-save .login-input {
+  display: none;
+}
 .login-tip {
   font-size: 12px;
   color: #8a7a58;

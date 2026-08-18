@@ -53,10 +53,21 @@ const UI = {
   // ========== 登录界面 ==========
   showLogin() {
     const saved = loadGame();
-    this.els.loginContinue.classList.toggle('hidden', !saved);
-    this.els.loginName.value = saved ? (saved.name || '') : '';
+    const has = !!saved;
+    this.els.loginContinue.classList.toggle('hidden', !has);
+    this.els.loginOverlay.classList.toggle('has-save', has);
+    if (has) {
+      const realm = saved.realmIndex != null && REALMS[saved.realmIndex] ? REALMS[saved.realmIndex].name : '';
+      this.els.loginContinue.textContent = `继续修炼 · ${saved.name || '无名'}（${realm}）`;
+      this.els.loginStart.textContent = '重新开始';
+      this.els.loginName.value = saved.name || '';
+    } else {
+      this.els.loginContinue.textContent = '继续上次修炼';
+      this.els.loginStart.textContent = '踏入仙途';
+      this.els.loginName.value = '';
+    }
     this.els.loginOverlay.classList.remove('hidden');
-    setTimeout(() => this.els.loginName.focus(), 0);
+    if (!has) setTimeout(() => this.els.loginName.focus(), 0);
   },
 
   loginStart() {
