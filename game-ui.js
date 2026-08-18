@@ -51,6 +51,9 @@ const UI = {
     };
     this.updateStats();
     updateSoundIcon();
+    updateBgmIcon();
+    // BGM 首次用户交互后自动播放（浏览器自动播放策略要求先有用户手势）
+    document.addEventListener('pointerdown', () => { if (_bgmEnabled) startBgm(); }, { once: true });
   },
 
   // ========== 登录界面 ==========
@@ -1597,5 +1600,47 @@ function updateSoundIcon() {
     btn.textContent = _soundEnabled ? '🔊' : '🔇';
     btn.classList.toggle('off', !_soundEnabled);
     btn.title = _soundEnabled ? '音效：开' : '音效：关';
+  }
+}
+
+// ========== BGM 背景音乐 ==========
+let _bgmEnabled = (() => {
+  try { return localStorage.getItem('fantu_bgm') !== '0'; } catch (e) { return true; }
+})();
+let _bgmAudio = null;
+
+function getBgmAudio() {
+  if (!_bgmAudio) _bgmAudio = document.getElementById('bgm-audio');
+  return _bgmAudio;
+}
+
+function startBgm() {
+  const audio = getBgmAudio();
+  if (!audio) return;
+  audio.volume = 0.4;
+  audio.loop = true;
+  const p = audio.play();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
+}
+
+// 音乐开关
+function toggleBgm() {
+  _bgmEnabled = !_bgmEnabled;
+  try { localStorage.setItem('fantu_bgm', _bgmEnabled ? '1' : '0'); } catch (e) {}
+  const audio = getBgmAudio();
+  if (_bgmEnabled) {
+    if (audio) { const p = audio.play(); if (p && typeof p.catch === 'function') p.catch(() => {}); }
+  } else if (audio) {
+    audio.pause();
+  }
+  updateBgmIcon();
+}
+
+function updateBgmIcon() {
+  const btn = document.getElementById('bgm-toggle');
+  if (btn) {
+    btn.textContent = _bgmEnabled ? '🎵' : '🔕';
+    btn.classList.toggle('off', !_bgmEnabled);
+    btn.title = _bgmEnabled ? '音乐：开' : '音乐：关';
   }
 }

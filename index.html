@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -45,6 +45,7 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 14h8v7H8z"/></svg>
         </button>
         <button id="sound-toggle" class="icon-btn" onclick="toggleSound()" title="音效：开">🔊</button>
+        <button id="bgm-toggle" class="icon-btn" onclick="toggleBgm()" title="音乐：开">🎵</button>
       </div>
     </header>
 
@@ -231,9 +232,12 @@
     <div id="toast" class="toast hidden"></div>
   </div>
 
+  <!-- 背景音乐 -->
+  <audio id="bgm-audio" src="bgm.m4a" loop preload="auto"></audio>
+
   <script src="game-data.js?v=6"></script>
   <script src="game-engine.js?v=6"></script>
-  <script src="game-ui.js?v=6"></script>
+  <script src="game-ui.js?v=7"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();

@@ -46,8 +46,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: background 0.2s;
 }
 .icon-btn:hover { background: rgba(255,255,255,0.1); }
-#sound-toggle { font-size: 17px; line-height: 1; }
-#sound-toggle.off { opacity: 0.4; filter: grayscale(1); }
+#sound-toggle, #bgm-toggle { font-size: 17px; line-height: 1; }
+#sound-toggle.off, #bgm-toggle.off { opacity: 0.4; filter: grayscale(1); }
 
 /* 主舞台 */
 #main-stage {
