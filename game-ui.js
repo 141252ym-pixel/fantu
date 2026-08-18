@@ -293,16 +293,23 @@ const UI = {
     });
     el.appendChild(info);
 
-    // 当前灵宠
+    // 喂养道具数量
+    const food = document.createElement('div');
+    food.className = 'gacha-pity';
+    food.textContent = `喂养道具：🥩 兽粮 ×${s.bag.shouliang || 0}　💊 灵兽丹 ×${s.bag.lingshou_dan || 0}`;
+    el.appendChild(food);
+
+    // 当前出战灵宠
     const cur = document.createElement('div');
     cur.className = 'gacha-pity';
-    if (s.pet) {
-      const pet = PETS[s.pet.id];
-      const lv = s.pet.level || 1;
+    const equipped = getEquippedPet(s);
+    if (equipped) {
+      const pet = PETS[equipped.id];
+      const lv = equipped.level || 1;
       const b = pet.base, g = pet.growth;
       cur.innerHTML = `
         <div style="font-size:30px">${pet.icon}</div>
-        <div style="color:${pet.qc};font-weight:bold;font-size:17px">当前灵宠：${pet.name} <span style="color:#ccc;font-size:13px">· ${pet.quality}</span></div>
+        <div style="color:${pet.qc};font-weight:bold;font-size:17px">出战中：${pet.name} <span style="color:#ccc;font-size:13px">· ${pet.quality}</span></div>
         <div style="color:#aaa;font-size:12px">等级 ${lv} · ${pet.desc}</div>
         <div style="color:#ddd;font-size:12px;margin-top:4px">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)} 物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
         <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
@@ -311,6 +318,50 @@ const UI = {
       cur.innerHTML = '尚未拥有灵宠，抽一只助你征战吧！';
     }
     el.appendChild(cur);
+
+    // 宠物背包列表
+    if (s.pets.length > 0) {
+      const title = document.createElement('div');
+      title.className = 'pane-title';
+      title.style.marginTop = '4px';
+      title.textContent = `灵宠背包（${s.pets.length}只）`;
+      el.appendChild(title);
+
+      s.pets.forEach(p => {
+        const pet = PETS[p.id];
+        const lv = p.level || 1;
+        const isEquipped = s.pet === p.id;
+        const row = document.createElement('div');
+        row.className = 'bag-item';
+        row.innerHTML = `
+          <div class="item-icon">${pet.icon}</div>
+          <div class="item-info">
+            <div class="item-name" style="color:${pet.qc}">${pet.name} <span style="color:#7a6a4a;font-size:11px">${pet.quality} · ${lv}级${isEquipped ? ' · 出战中' : ''}</span></div>
+            <div class="item-desc">${pet.desc}</div>
+          </div>
+          <div class="item-actions">
+            ${!isEquipped ? `<button class="item-use" data-act="equip" data-id="${p.id}">出战</button>` : ''}
+            <button class="item-str" data-act="feed" data-id="${p.id}">喂食</button>
+            <button class="item-sell" data-act="release" data-id="${p.id}">放生</button>
+          </div>
+        `;
+        el.appendChild(row);
+      });
+
+      // 绑定宠物操作：出战 / 喂食 / 放生
+      el.querySelectorAll('button[data-act]').forEach(b => {
+        b.addEventListener('click', () => {
+          playClickSound();
+          const id = b.dataset.id;
+          const act = b.dataset.act;
+          if (act === 'equip') equipPet(id);
+          else if (act === 'feed') feedPet(id);
+          else if (act === 'release') releasePet(id);
+          this.renderTame();
+          this.updateStats();
+        });
+      });
+    }
 
     // 抽一次
     const btn = document.createElement('button');
@@ -334,28 +385,6 @@ const UI = {
     });
     el.appendChild(tenBtn);
 
-    // 喂食 / 放生
-    if (s.pet) {
-      const lv = s.pet.level || 1;
-      const feedBtn = document.createElement('button');
-      feedBtn.className = 'ink-btn';
-      feedBtn.textContent = `🍖 喂食升级（${lv * 100}灵石）`;
-      feedBtn.addEventListener('click', () => {
-        playClickSound();
-        if (feedPet()) { this.renderTame(); this.updateStats(); }
-      });
-      el.appendChild(feedBtn);
-
-      const releaseBtn = document.createElement('button');
-      releaseBtn.className = 'ink-btn danger';
-      releaseBtn.textContent = '放生灵宠';
-      releaseBtn.addEventListener('click', () => {
-        playClickSound();
-        if (releasePet()) { this.renderTame(); this.updateStats(); }
-      });
-      el.appendChild(releaseBtn);
-    }
-
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
     backBtn.textContent = '返回';
@@ -368,14 +397,21 @@ const UI = {
     this.els.gachaRarity.textContent = r.rarity;
     this.els.gachaRarity.style.color = r.color;
     this.els.gachaRarity.style.borderColor = r.color;
-    this.els.gachaIcon.textContent = r.pet.icon;
-    this.els.gachaName.textContent = r.pet.name;
-    this.els.gachaName.style.color = r.color;
-    const b = r.pet.base;
-    let extra = '';
-    if (r.replaced) extra = `<br>替换了原来的【${r.replaced}】`;
-    else if (r.refund) extra = `<br>已有更强的【${r.keptName}】，转为 ${r.refund} 灵石`;
-    this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
+    if (r.type === 'item') {
+      this.els.gachaIcon.textContent = r.item.icon;
+      this.els.gachaName.textContent = r.item.name;
+      this.els.gachaName.style.color = r.color;
+      this.els.gachaDesc.textContent = `${r.item.desc}（已放入储物袋）`;
+    } else {
+      this.els.gachaIcon.textContent = r.pet.icon;
+      this.els.gachaName.textContent = r.pet.name;
+      this.els.gachaName.style.color = r.color;
+      const b = r.pet.base;
+      let extra = '';
+      if (r.refund) extra = `<br>已拥有同名灵宠，转为 ${r.refund} 灵石`;
+      else extra = `<br>已放入灵宠背包`;
+      this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
+    }
     this.els.gachaOverlay.classList.remove('hidden');
   },
 
@@ -387,16 +423,15 @@ const UI = {
       const div = document.createElement('div');
       div.className = 'gacha-ten-item';
       div.style.color = r.color;
-      div.textContent = `${r.pet.icon}${r.pet.name}`;
+      if (r.type === 'item') div.textContent = `${r.item.icon}${r.item.name}`;
+      else div.textContent = `${r.pet.icon}${r.pet.name}`;
       list.appendChild(div);
     });
     const tip = document.createElement('div');
     tip.className = 'gacha-ten-item';
     tip.style.color = '#e6d3a0';
-    let msg = `保留最强：${res.best.pet.name}（${res.best.rarity}）`;
-    if (res.replaced) msg += `，替换了 ${res.replaced}`;
-    else if (res.keptName) msg += `，保留原灵宠 ${res.keptName}`;
-    if (res.refund) msg += `，其余转 ${res.refund} 灵石`;
+    let msg = '全部奖励已放入背包';
+    if (res.refund) msg += `，重复灵宠转 ${res.refund} 灵石`;
     tip.textContent = msg;
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
@@ -407,29 +442,46 @@ const UI = {
     const s = Game.state;
     const el = document.getElementById('pet-panel');
     if (!el) return;
-    if (!s.pet) {
+    if (!s.pets || s.pets.length === 0) {
       el.innerHTML = '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
       return;
     }
-    const pet = PETS[s.pet.id];
-    const lv = s.pet.level || 1;
-    const b = pet.base, g = pet.growth;
-    const feedCost = lv * 100;
-    el.innerHTML = `
-      <div class="pet-card">
-        <div class="pet-icon">${pet.icon}</div>
-        <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span></div>
-        <div class="pet-level">等级 ${lv}</div>
-        <div class="pet-desc">${pet.desc}</div>
-        <div class="pet-stats">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)}<br>物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
-        <div class="pet-skill">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
-      </div>
-      <button class="ink-btn" onclick="UI.feedPetFromPanel()">🍖 喂食升级（${feedCost}灵石）</button>
-    `;
+    let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
+    s.pets.forEach(p => {
+      const pet = PETS[p.id];
+      const lv = p.level || 1;
+      const b = pet.base, g = pet.growth;
+      const isEquipped = s.pet === p.id;
+      const feedCost = lv * 100;
+      html += `
+        <div class="pet-card">
+          <div class="pet-icon">${pet.icon}</div>
+          <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
+          <div class="pet-level">等级 ${lv}</div>
+          <div class="pet-desc">${pet.desc}</div>
+          <div class="pet-stats">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)}<br>物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
+          <div class="pet-skill">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+        </div>
+        <div class="save-actions">
+          ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.id}')">出战</button>` : ''}
+          <button class="ink-btn" onclick="UI.feedPetFromPanel('${p.id}')">🍖 灵石喂养（${feedCost}）</button>
+          <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.id}')">放生</button>
+        </div>
+      `;
+    });
+    el.innerHTML = html;
   },
 
-  feedPetFromPanel() {
-    if (feedPet()) { this.renderPetPanel(); this.updateStats(); }
+  equipPetFromPanel(id) {
+    if (equipPet(id)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  feedPetFromPanel(id) {
+    if (feedPet(id)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  releasePetFromPanel(id) {
+    if (releasePet(id)) { this.renderPetPanel(); this.updateStats(); }
   },
 
   // ========== 抽卡（藏宝阁） ==========
@@ -950,6 +1002,7 @@ const UI = {
       return;
     }
     Game.state = data;
+    migratePets(Game.state);
     goToNode(Game.state.nodeId || 'start');
     this.els.saveStatus.textContent = `已读取存档 ${slot}`;
     this.showToast('读档成功');

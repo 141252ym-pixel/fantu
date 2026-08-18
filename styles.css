@@ -293,6 +293,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gacha-card {
   width: 100%;
   max-width: 300px;
+  max-height: 90vh; /* 防止十连结果卡片超出屏幕，保证「收下」按钮始终可见 */
+  overflow-y: auto;
   background: linear-gradient(180deg, #2a1f14, #1a120a);
   border: 2px solid #8b6b3d;
   border-radius: 8px;

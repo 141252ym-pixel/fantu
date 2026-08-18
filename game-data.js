@@ -62,6 +62,8 @@ const ITEMS = {
   shanzhifu:    { id: 'shanzhifu',    name: '山贼符',     type: 'misc',     icon: '📜', desc: '似乎没什么用',   effect: null,    sell: 10 },
   dao_compass:  { id: 'dao_compass',  name: '问道罗盘',   type: 'misc',     icon: '🧭', desc: '感应机缘',       effect: 'dao10', sell: 100 },
   lianhua_meng: { id: 'lianhua_meng', name: '莲花盟令',   type: 'misc',     icon: '🌸', desc: '莲花盟信物',     effect: null,    sell: 50 },
+  shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可提升出战灵宠1级', effect: 'pet_food1', sell: 40 },
+  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可提升出战灵宠3级', effect: 'pet_food3', sell: 200 },
 
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
@@ -299,13 +301,15 @@ const PETS = {
 const PET_GACHA_COST = 200;
 const PET_GACHA_PITY = 300; // 神品保底：每300抽必出一次
 const PET_GACHA_POOL = [
-  { rarity: '废品', weight: 36, color: '#7a7a7a', items: ['lingshu', 'huitu'] },
-  { rarity: '凡品', weight: 30, color: '#c9c9c9', items: ['xiaobaihu', 'qingshe'] },
-  { rarity: '良品', weight: 17, color: '#4caf50', items: ['xuanwu', 'linglu'] },
-  { rarity: '中品', weight: 10, color: '#4a90d9', items: ['huoya', 'baiyuan'] },
-  { rarity: '上品', weight: 5,  color: '#9b59b6', items: ['baihu', 'jinpeng'] },
-  { rarity: '极品', weight: 1.5,color: '#e6a23c', items: ['qinglong', 'huofeng'] },
-  { rarity: '神品', weight: 0.5,color: '#e0473c', items: ['shenlong', 'fenghuang'] },
+  { rarity: '废品',   weight: 26,  color: '#7a7a7a', items: ['lingshu', 'huitu'] },
+  { rarity: '凡品',   weight: 21,  color: '#c9c9c9', items: ['xiaobaihu', 'qingshe'] },
+  { rarity: '良品',   weight: 13,  color: '#4caf50', items: ['xuanwu', 'linglu'] },
+  { rarity: '中品',   weight: 8.5, color: '#4a90d9', items: ['huoya', 'baiyuan'] },
+  { rarity: '上品',   weight: 4,   color: '#9b59b6', items: ['baihu', 'jinpeng'] },
+  { rarity: '极品',   weight: 1.2, color: '#e6a23c', items: ['qinglong', 'huofeng'] },
+  { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang'] },
+  { rarity: '兽粮',   weight: 17,  color: '#d4a76a', items: ['shouliang'], type: 'item' },
+  { rarity: '灵兽丹', weight: 8.8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
 ];
 // 品质档位（用于比较强弱）与重复抽到的灵石补偿
 const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };
