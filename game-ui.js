@@ -62,6 +62,10 @@ const UI = {
   loginStart() {
     let name = this.els.loginName.value.trim();
     if (!name) name = '无名';
+    // 已有存档时二次确认，防止误点「踏入仙途」覆盖进度
+    if (loadGame() && !confirm('检测到已有存档，重新开始会覆盖当前进度。\n确定要重新开始吗？')) {
+      return;
+    }
     this.els.loginOverlay.classList.add('hidden');
     startNewGame(name);
   },
@@ -984,28 +988,106 @@ const UI = {
   },
 
   // ========== 存档面板 ==========
+  _formatSaveTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const p = n => (n < 10 ? '0' + n : '' + n);
+    return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  },
+
+  _desc(data) {
+    const realm = data.realmIndex != null && REALMS[data.realmIndex] ? REALMS[data.realmIndex].name : '';
+    return `${data.name || '无名'} · ${realm || '?'} · ${this._formatSaveTime(data.savedAt)}`;
+  },
+
   updateSaveSlots() {
-    this.els.saveStatus.textContent = '';
+    const auto = loadGame(0);
+    let html = '<div class="pane-title" style="margin-top:0">存档概览</div>';
+    html += `<div class="save-row"><span class="save-row-label">自动档</span><span class="save-row-info">${auto ? this._desc(auto) : '（空）'}</span></div>`;
+    for (let i = 1; i <= 3; i++) {
+      const d = loadGame(i);
+      html += `<div class="save-row"><span class="save-row-label">存档 ${i}</span><span class="save-row-info">${d ? this._desc(d) : '（空）'}</span></div>`;
+    }
+    this.els.saveStatus.innerHTML = html;
   },
 
   saveToSlot(slot) {
-    saveGame(slot);
-    this.els.saveStatus.textContent = `存档 ${slot} 已保存`;
-    this.showToast('保存成功');
+    const ok = saveGame(slot);
+    this.showToast(ok ? `存档 ${slot} 已保存` : '保存失败（浏览器存储不可用）');
+    this.updateSaveSlots();
   },
 
   loadFromSlot(slot) {
     const data = loadGame(slot);
     if (!data) {
-      this.els.saveStatus.textContent = `存档 ${slot} 为空`;
-      this.showToast('无存档');
+      this.showToast(`存档 ${slot} 为空`);
       return;
     }
     Game.state = data;
     migratePets(Game.state);
     goToNode(Game.state.nodeId || 'start');
-    this.els.saveStatus.textContent = `已读取存档 ${slot}`;
     this.showToast('读档成功');
+    this.closeSidePanel();
+  },
+
+  // 导出存档：复制到剪贴板，失败则显示文本框手动复制
+  exportSave() {
+    const data = loadGame(0);
+    if (!data) { this.showToast('暂无自动存档可导出'); return; }
+    const text = JSON.stringify(data);
+    const done = () => this.showToast('存档已复制到剪贴板，请粘贴到记事本/备忘录保存');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => this.showImportBox(text));
+    } else {
+      this.showImportBox(text);
+    }
+  },
+
+  // 下载存档文件
+  downloadSave() {
+    const data = loadGame(0);
+    if (!data) { this.showToast('暂无自动存档可下载'); return; }
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fantu_save.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    this.showToast('存档文件已下载');
+  },
+
+  // 显示导入文本框（可选预填导出的文本）
+  showImportBox(text) {
+    const box = document.getElementById('import-box');
+    const ta = document.getElementById('import-text');
+    if (!box || !ta) return;
+    if (text) ta.value = text;
+    box.classList.remove('hidden');
+    setTimeout(() => { ta.focus(); ta.select(); }, 0);
+  },
+
+  // 导入存档
+  importSave() {
+    const ta = document.getElementById('import-text');
+    if (!ta) return;
+    const text = ta.value.trim();
+    if (!text) { this.showToast('请先粘贴存档文本'); return; }
+    let data;
+    try { data = JSON.parse(text); } catch (e) { this.showToast('存档文本格式错误'); return; }
+    if (!data || typeof data !== 'object' || data.name == null) { this.showToast('无效的存档数据'); return; }
+    Game.state = data;
+    if (!Game.state.equipLevel) Game.state.equipLevel = {};
+    if (!Game.state.tribulations) Game.state.tribulations = {};
+    migratePets(Game.state);
+    backfillTribulations(Game.state);
+    clampByTribulation(Game.state);
+    realignRealm(Game.state);
+    autoSave();
+    goToNode(Game.state.nodeId || 'start');
+    document.getElementById('import-box').classList.add('hidden');
+    this.showToast('存档导入成功');
     this.closeSidePanel();
   },
 

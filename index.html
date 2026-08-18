@@ -188,6 +188,7 @@
 
       <div class="tab-pane" id="tab-save">
         <div class="pane-title">存档</div>
+        <div id="save-status" class="save-status"></div>
         <div class="save-actions">
           <button class="ink-btn" onclick="UI.saveToSlot(1)">存档 1</button>
           <button class="ink-btn" onclick="UI.loadFromSlot(1)">读档 1</button>
@@ -200,9 +201,25 @@
           <button class="ink-btn" onclick="UI.saveToSlot(3)">存档 3</button>
           <button class="ink-btn" onclick="UI.loadFromSlot(3)">读档 3</button>
         </div>
+        <div class="pane-title">备份与迁移</div>
+        <div class="save-tip">换设备或担心档丢失？可把存档导出成文字，复制到备忘录保存；在新设备上粘贴回来即可恢复。</div>
+        <div class="save-actions">
+          <button class="ink-btn" onclick="UI.exportSave()">📤 导出存档</button>
+          <button class="ink-btn" onclick="UI.downloadSave()">💾 下载文件</button>
+        </div>
+        <div class="save-actions">
+          <button class="ink-btn" onclick="UI.showImportBox()">📥 导入存档</button>
+        </div>
+        <div id="import-box" class="import-box hidden">
+          <div class="save-tip">把之前导出的存档文本粘贴到下面，然后点「确认导入」。</div>
+          <textarea id="import-text" class="import-text" rows="4" placeholder="在此粘贴存档文本…"></textarea>
+          <div class="save-actions">
+            <button class="ink-btn" onclick="UI.importSave()">确认导入</button>
+            <button class="ink-btn" onclick="document.getElementById('import-box').classList.add('hidden')">取消</button>
+          </div>
+        </div>
         <div class="pane-title">风险操作</div>
         <button class="ink-btn danger" onclick="UI.resetAll()">重新开始（删档）</button>
-        <div id="save-status" class="save-status"></div>
       </div>
     </aside>
 

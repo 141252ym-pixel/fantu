@@ -85,6 +85,7 @@ function newGame() {
 
 function resetGame() {
   localStorage.removeItem('fantu_save');
+  localStorage.removeItem('fantu_save_bak');
   localStorage.removeItem('fantu_save_1');
   localStorage.removeItem('fantu_save_2');
   localStorage.removeItem('fantu_save_3');
@@ -96,6 +97,7 @@ function resetGame() {
 function restartGame() {
   // 死亡结局重开：只清自动档，保留手动存档槽，避免误删玩家手动保存的进度
   localStorage.removeItem('fantu_save');
+  localStorage.removeItem('fantu_save_bak');
   newGame();
   goToNode('start');
   UI.showToast('已重新开始（手动存档已保留）');
@@ -103,21 +105,41 @@ function restartGame() {
 
 // ========== 存档 ==========
 function saveGame(slot = 0) {
-  if (!Game.state) return;
+  if (!Game.state) return false;
   const key = slot === 0 ? 'fantu_save' : `fantu_save_${slot}`;
   Game.state.nodeId = Game.currentNode;
-  localStorage.setItem(key, JSON.stringify(Game.state));
+  Game.state.savedAt = Date.now();
+  try {
+    // 自动档：写入前先把上一版备份，防止单个存档损坏导致进度全丢
+    if (slot === 0) {
+      const prev = localStorage.getItem('fantu_save');
+      if (prev) {
+        try { JSON.parse(prev); localStorage.setItem('fantu_save_bak', prev); } catch (e) { /* 旧档损坏则跳过备份 */ }
+      }
+    }
+    localStorage.setItem(key, JSON.stringify(Game.state));
+    return true;
+  } catch (e) {
+    // 隐私模式禁用存储 / 存储空间已满等情况
+    return false;
+  }
 }
 
 function loadGame(slot = 0) {
   const key = slot === 0 ? 'fantu_save' : `fantu_save_${slot}`;
   const raw = localStorage.getItem(key);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
+  if (raw) {
+    try { return JSON.parse(raw); }
+    catch (e) { /* 主档损坏，下面自动档会尝试回退备份 */ }
   }
+  // 自动档缺失或损坏：回退上一版备份
+  if (slot === 0) {
+    const bak = localStorage.getItem('fantu_save_bak');
+    if (bak) {
+      try { return JSON.parse(bak); } catch (e) { return null; }
+    }
+  }
+  return null;
 }
 
 function autoSave() {
