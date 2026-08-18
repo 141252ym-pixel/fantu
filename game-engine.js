@@ -76,6 +76,7 @@ function newGame() {
     killCount: {},
     signIn: { lastDate: '', streak: 0, total: 0 },
     daily: { date: '', tasks: {}, claimed: {} },
+    pet: null,
   };
 }
 
@@ -270,31 +271,110 @@ function getEquipBonus(s, slot, prefix) {
   return base + lv * 2;
 }
 
-// 计算五维属性（含装备）：物攻/法攻/物抗/法抗/穿透
+// ========== 灵宠 ==========
+function getPetBonus(s, stat) {
+  if (!s.pet) return 0;
+  const pet = PETS[s.pet.id];
+  if (!pet) return 0;
+  const lv = s.pet.level || 1;
+  return Math.floor(pet.base[stat] + pet.growth[stat] * (lv - 1));
+}
+
+// 驯兽：消耗灵石随机获得灵宠
+function tamePet() {
+  const s = Game.state;
+  const cost = 200;
+  if (s.stone < cost) { UI.showToast('灵石不足（需200）'); return false; }
+  s.stone -= cost;
+  const total = PET_POOL.reduce((a, p) => a + p.weight, 0);
+  let roll = Math.random() * total;
+  let chosen = PET_POOL[0];
+  for (const p of PET_POOL) {
+    roll -= p.weight;
+    if (roll < 0) { chosen = p; break; }
+  }
+  s.pet = { id: chosen.id, level: 1 };
+  const pet = PETS[chosen.id];
+  UI.showToast(`成功驯服灵宠【${pet.name}】！`);
+  autoSave();
+  UI.updateStats();
+  return true;
+}
+
+// 喂食升级：消耗灵石提升灵宠等级
+function feedPet() {
+  const s = Game.state;
+  if (!s.pet) { UI.showToast('你还没有灵宠'); return false; }
+  const pet = PETS[s.pet.id];
+  const lv = s.pet.level || 1;
+  const cost = lv * 100;
+  if (s.stone < cost) { UI.showToast(`灵石不足（需${cost}）`); return false; }
+  s.stone -= cost;
+  s.pet.level = lv + 1;
+  UI.showToast(`${pet.name} 提升至 ${s.pet.level} 级！`);
+  autoSave();
+  UI.updateStats();
+  return true;
+}
+
+// 放生灵宠
+function releasePet() {
+  const s = Game.state;
+  if (!s.pet) return false;
+  const pet = PETS[s.pet.id];
+  s.pet = null;
+  UI.showToast(`${pet.name} 已被放生。`);
+  autoSave();
+  UI.updateStats();
+  return true;
+}
+
+// 灵宠战斗助攻：有概率触发技能造成额外伤害
+function petAssist() {
+  const s = Game.state;
+  if (!s.pet) return;
+  const pet = PETS[s.pet.id];
+  if (!pet || Game.battle.ended) return;
+  if (Math.random() < pet.skillChance) {
+    const e = Game.battle.enemy;
+    const lv = s.pet.level || 1;
+    const dmg = Math.max(1, Math.floor(s.atk * pet.skillMult) + lv * 4 - e.def + (s.pen || 0));
+    e.hp -= dmg;
+    logBattle(`【${pet.name}】吐出${pet.skill}，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
+    checkBattleEnd();
+  }
+}
+
+// 计算五维属性（含装备与灵宠）：物攻/法攻/物抗/法抗/穿透
 function getTotalAtk(s) {
   let atk = s.atkBase || s.atk;
   atk += getEquipBonus(s, 'weapon', 'atk');
+  atk += getPetBonus(s, 'atk');
   return Math.floor(atk * PLAYER_ATK_SCALE);
 }
 function getTotalMatk(s) {
   let matk = (s.matkBase != null) ? s.matkBase : (s.atkBase || s.atk);
   matk += getEquipBonus(s, 'weapon', 'matk');
+  matk += getPetBonus(s, 'matk');
   return Math.floor(matk * PLAYER_ATK_SCALE);
 }
 function getTotalDef(s) {
   let def = s.defBase || s.def;
   def += getEquipBonus(s, 'armor', 'def');
+  def += getPetBonus(s, 'def');
   return def;
 }
 function getTotalMdef(s) {
   let mdef = (s.mdefBase != null) ? s.mdefBase : (s.defBase || s.def);
   mdef += getEquipBonus(s, 'armor', 'mdef');
+  mdef += getPetBonus(s, 'mdef');
   return mdef;
 }
 function getTotalPen(s) {
   let pen = s.pen || 0;
   pen += getEquipBonus(s, 'weapon', 'pen');
   pen += getEquipBonus(s, 'armor', 'pen');
+  pen += getPetBonus(s, 'pen');
   return pen;
 }
 
@@ -698,6 +778,7 @@ function playerAttack() {
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
   checkBattleEnd();
+  if (!Game.battle.ended) petAssist();
   if (!Game.battle.ended) enemyTurn();
 }
 
@@ -713,6 +794,7 @@ function playerSkill() {
   logBattle(lg.skillText, 'player');
   logBattle(`【${lg.skill}】对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
   checkBattleEnd();
+  if (!Game.battle.ended) petAssist();
   if (!Game.battle.ended) enemyTurn();
 }
 

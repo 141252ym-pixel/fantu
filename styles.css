@@ -738,3 +738,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .daily-task-state .ink-btn { padding: 5px 12px; font-size: 13px; }
 .daily-claimed { color: #7fb56a; font-size: 13px; }
 .daily-undone { color: #8a7a58; font-size: 13px; }
+
+/* ========== 灵宠 ========== */
+.pet-empty {
+  color: #8a7a58;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 8px;
+  line-height: 1.6;
+}
+.pet-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #3a2c1a;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.pet-icon { font-size: 44px; line-height: 1.2; }
+.pet-name { font-size: 17px; font-weight: 700; margin-top: 4px; }
+.pet-level { color: #b09a6a; font-size: 13px; margin-top: 2px; }
+.pet-desc { color: #8a7a58; font-size: 12px; margin-top: 6px; line-height: 1.5; }
+.pet-stats { color: #e6d3a0; font-size: 13px; margin-top: 8px; line-height: 1.7; }
+.pet-skill { color: #ffd54f; font-size: 12px; margin-top: 8px; line-height: 1.5; }

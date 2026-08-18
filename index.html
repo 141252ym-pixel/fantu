@@ -133,6 +133,7 @@
         <button class="side-tab active" data-tab="stats" onclick="UI.switchSideTab('stats')">修为</button>
         <button class="side-tab" data-tab="bag" onclick="UI.switchSideTab('bag')">储物袋</button>
         <button class="side-tab" data-tab="achievements" onclick="UI.switchSideTab('achievements')">成就</button>
+        <button class="side-tab" data-tab="pet" onclick="UI.switchSideTab('pet')">灵宠</button>
         <button class="side-tab" data-tab="daily" onclick="UI.switchSideTab('daily')">日常</button>
         <button class="side-tab" data-tab="redeem" onclick="UI.switchSideTab('redeem')">兑换</button>
         <button class="side-tab" data-tab="save" onclick="UI.switchSideTab('save')">存档</button>
@@ -162,6 +163,11 @@
       <div class="tab-pane" id="tab-achievements">
         <div class="pane-title">成就</div>
         <div id="achievement-list" class="achievement-list"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-pet">
+        <div class="pane-title">灵宠</div>
+        <div id="pet-panel"></div>
       </div>
 
       <div class="tab-pane" id="tab-daily">

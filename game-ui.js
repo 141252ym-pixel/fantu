@@ -122,6 +122,12 @@ const UI = {
       return;
     }
 
+    // 如果是灵兽谷节点
+    if (node.tame) {
+      this.renderTame();
+      return;
+    }
+
     // 如果是抽卡节点
     if (node.gacha) {
       this.renderGacha();
@@ -260,6 +266,95 @@ const UI = {
     backBtn.textContent = '返回';
     backBtn.addEventListener('click', () => goToNode('fangshi'));
     this.els.actionArea.appendChild(backBtn);
+  },
+
+  // ========== 灵兽谷 ==========
+  renderTame() {
+    const s = Game.state;
+    this.els.actionArea.innerHTML = '';
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    if (s.pet) {
+      const pet = PETS[s.pet.id];
+      const lv = s.pet.level || 1;
+      const b = pet.base, g = pet.growth;
+      info.innerHTML = `
+        <div style="font-size:34px">${pet.icon}</div>
+        <div style="color:${pet.qc};font-weight:bold;font-size:18px">${pet.name} <span style="color:#ccc;font-size:14px">· ${pet.quality}</span></div>
+        <div style="color:#aaa">等级 ${lv} · ${pet.desc}</div>
+        <div style="color:#ddd;margin-top:6px">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)} 物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
+        <div style="color:#ffd54f;margin-top:6px">灵宠技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+      `;
+    } else {
+      info.innerHTML = '你尚未驯服灵宠。投入灵石，或可遇见心仪的灵兽。';
+    }
+    this.els.actionArea.appendChild(info);
+
+    const tameBtn = document.createElement('button');
+    tameBtn.className = 'ink-btn';
+    tameBtn.textContent = '🐾 驯兽（200灵石）';
+    tameBtn.addEventListener('click', () => {
+      playClickSound();
+      if (tamePet()) { UI.renderTame(); UI.updateStats(); }
+    });
+    this.els.actionArea.appendChild(tameBtn);
+
+    if (s.pet) {
+      const lv = s.pet.level || 1;
+      const feedBtn = document.createElement('button');
+      feedBtn.className = 'ink-btn';
+      feedBtn.textContent = `🍖 喂食升级（${lv * 100}灵石）`;
+      feedBtn.addEventListener('click', () => {
+        playClickSound();
+        if (feedPet()) { UI.renderTame(); UI.updateStats(); }
+      });
+      this.els.actionArea.appendChild(feedBtn);
+
+      const releaseBtn = document.createElement('button');
+      releaseBtn.className = 'ink-btn danger';
+      releaseBtn.textContent = '放生灵宠';
+      releaseBtn.addEventListener('click', () => {
+        playClickSound();
+        if (releasePet()) { UI.renderTame(); UI.updateStats(); }
+      });
+      this.els.actionArea.appendChild(releaseBtn);
+    }
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('fangshi'));
+    this.els.actionArea.appendChild(backBtn);
+  },
+
+  // ========== 侧边面板·灵宠 ==========
+  renderPetPanel() {
+    const s = Game.state;
+    const el = document.getElementById('pet-panel');
+    if (!el) return;
+    if (!s.pet) {
+      el.innerHTML = '<div class="pet-empty">尚未驯服灵宠，可前往坊市·灵兽谷驯服。</div>';
+      return;
+    }
+    const pet = PETS[s.pet.id];
+    const lv = s.pet.level || 1;
+    const b = pet.base, g = pet.growth;
+    const feedCost = lv * 100;
+    el.innerHTML = `
+      <div class="pet-card">
+        <div class="pet-icon">${pet.icon}</div>
+        <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span></div>
+        <div class="pet-level">等级 ${lv}</div>
+        <div class="pet-desc">${pet.desc}</div>
+        <div class="pet-stats">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)}<br>物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
+        <div class="pet-skill">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+      </div>
+      <button class="ink-btn" onclick="UI.feedPetFromPanel()">🍖 喂食升级（${feedCost}灵石）</button>
+    `;
+  },
+
+  feedPetFromPanel() {
+    if (feedPet()) { this.renderPetPanel(); this.updateStats(); }
   },
 
   // ========== 抽卡（藏宝阁） ==========
@@ -561,6 +656,7 @@ const UI = {
     });
     if (name === 'bag') this.updateBag('all');
     if (name === 'achievements') this.updateAchievements();
+    if (name === 'pet') this.renderPetPanel();
     if (name === 'daily') this.renderDaily();
     if (name === 'save') this.updateSaveSlots();
   },

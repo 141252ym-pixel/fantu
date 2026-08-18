@@ -213,6 +213,45 @@ const ALCHEMY_RECIPES = [
     ] },
 ];
 
+// ========== 灵宠系统 ==========
+// 灵宠图鉴：base 为 1 级属性加成，growth 为每级成长
+const PETS = {
+  xiaobaihu: { id: 'xiaobaihu', name: '小白狐', icon: '🦊', quality: '凡品', qc: '#b0b0b0',
+    base: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
+    growth: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
+    skill: '狐火', skillChance: 0.18, skillMult: 1.3,
+    desc: '通体雪白的小狐狸，性情温顺，口吐狐火。' },
+  xuanwu: { id: 'xuanwu', name: '玄龟', icon: '🐢', quality: '灵品', qc: '#6ec6ff',
+    base: { atk: 1, matk: 1, def: 5, mdef: 3, pen: 0 },
+    growth: { atk: 1, matk: 1, def: 3, mdef: 2, pen: 0 },
+    skill: '玄龟冲撞', skillChance: 0.15, skillMult: 1.5,
+    desc: '背负玄甲的灵龟，防御无双，坚不可摧。' },
+  huofeng: { id: 'huofeng', name: '火凤', icon: '🦜', quality: '灵品', qc: '#ff7a7a',
+    base: { atk: 3, matk: 5, def: 1, mdef: 2, pen: 1 },
+    growth: { atk: 2, matk: 3, def: 1, mdef: 1, pen: 0 },
+    skill: '凤炎', skillChance: 0.20, skillMult: 1.6,
+    desc: '浴火而生的灵凤，烈焰滔天。' },
+  qinglong: { id: 'qinglong', name: '青龙', icon: '🐉', quality: '仙品', qc: '#ffd54f',
+    base: { atk: 6, matk: 4, def: 3, mdef: 2, pen: 2 },
+    growth: { atk: 3, matk: 2, def: 2, mdef: 2, pen: 1 },
+    skill: '龙息', skillChance: 0.22, skillMult: 1.8,
+    desc: '东方苍龙，龙威浩荡，睥睨天下。' },
+  shenlong: { id: 'shenlong', name: '神龙', icon: '🐲', quality: '神品', qc: '#ff8a3d',
+    base: { atk: 9, matk: 8, def: 5, mdef: 4, pen: 3 },
+    growth: { atk: 5, matk: 4, def: 3, mdef: 3, pen: 2 },
+    skill: '神龙吐息', skillChance: 0.25, skillMult: 2.2,
+    desc: '九天之上的神龙，俯瞰众生，威压万物。' },
+};
+
+// 灵兽谷驯兽概率池（weight 为概率权重）
+const PET_POOL = [
+  { id: 'xiaobaihu', weight: 45 },
+  { id: 'xuanwu',    weight: 25 },
+  { id: 'huofeng',   weight: 18 },
+  { id: 'qinglong',  weight: 9 },
+  { id: 'shenlong',  weight: 3 },
+];
+
 // ========== 敌人设定 ==========
 const ENEMIES = {
   // 新手区
@@ -596,6 +635,7 @@ const STORY_NODES = {
       { label: '材料铺', next: 'material_shop' },
       { label: '炼器坊', next: 'craft_hall' },
       { label: '炼丹炉', next: 'danlu' },
+      { label: '灵兽谷', next: 'lingshou_gu' },
       { label: '藏宝阁（抽奖）', next: 'gacha_hall' },
       { label: '返回', next: 'qingyun_gate' },
     ],
@@ -664,6 +704,13 @@ const STORY_NODES = {
     title: '炼丹炉',
     text: '一尊古朴的青铜丹炉立在坊市一角，炉内丹火熊熊。你可将材料投入炉中，随机炼出丹药，成色全凭运气。',
     alchemy: true,
+    choices: [],
+  },
+
+  lingshou_gu: {
+    title: '灵兽谷',
+    text: '山谷深处林木葱郁，时有灵兽出没。你可在此驯服灵宠，助你征战。',
+    tame: true,
     choices: [],
   },
 
