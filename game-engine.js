@@ -281,25 +281,47 @@ function getPetBonus(s, stat) {
   return Math.floor(pet.base[stat] + pet.growth[stat] * (lv - 1));
 }
 
-// 驯兽：消耗灵石随机获得灵宠
-function tamePet() {
-  const s = Game.state;
-  const cost = 200;
-  if (s.stone < cost) { UI.showToast('灵石不足（需200）'); return false; }
-  s.stone -= cost;
-  const total = PET_POOL.reduce((a, p) => a + p.weight, 0);
-  let roll = Math.random() * total;
-  let chosen = PET_POOL[0];
-  for (const p of PET_POOL) {
-    roll -= p.weight;
-    if (roll < 0) { chosen = p; break; }
+// 灵宠抽奖：按稀有度权重随机抽一只灵宠（保底参照藏宝阁）
+function rollPetOnce(s) {
+  s.petGachaCount = (s.petGachaCount || 0) + 1;
+  if (s.petSinceShen == null) s.petSinceShen = 0;
+  const shenTier = PET_GACHA_POOL[PET_GACHA_POOL.length - 1];
+  let tier;
+  if (s.petSinceShen >= PET_GACHA_PITY - 1) {
+    tier = shenTier;
+  } else {
+    let roll = Math.random() * 100;
+    tier = PET_GACHA_POOL[0];
+    for (const t of PET_GACHA_POOL) {
+      if (roll < t.weight) { tier = t; break; }
+      roll -= t.weight;
+    }
   }
-  s.pet = { id: chosen.id, level: 1 };
-  const pet = PETS[chosen.id];
-  UI.showToast(`成功驯服灵宠【${pet.name}】！`);
+  if (tier === shenTier) { s.petSinceShen = 0; } else { s.petSinceShen++; }
+  const petId = tier.items[Math.floor(Math.random() * tier.items.length)];
+  return { pet: PETS[petId], rarity: tier.rarity, color: tier.color };
+}
+
+function petGachaDraw() {
+  const s = Game.state;
+  if (s.stone < PET_GACHA_COST) { UI.showToast(`灵石不足（需 ${PET_GACHA_COST}）`); return null; }
+  s.stone -= PET_GACHA_COST;
+  const r = rollPetOnce(s);
+  const old = s.pet ? PETS[s.pet.id] : null;
+  const oldRank = old ? (PET_QUALITY_RANK[old.quality] || 0) : -1;
+  const newRank = PET_QUALITY_RANK[r.pet.quality] || 0;
+  if (!old || newRank >= oldRank) {
+    s.pet = { id: r.pet.id, level: 1 };
+    r.replaced = old ? old.name : null;
+  } else {
+    const refund = PET_REFUND[r.pet.quality] || 0;
+    s.stone += refund;
+    r.refund = refund;
+    r.keptName = old.name;
+  }
   autoSave();
   UI.updateStats();
-  return true;
+  return r;
 }
 
 // 喂食升级：消耗灵石提升灵宠等级

@@ -214,43 +214,102 @@ const ALCHEMY_RECIPES = [
 ];
 
 // ========== 灵宠系统 ==========
-// 灵宠图鉴：base 为 1 级属性加成，growth 为每级成长
+// 灵宠图鉴：base 为 1 级属性加成，growth 为每级成长，品质由低到高
 const PETS = {
-  xiaobaihu: { id: 'xiaobaihu', name: '小白狐', icon: '🦊', quality: '凡品', qc: '#b0b0b0',
-    base: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
+  // 废品
+  lingshu: { id: 'lingshu', name: '灵鼠', icon: '🐭', quality: '废品', qc: '#7a7a7a',
+    base: { atk: 1, matk: 1, def: 0, mdef: 0, pen: 0 },
+    growth: { atk: 1, matk: 1, def: 1, mdef: 0, pen: 0 },
+    skill: '啮咬', skillChance: 0.10, skillMult: 1.1,
+    desc: '山林间最不起眼的小灵兽。' },
+  huitu: { id: 'huitu', name: '灰兔', icon: '🐰', quality: '废品', qc: '#7a7a7a',
+    base: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
     growth: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
+    skill: '蹬腿', skillChance: 0.10, skillMult: 1.1,
+    desc: '机警的小灰兔，速度飞快。' },
+  // 凡品
+  xiaobaihu: { id: 'xiaobaihu', name: '小白狐', icon: '🦊', quality: '凡品', qc: '#c9c9c9',
+    base: { atk: 4, matk: 4, def: 2, mdef: 2, pen: 0 },
+    growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
     skill: '狐火', skillChance: 0.18, skillMult: 1.3,
     desc: '通体雪白的小狐狸，性情温顺，口吐狐火。' },
-  xuanwu: { id: 'xuanwu', name: '玄龟', icon: '🐢', quality: '灵品', qc: '#6ec6ff',
-    base: { atk: 1, matk: 1, def: 5, mdef: 3, pen: 0 },
-    growth: { atk: 1, matk: 1, def: 3, mdef: 2, pen: 0 },
+  qingshe: { id: 'qingshe', name: '青蛇', icon: '🐍', quality: '凡品', qc: '#c9c9c9',
+    base: { atk: 5, matk: 3, def: 2, mdef: 2, pen: 0 },
+    growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
+    skill: '毒牙', skillChance: 0.15, skillMult: 1.3,
+    desc: '通体青碧的灵蛇，毒牙锋利。' },
+  // 良品
+  xuanwu: { id: 'xuanwu', name: '玄龟', icon: '🐢', quality: '良品', qc: '#4caf50',
+    base: { atk: 3, matk: 3, def: 10, mdef: 7, pen: 0 },
+    growth: { atk: 1, matk: 1, def: 4, mdef: 3, pen: 0 },
     skill: '玄龟冲撞', skillChance: 0.15, skillMult: 1.5,
     desc: '背负玄甲的灵龟，防御无双，坚不可摧。' },
-  huofeng: { id: 'huofeng', name: '火凤', icon: '🦜', quality: '灵品', qc: '#ff7a7a',
-    base: { atk: 3, matk: 5, def: 1, mdef: 2, pen: 1 },
-    growth: { atk: 2, matk: 3, def: 1, mdef: 1, pen: 0 },
-    skill: '凤炎', skillChance: 0.20, skillMult: 1.6,
-    desc: '浴火而生的灵凤，烈焰滔天。' },
-  qinglong: { id: 'qinglong', name: '青龙', icon: '🐉', quality: '仙品', qc: '#ffd54f',
-    base: { atk: 6, matk: 4, def: 3, mdef: 2, pen: 2 },
-    growth: { atk: 3, matk: 2, def: 2, mdef: 2, pen: 1 },
+  linglu: { id: 'linglu', name: '灵鹿', icon: '🦌', quality: '良品', qc: '#4caf50',
+    base: { atk: 4, matk: 7, def: 4, mdef: 4, pen: 0 },
+    growth: { atk: 2, matk: 3, def: 2, mdef: 2, pen: 0 },
+    skill: '灵角', skillChance: 0.18, skillMult: 1.4,
+    desc: '头顶灵角的灵鹿，通体灵光。' },
+  // 中品
+  huoya: { id: 'huoya', name: '火鸦', icon: '🦅', quality: '中品', qc: '#4a90d9',
+    base: { atk: 8, matk: 10, def: 4, mdef: 4, pen: 1 },
+    growth: { atk: 3, matk: 4, def: 2, mdef: 2, pen: 0 },
+    skill: '火羽', skillChance: 0.20, skillMult: 1.5,
+    desc: '浑身燃着赤焰的火鸦，鸣声如雷。' },
+  baiyuan: { id: 'baiyuan', name: '白猿', icon: '🐒', quality: '中品', qc: '#4a90d9',
+    base: { atk: 10, matk: 6, def: 7, mdef: 5, pen: 1 },
+    growth: { atk: 4, matk: 3, def: 3, mdef: 2, pen: 0 },
+    skill: '猿啸', skillChance: 0.18, skillMult: 1.5,
+    desc: '通臂白猿，力大无穷。' },
+  // 上品
+  baihu: { id: 'baihu', name: '白虎', icon: '🐯', quality: '上品', qc: '#9b59b6',
+    base: { atk: 15, matk: 10, def: 8, mdef: 7, pen: 3 },
+    growth: { atk: 5, matk: 4, def: 3, mdef: 3, pen: 1 },
+    skill: '虎啸', skillChance: 0.20, skillMult: 1.6,
+    desc: '西方庚金白虎，主杀伐，威震山野。' },
+  jinpeng: { id: 'jinpeng', name: '金鹏', icon: '🦜', quality: '上品', qc: '#9b59b6',
+    base: { atk: 13, matk: 15, def: 7, mdef: 8, pen: 3 },
+    growth: { atk: 5, matk: 5, def: 3, mdef: 3, pen: 1 },
+    skill: '金翅', skillChance: 0.20, skillMult: 1.6,
+    desc: '展翅千里的大鹏，金羽遮天。' },
+  // 极品
+  qinglong: { id: 'qinglong', name: '青龙', icon: '🐉', quality: '极品', qc: '#e6a23c',
+    base: { atk: 22, matk: 17, def: 11, mdef: 10, pen: 6 },
+    growth: { atk: 7, matk: 6, def: 4, mdef: 4, pen: 2 },
     skill: '龙息', skillChance: 0.22, skillMult: 1.8,
     desc: '东方苍龙，龙威浩荡，睥睨天下。' },
-  shenlong: { id: 'shenlong', name: '神龙', icon: '🐲', quality: '神品', qc: '#ff8a3d',
-    base: { atk: 9, matk: 8, def: 5, mdef: 4, pen: 3 },
-    growth: { atk: 5, matk: 4, def: 3, mdef: 3, pen: 2 },
+  huofeng: { id: 'huofeng', name: '火凤', icon: '🦚', quality: '极品', qc: '#e6a23c',
+    base: { atk: 18, matk: 24, def: 9, mdef: 11, pen: 6 },
+    growth: { atk: 6, matk: 8, def: 3, mdef: 4, pen: 2 },
+    skill: '凤炎', skillChance: 0.22, skillMult: 1.8,
+    desc: '浴火而生的火凤，烈焰滔天。' },
+  // 神品（最高，龙与凤凰）
+  shenlong: { id: 'shenlong', name: '神龙', icon: '🐲', quality: '神品', qc: '#e0473c',
+    base: { atk: 32, matk: 28, def: 16, mdef: 15, pen: 10 },
+    growth: { atk: 10, matk: 9, def: 5, mdef: 5, pen: 3 },
     skill: '神龙吐息', skillChance: 0.25, skillMult: 2.2,
     desc: '九天之上的神龙，俯瞰众生，威压万物。' },
+  fenghuang: { id: 'fenghuang', name: '凤凰', icon: '🦩', quality: '神品', qc: '#e0473c',
+    base: { atk: 28, matk: 32, def: 14, mdef: 17, pen: 10 },
+    growth: { atk: 9, matk: 10, def: 5, mdef: 6, pen: 3 },
+    skill: '涅槃', skillChance: 0.25, skillMult: 2.2,
+    desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。' },
 };
 
-// 灵兽谷驯兽概率池（weight 为概率权重）
-const PET_POOL = [
-  { id: 'xiaobaihu', weight: 45 },
-  { id: 'xuanwu',    weight: 25 },
-  { id: 'huofeng',   weight: 18 },
-  { id: 'qinglong',  weight: 9 },
-  { id: 'shenlong',  weight: 3 },
+// 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）
+const PET_GACHA_COST = 200;
+const PET_GACHA_PITY = 100; // 神品保底：每100抽必出一次
+const PET_GACHA_POOL = [
+  { rarity: '废品', weight: 36, color: '#7a7a7a', items: ['lingshu', 'huitu'] },
+  { rarity: '凡品', weight: 30, color: '#c9c9c9', items: ['xiaobaihu', 'qingshe'] },
+  { rarity: '良品', weight: 17, color: '#4caf50', items: ['xuanwu', 'linglu'] },
+  { rarity: '中品', weight: 10, color: '#4a90d9', items: ['huoya', 'baiyuan'] },
+  { rarity: '上品', weight: 5,  color: '#9b59b6', items: ['baihu', 'jinpeng'] },
+  { rarity: '极品', weight: 1.5,color: '#e6a23c', items: ['qinglong', 'huofeng'] },
+  { rarity: '神品', weight: 0.5,color: '#e0473c', items: ['shenlong', 'fenghuang'] },
 ];
+// 品质档位（用于比较强弱）与重复抽到的灵石补偿
+const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };
+const PET_REFUND = { '废品': 10, '凡品': 30, '良品': 60, '中品': 120, '上品': 250, '极品': 600, '神品': 1500 };
 
 // ========== 敌人设定 ==========
 const ENEMIES = {
@@ -721,7 +780,7 @@ const STORY_NODES = {
 
   lingshou_gu: {
     title: '灵兽谷',
-    text: '山谷深处林木葱郁，时有灵兽出没。你可在此驯服灵宠，助你征战。',
+    text: '山谷深处林木葱郁，时有灵兽出没。你可在此抽取灵宠，龙与凤凰皆有可能现世。',
     tame: true,
     choices: [],
   },

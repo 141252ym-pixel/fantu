@@ -268,37 +268,62 @@ const UI = {
     this.els.actionArea.appendChild(backBtn);
   },
 
-  // ========== 灵兽谷 ==========
+  // ========== 灵兽谷（灵宠转盘抽奖） ==========
   renderTame() {
     const s = Game.state;
-    this.els.actionArea.innerHTML = '';
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+
+    // 保底信息
+    const pity = document.createElement('div');
+    pity.className = 'gacha-pity';
+    const sinceShen = s.petSinceShen || 0;
+    pity.textContent = `已抽 ${s.petGachaCount || 0} 抽 · 距神品保底 ${Math.max(0, PET_GACHA_PITY - sinceShen)} 抽`;
+    el.appendChild(pity);
+
+    // 概率表
     const info = document.createElement('div');
-    info.className = 'gacha-pity';
+    info.className = 'gacha-info';
+    PET_GACHA_POOL.forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'gacha-rate';
+      span.style.color = t.color;
+      span.textContent = `${t.rarity} ${t.weight}%`;
+      info.appendChild(span);
+    });
+    el.appendChild(info);
+
+    // 当前灵宠
+    const cur = document.createElement('div');
+    cur.className = 'gacha-pity';
     if (s.pet) {
       const pet = PETS[s.pet.id];
       const lv = s.pet.level || 1;
       const b = pet.base, g = pet.growth;
-      info.innerHTML = `
-        <div style="font-size:34px">${pet.icon}</div>
-        <div style="color:${pet.qc};font-weight:bold;font-size:18px">${pet.name} <span style="color:#ccc;font-size:14px">· ${pet.quality}</span></div>
-        <div style="color:#aaa">等级 ${lv} · ${pet.desc}</div>
-        <div style="color:#ddd;margin-top:6px">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)} 物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
-        <div style="color:#ffd54f;margin-top:6px">灵宠技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+      cur.innerHTML = `
+        <div style="font-size:30px">${pet.icon}</div>
+        <div style="color:${pet.qc};font-weight:bold;font-size:17px">当前灵宠：${pet.name} <span style="color:#ccc;font-size:13px">· ${pet.quality}</span></div>
+        <div style="color:#aaa;font-size:12px">等级 ${lv} · ${pet.desc}</div>
+        <div style="color:#ddd;font-size:12px;margin-top:4px">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)} 物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
+        <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
       `;
     } else {
-      info.innerHTML = '你尚未驯服灵宠。投入灵石，或可遇见心仪的灵兽。';
+      cur.innerHTML = '尚未拥有灵宠，抽一只助你征战吧！';
     }
-    this.els.actionArea.appendChild(info);
+    el.appendChild(cur);
 
-    const tameBtn = document.createElement('button');
-    tameBtn.className = 'ink-btn';
-    tameBtn.textContent = '🐾 驯兽（200灵石）';
-    tameBtn.addEventListener('click', () => {
+    // 抽一次
+    const btn = document.createElement('button');
+    btn.className = 'ink-btn';
+    btn.textContent = `🐾 抽灵宠（${PET_GACHA_COST}灵石）`;
+    btn.addEventListener('click', () => {
       playClickSound();
-      if (tamePet()) { UI.renderTame(); UI.updateStats(); }
+      const r = petGachaDraw();
+      if (r) { this.showPetGachaResult(r); this.renderTame(); }
     });
-    this.els.actionArea.appendChild(tameBtn);
+    el.appendChild(btn);
 
+    // 喂食 / 放生
     if (s.pet) {
       const lv = s.pet.level || 1;
       const feedBtn = document.createElement('button');
@@ -306,25 +331,41 @@ const UI = {
       feedBtn.textContent = `🍖 喂食升级（${lv * 100}灵石）`;
       feedBtn.addEventListener('click', () => {
         playClickSound();
-        if (feedPet()) { UI.renderTame(); UI.updateStats(); }
+        if (feedPet()) { this.renderTame(); this.updateStats(); }
       });
-      this.els.actionArea.appendChild(feedBtn);
+      el.appendChild(feedBtn);
 
       const releaseBtn = document.createElement('button');
       releaseBtn.className = 'ink-btn danger';
       releaseBtn.textContent = '放生灵宠';
       releaseBtn.addEventListener('click', () => {
         playClickSound();
-        if (releasePet()) { UI.renderTame(); UI.updateStats(); }
+        if (releasePet()) { this.renderTame(); this.updateStats(); }
       });
-      this.els.actionArea.appendChild(releaseBtn);
+      el.appendChild(releaseBtn);
     }
 
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
     backBtn.textContent = '返回';
     backBtn.addEventListener('click', () => goToNode('fangshi'));
-    this.els.actionArea.appendChild(backBtn);
+    el.appendChild(backBtn);
+  },
+
+  // 灵宠抽奖结果弹窗（复用藏宝阁转盘）
+  showPetGachaResult(r) {
+    this.els.gachaRarity.textContent = r.rarity;
+    this.els.gachaRarity.style.color = r.color;
+    this.els.gachaRarity.style.borderColor = r.color;
+    this.els.gachaIcon.textContent = r.pet.icon;
+    this.els.gachaName.textContent = r.pet.name;
+    this.els.gachaName.style.color = r.color;
+    const b = r.pet.base;
+    let extra = '';
+    if (r.replaced) extra = `<br>替换了原来的【${r.replaced}】`;
+    else if (r.refund) extra = `<br>已有更强的【${r.keptName}】，转为 ${r.refund} 灵石`;
+    this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
+    this.els.gachaOverlay.classList.remove('hidden');
   },
 
   // ========== 侧边面板·灵宠 ==========
@@ -333,7 +374,7 @@ const UI = {
     const el = document.getElementById('pet-panel');
     if (!el) return;
     if (!s.pet) {
-      el.innerHTML = '<div class="pet-empty">尚未驯服灵宠，可前往坊市·灵兽谷驯服。</div>';
+      el.innerHTML = '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
       return;
     }
     const pet = PETS[s.pet.id];
