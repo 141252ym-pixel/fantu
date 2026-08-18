@@ -77,6 +77,7 @@ function newGame() {
     signIn: { lastDate: '', streak: 0, total: 0 },
     daily: { date: '', tasks: {}, claimed: {} },
     pet: null,
+    mijing: { floor: 0, best: 0, active: false },
   };
 }
 
@@ -721,6 +722,16 @@ function getNodeText(node) {
 }
 
 // ========== 战斗系统 ==========
+// 秘境爬塔：根据层数返回随机敌人 id
+function pickMijingEnemy(floor) {
+  let pool = MIJING_POOLS[0].enemies;
+  for (const seg of MIJING_POOLS) {
+    if (floor >= seg.minFloor) pool = seg.enemies;
+    else break;
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNext, loseNext, tribulation = false, turns = 0) {
   const enemyData = ENEMIES[enemyId];
   if (!enemyData) return;

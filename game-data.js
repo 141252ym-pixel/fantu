@@ -299,6 +299,17 @@ const ENEMIES = {
   mojun:       { id: 'mojun',       name: '上古魔君',    hp: 56000, atk: 3100, def: 560, matk: 4300, mdef: 700, xp: 12000, stone: [5000,8000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true },
 };
 
+// ========== 秘境爬塔 ==========
+// 按层数分段随机敌人池
+const MIJING_POOLS = [
+  { minFloor: 1,  enemies: ['wolf', 'bandit', 'snake_demon', 'low_monk'] },
+  { minFloor: 5,  enemies: ['stone_monkey', 'blood_cultist'] },
+  { minFloor: 10, enemies: ['bifuluan', 'qiongqi', 'nine_tails'] },
+  { minFloor: 15, enemies: ['taotie', 'yinglong'] },
+  { minFloor: 20, enemies: ['taowu', 'hundun', 'zhulong'] },
+  { minFloor: 25, enemies: ['tianmo', 'mojun'] },
+];
+
 // 不存在的 daopei 物品兜底（上面的敌人 drop 里用到了）
 if (!ITEMS.daopei) {
   ITEMS.daopei = { id: 'daopei', name: '道佩', type: 'misc', icon: '🔮', desc: '蕴含道韵的佩饰', effect: 'dao5', sell: 30 };
@@ -350,6 +361,7 @@ const STORY_NODES = {
       { label: '去坊市逛逛', next: 'fangshi' },
       { label: '前往药王谷', next: 'yaowanggu_entrance' },
       { label: '前往论道台', next: 'lundaotai' },
+      { label: '进入试炼秘境', next: 'mijing_entrance' },
       { label: '宗门大比报名', next: 'zongmen_bi_notice' },
       { label: '准备筑基渡劫', next: 'zhuji_prep' },
       { label: '前往内门', next: 'inner_gate', req: (s) => !!s.innerGate },
@@ -712,6 +724,75 @@ const STORY_NODES = {
     text: '山谷深处林木葱郁，时有灵兽出没。你可在此驯服灵宠，助你征战。',
     tame: true,
     choices: [],
+  },
+
+  // ===== 试炼秘境（随机无尽爬塔） =====
+  mijing_entrance: {
+    title: '试炼秘境',
+    text: '',
+    dynamicText: (s) => {
+      const best = (s.mijing && s.mijing.best) || 0;
+      return `一座古老的传送阵悬浮于山巅，通往传说中的试炼秘境。秘境共分无数层，层数越深，敌人越强，奖励越丰厚。\n你当前的最高纪录：第 ${best} 层。`;
+    },
+    onEnter: (s) => {
+      if (!s.mijing) s.mijing = { floor: 0, best: 0, active: false };
+    },
+    choices: [
+      { label: '进入秘境（从第一层开始）', action: (s) => { s.mijing.floor = 0; s.mijing.active = true; }, next: 'mijing_fight' },
+      { label: '返回', next: 'qingyun_gate' },
+    ],
+  },
+
+  mijing_fight: {
+    title: '秘境试炼',
+    text: '',
+    dynamicText: (s) => `秘境第 ${(s.mijing && s.mijing.floor) || 1} 层。前方一阵强大的气息逼近……`,
+    onEnter: (s) => {
+      if (!s.mijing) s.mijing = { floor: 0, best: 0, active: false };
+      s.mijing.floor = (s.mijing.floor || 0) + 1;
+      const floor = s.mijing.floor;
+      const enemyId = pickMijingEnemy(floor);
+      const mult = 1 + (floor - 1) * 0.08;
+      STORY_NODES.mijing_fight.battle = { enemy: enemyId, mult: mult };
+    },
+    battle: null,
+    winNext: 'mijing_continue',
+    loseNext: 'mijing_end',
+  },
+
+  mijing_continue: {
+    title: '层数突破',
+    text: '',
+    dynamicText: () => '你战胜了本层守关之敌！',
+    onEnter: (s) => {
+      const floor = s.mijing.floor || 0;
+      if (floor > (s.mijing.best || 0)) s.mijing.best = floor;
+      const bonus = floor * 5;
+      s.stone += bonus;
+      setNodeText(`你战胜了第 ${floor} 层守关之敌，额外获得 ${bonus} 灵石。即将进入第 ${floor + 1} 层……`);
+      goToNodeAfterDelay('mijing_fight', 900);
+    },
+    choices: [],
+  },
+
+  mijing_end: {
+    title: '秘境终结',
+    text: '',
+    dynamicText: (s) => {
+      const last = (s.mijing && s.mijing.lastFloor) || 0;
+      const best = (s.mijing && s.mijing.best) || 0;
+      return `你止步于第 ${last} 层，被传送出了秘境。\n本次试炼到此为止，最高纪录：第 ${best} 层。`;
+    },
+    onEnter: (s) => {
+      if (s.mijing) {
+        s.mijing.lastFloor = s.mijing.floor || 0;
+        s.mijing.active = false;
+        s.mijing.floor = 0;
+      }
+    },
+    choices: [
+      { label: '返回宗门', next: 'qingyun_gate' },
+    ],
   },
 
   // ===== 更多区域：药王谷 =====
