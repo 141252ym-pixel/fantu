@@ -15,6 +15,11 @@ const MAX_PILLS_PER_BATTLE = 5;
 // 玩家攻击力系数（整体削弱，避免打 boss 过快）
 const PLAYER_ATK_SCALE = 0.8;
 
+// Boss 动态平衡参数（无限境界后生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
+const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
+const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
+const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
+
 // ========== 初始化 ==========
 function initGame() {
   UI.init();
@@ -1382,6 +1387,23 @@ function pickMijingEnemy(floor) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// Boss 动态平衡：无限境界后按玩家总属性对齐，保证不被秒、能破防（仅 boss 且非天劫）
+function scaleBossForPlayer(enemy, s) {
+  if (!enemy.boss || enemy.untouchable) return;
+  if (getRealmIndex(s) <= 35) return; // 仙帝及以下保持原数值
+  const p = enemy.power || 1;
+  const perHit = Math.max(1, Math.floor(s.atk * (1 - BOSS_DEF_VS_ATK)));
+  const targetHp = perHit * BOSS_HP_PER_HIT * p;
+  const targetAtk = Math.floor(s.def * BOSS_ATK_VS_DEF * p);
+  const targetDef = Math.floor(s.atk * BOSS_DEF_VS_ATK);
+  enemy.maxHp = Math.max(enemy.maxHp, targetHp);
+  enemy.hp = enemy.maxHp;
+  enemy.atk = Math.max(enemy.atk, targetAtk);
+  enemy.def = Math.max(enemy.def, targetDef);
+  enemy.matk = Math.max(enemy.matk, targetAtk);
+  enemy.mdef = Math.max(enemy.mdef, targetDef);
+}
+
 function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNext, loseNext, tribulation = false, turns = 0) {
   const enemyData = ENEMIES[enemyId];
   if (!enemyData) return;
@@ -1405,7 +1427,9 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
     boss: !!enemyData.boss,
     untouchable: !!enemyData.untouchable,
     tribDmg: enemyData.tribDmg || 0.15,
+    power: enemyData.power,
   };
+  scaleBossForPlayer(enemy, Game.state);
 
   Game.battle = {
     enemy: enemy,
@@ -1500,7 +1524,7 @@ function playerUsePill(id) {
   if (Math.random() < interruptChance) {
     logBattle(`你正欲服下${item.name}，${Game.battle.enemy.name} 却看准破绽猛攻而来！丹药被打落在地，白白损失。`, 'enemy');
     Game.battle.selectingPill = false;
-    enemyTurn();
+    UI.updateBattle();
     return;
   }
   const heal = Math.max(1, Math.floor(s.maxHp * item.healPct));
@@ -1508,7 +1532,7 @@ function playerUsePill(id) {
   logBattle(`你探手取出一枚${item.name}，仰头吞下。一股温润的药力在体内化开，伤势顿时好转。`, 'player');
   logBattle(`恢复了 ${heal} 点气血。`, 'player');
   Game.battle.selectingPill = false;
-  enemyTurn();
+  UI.updateBattle();
 }
 
 function playerFlee() {

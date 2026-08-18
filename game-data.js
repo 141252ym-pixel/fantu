@@ -190,6 +190,9 @@ const ACHIEVEMENTS = [
   { id: 'trib_huashen',   name: '化神雷劫',   desc: '渡过化神天劫',           icon: '🌩️' },
   { id: 'trib_feisheng',  name: '飞升之劫',   desc: '渡过飞升劫',             icon: '☀️' },
   { id: 'boss_zhulong',   name: '烛龙陨落',   desc: '击败隐藏boss烛龙',       icon: '🐉' },
+  { id: 'boss_honghuang', name: '洪荒祖兽',   desc: '斩杀洪荒祖兽',           icon: '🦁' },
+  { id: 'boss_tiandao',   name: '天道化身',   desc: '击败天道化身',           icon: '☁️' },
+  { id: 'boss_chaos',     name: '混沌元灵',   desc: '斩灭混沌元灵',           icon: '🌀' },
   // ===== 洞府 / 宗门 / 竞技 / 心魔玩法成就 =====
   { id: 'cave_harvest', name: '春华秋实',   desc: '首次收获洞府灵药',         icon: '🌿' },
   { id: 'cave_lv3',     name: '初具规模',   desc: '洞府升到 3 级',             icon: '🏠' },
@@ -546,6 +549,11 @@ const ENEMIES = {
   fei_sheng_jie:{ id:'fei_sheng_jie',name:'飞升天劫·九重',hp: 1, atk: 0, def: 0, xp: 8000, stone: [2000,2000], drops: [], untouchable: true, boss: true, tribDmg: 0.22 },
   tianmo:      { id: 'tianmo',      name: '域外天魔',    hp: 28000, atk: 2100, def: 420, matk: 2900, mdef: 520, xp: 7000,  stone: [3000,5000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true },
   mojun:       { id: 'mojun',       name: '上古魔君',    hp: 56000, atk: 3100, def: 560, matk: 4300, mdef: 700, xp: 12000, stone: [5000,8000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true },
+
+  // 洪荒禁地（无限境界挑战）
+  honghuang_shou: { id:'honghuang_shou', name:'洪荒祖兽', hp: 40000, atk: 2200, def: 400,  xp: 15000, stone: [8000,12000],  drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.2 },
+  tian_dao:       { id:'tian_dao',       name:'天道化身', hp: 60000, atk: 3200, def: 520,  xp: 22000, stone: [12000,18000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.5 },
+  chaos_yuanling: { id:'chaos_yuanling', name:'混沌元灵', hp: 85000, atk: 4400, def: 680,  xp: 32000, stone: [18000,26000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.8 },
 };
 
 // ========== 秘境爬塔 ==========
@@ -1474,6 +1482,7 @@ const STORY_NODES = {
       { label: '前往应龙渊', next: 'yinglong_pond' },
       { label: '探寻四凶禁地', next: 'taowu_entrance', req: (s) => getRealmIndex(s) >= 14 },
       { label: '探寻上古魔域', next: 'huashen_moyu', req: (s) => getRealmIndex(s) >= 22 },
+      { label: '探寻洪荒禁地', next: 'honghuang_entrance', req: (s) => getRealmIndex(s) >= 36 },
       { label: '返回', next: 'inner_gate' },
     ],
   },
@@ -1875,6 +1884,75 @@ const STORY_NODES = {
       s.stone += 2000;
       grantItem(s, 'tiebi');
       grantItem(s, 'juqi_pill', 5);
+    },
+    choices: [
+      { label: '凯旋而归', next: 'inner_gate' },
+    ],
+  },
+
+  // ===== 洪荒禁地（无限境界挑战） =====
+  honghuang_entrance: {
+    title: '洪荒禁地',
+    text: '妖兽山脉之外，有一处被混沌之力笼罩的太古禁地，传说其中沉睡着开天辟地前的洪荒凶灵。唯有证道成圣者，方有一线生机踏入其中。',
+    choices: [
+      { label: '踏入禁地', next: 'honghuang_fight_1', req: (s) => getRealmIndex(s) >= 36 },
+      { label: '返回', next: 'lianyu_entrance' },
+    ],
+  },
+
+  honghuang_fight_1: {
+    title: '洪荒祖兽',
+    text: '禁地之中，一尊盘踞了无数纪元的洪荒祖兽缓缓苏醒，其势如山岳，威压如天倾——洪荒祖兽！',
+    battle: { enemy: 'honghuang_shou', mult: 1.0 },
+    winNext: 'honghuang_win_1',
+    loseNext: 'defeat_general',
+  },
+
+  honghuang_win_1: {
+    title: '斩祖兽',
+    text: '你以无上神通斩落了洪荒祖兽。然而禁地更深处，一道更加缥缈浩瀚的气息正在凝聚。',
+    onEnter: (s) => { grantAchievement('boss_honghuang'); s.dao += 150; s.fame += 800; s.stone += 5000; },
+    choices: [
+      { label: '继续深入', next: 'honghuang_fight_2' },
+      { label: '见好就收', next: 'lianyu_entrance' },
+    ],
+  },
+
+  honghuang_fight_2: {
+    title: '天道化身',
+    text: '苍穹之上，一道由大道法则凝聚而成的人形浮现，目光淡漠，俯瞰众生——天道化身！',
+    battle: { enemy: 'tian_dao', mult: 1.0 },
+    winNext: 'honghuang_win_2',
+    loseNext: 'defeat_general',
+  },
+
+  honghuang_win_2: {
+    title: '破天道',
+    text: '你竟以凡人之躯击溃了天道化身！禁地最深处，一股混沌未分的气息终于苏醒。',
+    onEnter: (s) => { grantAchievement('boss_tiandao'); s.dao += 250; s.fame += 1500; s.stone += 10000; },
+    choices: [
+      { label: '深入混沌', next: 'honghuang_fight_3' },
+      { label: '见好就收', next: 'lianyu_entrance' },
+    ],
+  },
+
+  honghuang_fight_3: {
+    title: '混沌元灵',
+    text: '万物之始，混沌之中孕育出一缕先天元灵。它无善无恶，无始无终，唯有毁灭与归墟——混沌元灵！',
+    battle: { enemy: 'chaos_yuanling', mult: 1.0 },
+    winNext: 'honghuang_win_3',
+    loseNext: 'defeat_general',
+  },
+
+  honghuang_win_3: {
+    title: '混沌归墟',
+    text: '你终于斩灭了混沌元灵。此等壮举，已超越了凡尘所能想象——从今往后，仙途无尽，你的传说将万古流传！',
+    onEnter: (s) => {
+      grantAchievement('boss_chaos');
+      s.dao += 400;
+      s.fame += 3000;
+      s.stone += 20000;
+      grantItem(s, 'jiuzhuan_pill', 3);
     },
     choices: [
       { label: '凯旋而归', next: 'inner_gate' },
