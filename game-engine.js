@@ -1756,6 +1756,15 @@ function redeemCode(code) {
     const it = ITEMS[reward.item.id];
     parts.push(`${it ? it.name : reward.item.id}×${cnt}`);
   }
+  if (reward.items && Array.isArray(reward.items)) {
+    for (const itm of reward.items) {
+      if (!itm || !itm.id) continue;
+      const cnt = itm.count || 1;
+      grantItem(s, itm.id, cnt);
+      const it = ITEMS[itm.id];
+      parts.push(`${it ? it.name : itm.id}×${cnt}`);
+    }
+  }
 
   s.redeemed.push(key);
   autoSave();

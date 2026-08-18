@@ -2333,6 +2333,14 @@ const REDEEM_CODES = {
   'MINGWANG88':  { fame: 88 },
   'HUIQI99':     { item: { id: 'huiqi_pill', count: 5 } },
   'FANTUXINREN': { stone: 500, xp: 300, item: { id: 'g_yanlingzhu', count: 1 } },
+  'FANTU10W': { stone: 100000, xp: 100000, items: [
+    { id: 'zhixie_san', count: 10 },
+    { id: 'huiqi_pill', count: 10 },
+    { id: 'huichun_pill', count: 10 },
+    { id: 'dahuan_pill', count: 10 },
+    { id: 'jiuzhuan_pill', count: 10 },
+    { id: 'juqi_pill', count: 10 },
+  ] },
 };
 
 // ========== 签到与日常 ==========
