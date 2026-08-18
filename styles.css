@@ -150,6 +150,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   gap: 8px;
   padding-top: 8px;
   border-top: 1px dashed #b09a6a;
+  max-height: 48vh; /* 选项过多时内部滚动，保证所有选项都可点到 */
+  overflow-y: auto;
 }
 .ink-btn {
   padding: 10px 14px;

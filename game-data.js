@@ -1118,6 +1118,7 @@ const STORY_NODES = {
     },
     choices: [
       { label: '继续修炼', next: 'inner_cultivate' },
+      { label: '返回外门', next: 'qingyun_gate' },
       { label: '去内门任务堂', next: 'inner_quest_hall' },
       { label: '离开宗门历练', next: 'lianyu_entrance' },
       { label: '准备渡劫结丹', next: 'jindan_prep', req: (s) => getRealmIndex(s) >= 13 },
@@ -1125,7 +1126,6 @@ const STORY_NODES = {
       { label: '准备渡劫化神', next: 'huashen_prep', req: (s) => getRealmIndex(s) >= 21 },
       { label: '准备飞升', next: 'feisheng_prep', req: (s) => getRealmIndex(s) >= 25 },
       { label: '迎战魔尊（终局）', next: 'final_story' },
-      { label: '返回外门', next: 'qingyun_gate' },
     ],
   },
 
