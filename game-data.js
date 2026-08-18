@@ -42,6 +42,17 @@ const REALMS = [
   { name: '化神中期',  max: 75000, atk: 1950, def: 400 },
   { name: '化神后期',  max: 93000, atk: 2350, def: 470 },
   { name: '化神大圆满', max: 115000, atk: 2800, def: 550 },
+  // ===== 飞升之后：仙域诸境（游戏不结束，战力持续增长） =====
+  { name: '人仙',     max: 150000, atk: 3400, def: 660 },
+  { name: '地仙',     max: 200000, atk: 4100, def: 780 },
+  { name: '天仙',     max: 270000, atk: 4900, def: 920 },
+  { name: '真仙',     max: 360000, atk: 5800, def: 1080 },
+  { name: '金仙',     max: 480000, atk: 6900, def: 1260 },
+  { name: '太乙金仙', max: 630000, atk: 8200, def: 1460 },
+  { name: '大罗金仙', max: 820000, atk: 9600, def: 1690 },
+  { name: '混元金仙', max: 1050000, atk: 11200, def: 1950 },
+  { name: '仙王',     max: 1350000, atk: 13000, def: 2240 },
+  { name: '仙帝',     max: 1750000, atk: 15000, def: 2560 },
 ];
 
 // ========== 物品设定 ==========
@@ -314,6 +325,56 @@ const PET_GACHA_POOL = [
 // 品质档位（用于比较强弱）与重复抽到的灵石补偿
 const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };
 const PET_REFUND = { '废品': 10, '凡品': 30, '良品': 60, '中品': 120, '上品': 250, '极品': 600, '神品': 1500 };
+
+// ========== 功法设定 ==========
+// 功法分两类：type 被动属性加成（atk/matk/def/mdef/pen/hp），combat 战斗主动技能（mult 倍率/cd 冷却）
+const GONGFA = {
+  // ---- 被动功法 ----
+  gong_tiebushan:  { id: 'gong_tiebushan',  name: '铁布衫',     grade: '黄级', icon: '🛡️', color: '#9aa0a6', desc: '被动·物抗+30',   type: 'def',  value: 30 },
+  gong_hunyuan:    { id: 'gong_hunyuan',    name: '混元功',     grade: '黄级', icon: '🌀', color: '#9aa0a6', desc: '被动·物攻+25',   type: 'atk',  value: 25 },
+  gong_qingsong:   { id: 'gong_qingsong',   name: '青松诀',     grade: '玄级', icon: '🌲', color: '#4caf50', desc: '被动·气血+600',  type: 'hp',   value: 600 },
+  gong_lingxi:     { id: 'gong_lingxi',     name: '灵犀指',     grade: '玄级', icon: '☝️', color: '#4caf50', desc: '被动·穿透+40',   type: 'pen',  value: 40 },
+  gong_jingang:    { id: 'gong_jingang',    name: '金刚不坏',   grade: '地级', icon: '💪', color: '#4a90d9', desc: '被动·物抗+80',   type: 'def',  value: 80 },
+  gong_lieyang:    { id: 'gong_lieyang',    name: '烈阳心法',   grade: '地级', icon: '🔥', color: '#4a90d9', desc: '被动·物攻+70',   type: 'atk',  value: 70 },
+  gong_hanbing:    { id: 'gong_hanbing',    name: '寒冰真解',   grade: '地级', icon: '❄️', color: '#4a90d9', desc: '被动·法攻+70',   type: 'matk', value: 70 },
+  gong_xuanwu:     { id: 'gong_xuanwu',     name: '玄武真身',   grade: '地级', icon: '🐢', color: '#4a90d9', desc: '被动·法抗+80',   type: 'mdef', value: 80 },
+  gong_longxiang:  { id: 'gong_longxiang',  name: '龙象般若功', grade: '天级', icon: '🐘', color: '#9b59b6', desc: '被动·物攻+160',  type: 'atk',  value: 160 },
+  gong_taiyi:      { id: 'gong_taiyi',      name: '太乙归元诀', grade: '天级', icon: '☯️', color: '#9b59b6', desc: '被动·法攻+160',  type: 'matk', value: 160 },
+  gong_budong:     { id: 'gong_budong',     name: '不动明王',   grade: '仙级', icon: '🗿', color: '#e6a23c', desc: '被动·物抗+220',  type: 'def',  value: 220 },
+  gong_xianling:   { id: 'gong_xianling',   name: '仙灵护体',   grade: '仙级', icon: '✨', color: '#e6a23c', desc: '被动·气血+4000', type: 'hp',   value: 4000 },
+  // ---- 战斗技能功法 ----
+  gong_yujian:     { id: 'gong_yujian',     name: '御剑诀',     grade: '天级', icon: '⚔️', color: '#9b59b6', desc: '主动·御剑攻敌（法攻2.0倍，冷却3回合）', combat: { name: '御剑诀', mult: 2.0, cd: 3 } },
+  gong_jiumiao:    { id: 'gong_jiumiao',    name: '九霄神雷',   grade: '仙级', icon: '🌩️', color: '#e6a23c', desc: '主动·神雷天降（法攻3.0倍，冷却5回合）', combat: { name: '九霄神雷', mult: 3.0, cd: 5 } },
+  gong_wanjian:    { id: 'gong_wanjian',    name: '万剑归宗',   grade: '神级', icon: '🗡️', color: '#e0473c', desc: '主动·万剑齐发（法攻4.5倍，冷却8回合）', combat: { name: '万剑归宗', mult: 4.5, cd: 8 } },
+  gong_xingyun:    { id: 'gong_xingyun',    name: '星陨术',     grade: '神级', icon: '☄️', color: '#e0473c', desc: '主动·星辰坠落（法攻5.5倍，冷却10回合）', combat: { name: '星陨术', mult: 5.5, cd: 10 } },
+};
+// 重复获得同一本功法时的灵石补偿
+const GONGFA_REFUND = { '黄级': 100, '玄级': 300, '地级': 800, '天级': 2000, '仙级': 5000, '神级': 12000 };
+
+// ========== 奇遇设定 ==========
+// reward 类型：gongfa 学功法 / stone 灵石 / item 道具 / dao 道韵 / xp 修为
+const QYU_POOL = [
+  { id: 'qyu_tiebushan', title: '古洞遗珍', text: '你在山间偶然坠入一座上古修士坐化的洞府，石壁上刻着一门护体功法。', weight: 12, reward: { type: 'gongfa', id: 'gong_tiebushan' } },
+  { id: 'qyu_hunyuan',   title: '溪边悟道', text: '你于溪边静坐，见水波流转、阴阳相济，忽有所悟，创出一门混元功法。', weight: 12, reward: { type: 'gongfa', id: 'gong_hunyuan' } },
+  { id: 'qyu_qingsong',  title: '松涛问心', text: '古松之下，你聆听松涛，心静如水，悟得一门养气延寿的功法。', weight: 10, reward: { type: 'gongfa', id: 'gong_qingsong' } },
+  { id: 'qyu_lingxi',    title: '石中藏经', text: '你见一块顽石中隐有光华，一掌劈开，竟藏着一卷指法残篇。', weight: 10, reward: { type: 'gongfa', id: 'gong_lingxi' } },
+  { id: 'qyu_jingang',   title: '怒目金刚', text: '古寺遗址中，一尊怒目金刚像前，你静坐三日，悟得金刚不坏之身。', weight: 8, reward: { type: 'gongfa', id: 'gong_jingang' } },
+  { id: 'qyu_lieyang',   title: '大日临空', text: '正午时分，你遥望大日，火灵气入体，炼成烈阳心法。', weight: 8, reward: { type: 'gongfa', id: 'gong_lieyang' } },
+  { id: 'qyu_hanbing',   title: '寒潭冰髓', text: '你潜入万年寒潭，得到一株冰髓，炼成寒冰真解。', weight: 8, reward: { type: 'gongfa', id: 'gong_hanbing' } },
+  { id: 'qyu_xuanwu',    title: '龟蛇相守', text: '你见龟蛇相斗相生，悟得玄武真身，法抗大增。', weight: 8, reward: { type: 'gongfa', id: 'gong_xuanwu' } },
+  { id: 'qyu_longxiang', title: '龙象神功', text: '上古龙象的骸骨前，你感受到苍茫之力，龙象般若功印入识海。', weight: 5, reward: { type: 'gongfa', id: 'gong_longxiang' } },
+  { id: 'qyu_taiyi',     title: '太乙传承', text: '太乙真人残存的一缕神念，将太乙归元诀传授于你。', weight: 5, reward: { type: 'gongfa', id: 'gong_taiyi' } },
+  { id: 'qyu_budong',    title: '不动明王', text: '面对滔天魔气，你岿然不动，心如磐石，悟得不动明王真意。', weight: 3, reward: { type: 'gongfa', id: 'gong_budong' } },
+  { id: 'qyu_xianling',  title: '仙灵护体', text: '一道仙灵之气融入你身，四肢百骸仿佛重获新生。', weight: 3, reward: { type: 'gongfa', id: 'gong_xianling' } },
+  { id: 'qyu_yujian',    title: '剑冢悟剑', text: '万剑剑冢之中，剑意冲霄，你悟得御剑诀。', weight: 5, reward: { type: 'gongfa', id: 'gong_yujian' } },
+  { id: 'qyu_jiumiao',   title: '雷池淬体', text: '你闯入九霄雷池，以神雷淬体，炼成九霄神雷。', weight: 3, reward: { type: 'gongfa', id: 'gong_jiumiao' } },
+  { id: 'qyu_wanjian',   title: '剑仙遗赠', text: '剑仙坐化之地，万剑齐鸣，将万剑归宗馈赠于你。', weight: 1.5, reward: { type: 'gongfa', id: 'gong_wanjian' } },
+  { id: 'qyu_xingyun',   title: '天外星辰', text: '一颗流星划破长空，你从中参悟了星陨术。', weight: 1.5, reward: { type: 'gongfa', id: 'gong_xingyun' } },
+  { id: 'qyu_lingkuang', title: '灵脉矿脉', text: '你发现一处裸露的灵脉，采得不少灵石。', weight: 14, reward: { type: 'stone', value: 500 } },
+  { id: 'qyu_yaoyuan',   title: '药香引路', text: '一阵异香引你来到一株灵药前，你小心采下。', weight: 10, reward: { type: 'item', id: 'lingshou_dan', count: 2 } },
+  { id: 'qyu_daoyun',    title: '天道垂青', text: '你抬头望天，忽觉天道运转自有其理，道韵顿生。', weight: 10, reward: { type: 'dao', value: 20 } },
+  { id: 'qyu_dunwu',     title: '顿悟', text: '行走间，你忽然福至心灵，对修行有了更深的理解。', weight: 12, reward: { type: 'xp', value: 300 } },
+];
 
 // ========== 敌人设定 ==========
 const ENEMIES = {
@@ -1123,13 +1184,39 @@ const STORY_NODES = {
     choices: [
       { label: '继续修炼', next: 'inner_cultivate' },
       { label: '返回外门', next: 'qingyun_gate' },
+      { label: '云游寻缘（奇遇）', next: 'qiyu_wander' },
       { label: '去内门任务堂', next: 'inner_quest_hall' },
       { label: '离开宗门历练', next: 'lianyu_entrance' },
-      { label: '准备渡劫结丹', next: 'jindan_prep', req: (s) => getRealmIndex(s) >= 13 },
-      { label: '准备渡劫成婴', next: 'yuanying_prep', req: (s) => getRealmIndex(s) >= 17 },
-      { label: '准备渡劫化神', next: 'huashen_prep', req: (s) => getRealmIndex(s) >= 21 },
-      { label: '准备飞升', next: 'feisheng_prep', req: (s) => getRealmIndex(s) >= 25 },
+      { label: '准备渡劫结丹', next: 'jindan_prep', req: (s) => getRealmIndex(s) >= 13 && !(s.tribulations && s.tribulations.jindan) },
+      { label: '准备渡劫成婴', next: 'yuanying_prep', req: (s) => getRealmIndex(s) >= 17 && !(s.tribulations && s.tribulations.yuanying) },
+      { label: '准备渡劫化神', next: 'huashen_prep', req: (s) => getRealmIndex(s) >= 21 && !(s.tribulations && s.tribulations.huashen) },
+      { label: '准备飞升', next: 'feisheng_prep', req: (s) => getRealmIndex(s) === 25 },
       { label: '迎战魔尊（终局）', next: 'final_story' },
+    ],
+  },
+
+  // ===== 奇遇 =====
+  qiyu_wander: {
+    title: '云游寻缘',
+    text: '你欲云游四方，寻找属于自己的仙缘。天机渺渺，有缘者自会遇见奇遇。\n（每次云游消耗 10 道韵，可获得功法、灵石、道具等机缘）',
+    choices: [
+      { label: '开始云游（消耗 10 道韵）', action: (s) => { triggerQiyu(s, true); } },
+      { label: '再想想', next: 'inner_gate' },
+    ],
+  },
+
+  qiyu_result: {
+    title: '仙缘际会',
+    dynamicText: (s) => {
+      const ly = Game.lastQiyu;
+      if (!ly) return '奇遇已散，如梦幻泡影。';
+      const gong = ly.result && ly.result.gongfa;
+      let extra = '';
+      if (gong) extra = `\n\n【${gong.name}】${gong.grade} · ${gong.desc}`;
+      return `【${ly.q.title}】\n${ly.q.text}\n\n${ly.result.text}${extra}`;
+    },
+    choices: [
+      { label: '继续前行', next: 'inner_gate' },
     ],
   },
 
@@ -1251,6 +1338,7 @@ const STORY_NODES = {
   lianyu_entrance: {
     title: '妖兽山脉',
     text: '山脉绵延万里，深处传说有上古妖兽出没。是历练的好地方，也是危险之地。',
+    explore: true,
     choices: [
       { label: '在外围历练', next: 'mountain_outer' },
       { label: '深入山脉', next: 'mountain_deep' },
@@ -1714,7 +1802,7 @@ const STORY_NODES = {
     title: '飞升在即',
     text: '化神大圆满，天地法则加身。再进一步，便是羽化飞升，从此超脱凡尘，位列仙班。',
     choices: [
-      { label: '渡飞升劫', next: 'feisheng_tribulation', req: (s) => getRealmIndex(s) >= 25 },
+      { label: '渡飞升劫', next: 'feisheng_tribulation', req: (s) => getRealmIndex(s) === 25 },
       { label: '再等等', next: 'inner_gate' },
     ],
   },
@@ -1729,14 +1817,15 @@ const STORY_NODES = {
 
   feisheng_success: {
     title: '羽化飞升',
-    text: '十一道神雷过后，天门大开，仙乐阵阵。你的肉身化作流光，直上九霄——飞升仙界，自此超脱轮回！\n\n—— 全书完 ——',
+    text: '十一道神雷过后，天门大开，仙乐阵阵。你的肉身化作流光，直上九霄——飞升仙界，位列人仙！\n\n凡间，只是仙途的起点。更辽阔的仙域、更强的对手，正等着你继续探索。',
     onEnter: (s) => {
       grantAchievement('trib_feisheng');
       s.fame += 1000;
       s.dao += 200;
+      passTribulation(s, 'feisheng', 25); // 飞升成功，跨入人仙境界，游戏继续
     },
     choices: [
-      { label: '再续仙缘', next: 'inner_gate' },
+      { label: '踏入仙域', next: 'inner_gate' },
     ],
   },
 

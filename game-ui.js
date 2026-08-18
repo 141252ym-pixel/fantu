@@ -717,6 +717,23 @@ const UI = {
         });
         this.els.battleActions.appendChild(btn);
       }
+
+      // 功法技能按钮：已学的战斗功法才显示
+      for (const gid of (s.gongfa || [])) {
+        const g = GONGFA[gid];
+        if (!g || !g.combat) continue;
+        const cdKey = 'gong_' + gid;
+        const cd = (Game.battle.specialCd && Game.battle.specialCd[cdKey]) || 0;
+        const btn = document.createElement('button');
+        btn.className = cd > 0 ? 'ink-btn disabled' : 'ink-btn';
+        btn.disabled = cd > 0;
+        btn.textContent = cd > 0 ? `${g.icon} ${g.name}（冷却${cd}回合）` : `${g.icon} ${g.name}`;
+        btn.addEventListener('click', () => {
+          playClickSound();
+          playerCastGongfa(gid);
+        });
+        this.els.battleActions.appendChild(btn);
+      }
     }
 
     this.updateStats();
@@ -1037,6 +1054,7 @@ const UI = {
     }
     Game.state = data;
     migratePets(Game.state);
+    migrateGongfa(Game.state);
     goToNode(Game.state.nodeId || 'start');
     this.showToast('读档成功');
     this.closeSidePanel();
@@ -1097,6 +1115,7 @@ const UI = {
     if (!Game.state.equipLevel) Game.state.equipLevel = {};
     if (!Game.state.tribulations) Game.state.tribulations = {};
     migratePets(Game.state);
+    migrateGongfa(Game.state);
     backfillTribulations(Game.state);
     clampByTribulation(Game.state);
     realignRealm(Game.state);
@@ -1156,13 +1175,27 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">灵石</span><span class="value">${s.stone}</span></div>
     <div class="stat-line"><span class="label">名望</span><span class="value">${s.fame}</span></div>
     <div class="stat-line"><span class="label">道韵</span><span class="value">${s.dao}</span></div>
+    <div class="stat-line"><span class="label">功法</span><span class="value">${(s.gongfa || []).length} 本</span></div>
   `;
 
   const lg = LINGGEN[s.linggen];
+  let gongfaHtml = '';
+  const gongfaList = s.gongfa || [];
+  if (gongfaList.length > 0) {
+    gongfaHtml = '<div class="pane-title" style="margin-top:14px">已学功法</div>';
+    for (const gid of gongfaList) {
+      const g = GONGFA[gid];
+      if (!g) continue;
+      gongfaHtml += `<div class="gongfa-item" style="border-left:3px solid ${g.color}"><span style="font-weight:600">${g.icon} ${g.name}</span> <span style="color:#7a6a4a;font-size:11px">${g.grade}</span><div style="color:#5c3a1a;font-size:11px;margin-top:2px">${g.desc}</div></div>`;
+    }
+  } else {
+    gongfaHtml = '<div class="pane-title" style="margin-top:14px">已学功法</div><div style="color:#7a6a4a;font-size:12px">尚未习得功法。云游寻缘或外出探索，或有奇遇。</div>';
+  }
   this.els.linggenDetail.innerHTML = `
     <div class="lg-name" style="color:${lg.color}">${lg.name}</div>
     <div class="lg-skill">天赋灵技：${lg.skill}</div>
     <div class="lg-desc">${lg.desc}</div>
+    ${gongfaHtml}
   `;
 
   const st = s.stats || {};

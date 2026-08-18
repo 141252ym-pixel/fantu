@@ -40,6 +40,7 @@ function continueGame() {
   if (!Game.state.equipLevel) Game.state.equipLevel = {};
   if (!Game.state.tribulations) Game.state.tribulations = {};
   migratePets(Game.state);
+  migrateGongfa(Game.state);
   backfillTribulations(Game.state);
   clampByTribulation(Game.state);
   realignRealm(Game.state);
@@ -79,6 +80,7 @@ function newGame() {
     daily: { date: '', tasks: {}, claimed: {} },
     pet: null,
     pets: [],
+    gongfa: [],
     mijing: { floor: 0, best: 0, active: false },
   };
 }
@@ -211,6 +213,7 @@ const TRIBULATION_GATES = [
   { gateIdx: 13, key: 'jindan',   name: '金丹' },
   { gateIdx: 17, key: 'yuanying', name: '元婴' },
   { gateIdx: 21, key: 'huashen',  name: '化神' },
+  { gateIdx: 25, key: 'feisheng', name: '飞升' },
 ];
 
 // 修复旧存档：根据当前境界补齐已渡过的天劫 flag（防止高境界玩家因 flag 缺失被错误卡回）
@@ -219,6 +222,10 @@ function backfillTribulations(s) {
   const idx = getRealmIndex(s);
   for (const g of TRIBULATION_GATES) {
     if (idx >= g.gateIdx + 1) s.tribulations[g.key] = true;
+  }
+  // 旧存档兼容：已达成飞升成就的，补飞升 flag，避免被错误卡回化神大圆满
+  if (s.achievements && s.achievements.includes('trib_feisheng')) {
+    s.tribulations.feisheng = true;
   }
 }
 
@@ -266,7 +273,7 @@ function breakthrough(s, oldIdx, newIdx) {
   // 每突破一个小境界都加点
   for (let i = oldIdx + 1; i <= newIdx; i++) {
     const r = REALMS[i];
-    s.maxHp = Math.floor(r.max * 0.6) + 50;
+    s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp');
     s.atk = r.atk;
     s.def = r.def;
     s.matk = r.atk;
@@ -292,7 +299,7 @@ function updateStatsFromRealm(s) {
 // 依据当前修为重新对齐境界属性（用于纠正旧存档/渡劫后）
 function realignRealm(s) {
   const r = getRealmInfo(s);
-  s.maxHp = Math.floor(r.max * 0.6) + 50;
+  s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp');
   s.atk = r.atk;
   s.def = r.def;
   s.matk = r.atk;
@@ -328,6 +335,11 @@ function migratePets(s) {
   }
   // 背包里有灵宠但没有出战 → 自动出战第一只
   if (!s.pet && s.pets.length > 0) s.pet = s.pets[0].id;
+}
+
+// 迁移旧存档：确保 s.gongfa 是已学功法数组
+function migrateGongfa(s) {
+  if (!Array.isArray(s.gongfa)) s.gongfa = [];
 }
 
 // 获取当前出战灵宠（背包条目）
@@ -513,24 +525,28 @@ function getTotalAtk(s) {
   let atk = s.atkBase || s.atk;
   atk += getEquipBonus(s, 'weapon', 'atk');
   atk += getPetBonus(s, 'atk');
+  atk += getGongfaBonus(s, 'atk');
   return Math.floor(atk * PLAYER_ATK_SCALE);
 }
 function getTotalMatk(s) {
   let matk = (s.matkBase != null) ? s.matkBase : (s.atkBase || s.atk);
   matk += getEquipBonus(s, 'weapon', 'matk');
   matk += getPetBonus(s, 'matk');
+  matk += getGongfaBonus(s, 'matk');
   return Math.floor(matk * PLAYER_ATK_SCALE);
 }
 function getTotalDef(s) {
   let def = s.defBase || s.def;
   def += getEquipBonus(s, 'armor', 'def');
   def += getPetBonus(s, 'def');
+  def += getGongfaBonus(s, 'def');
   return def;
 }
 function getTotalMdef(s) {
   let mdef = (s.mdefBase != null) ? s.mdefBase : (s.defBase || s.def);
   mdef += getEquipBonus(s, 'armor', 'mdef');
   mdef += getPetBonus(s, 'mdef');
+  mdef += getGongfaBonus(s, 'mdef');
   return mdef;
 }
 function getTotalPen(s) {
@@ -538,7 +554,123 @@ function getTotalPen(s) {
   pen += getEquipBonus(s, 'weapon', 'pen');
   pen += getEquipBonus(s, 'armor', 'pen');
   pen += getPetBonus(s, 'pen');
+  pen += getGongfaBonus(s, 'pen');
   return pen;
+}
+
+// ========== 功法 ==========
+// 累加已学功法的某一类被动加成
+function getGongfaBonus(s, prefix) {
+  let total = 0;
+  const list = s.gongfa;
+  if (!Array.isArray(list)) return 0;
+  for (const id of list) {
+    const g = GONGFA[id];
+    if (g && g.type === prefix) total += g.value;
+  }
+  return total;
+}
+
+// 学习功法：加入已学列表；重复获得则转灵石补偿
+function learnGongfa(s, id) {
+  const g = GONGFA[id];
+  if (!g) return { duplicate: false, refund: 0, name: '' };
+  if (!Array.isArray(s.gongfa)) s.gongfa = [];
+  if (s.gongfa.includes(id)) {
+    const refund = GONGFA_REFUND[g.grade] || 100;
+    s.stone += refund;
+    return { duplicate: true, refund, name: g.name };
+  }
+  s.gongfa.push(id);
+  realignRealm(s); // 重算气血等（含功法 hp 加成）
+  updateStatsFromRealm(s);
+  autoSave();
+  return { duplicate: false, refund: 0, name: g.name };
+}
+
+// 战斗：施展功法主动技能
+function playerCastGongfa(id) {
+  if (!Game.battle || Game.battle.ended || Game.battle.turn !== 'player') return;
+  const g = GONGFA[id];
+  if (!g || !g.combat) return;
+  const s = Game.state;
+  const e = Game.battle.enemy;
+  const cdKey = 'gong_' + id;
+  const cd = (Game.battle.specialCd && Game.battle.specialCd[cdKey]) || 0;
+  if (cd > 0) {
+    logBattle(`${g.name} 尚在冷却中（${cd} 回合）。`, 'sys');
+    UI.updateBattle();
+    return;
+  }
+  const mult = g.combat.mult;
+  const dmg = Math.max(1, Math.floor(s.matk * mult) - e.mdef + (s.pen || 0));
+  e.hp -= dmg;
+  logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
+  logBattle(`【${g.name}】对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
+  Game.battle.specialCd = Game.battle.specialCd || {};
+  Game.battle.specialCd[cdKey] = g.combat.cd;
+  checkBattleEnd();
+  if (!Game.battle.ended) petAssist();
+  if (!Game.battle.ended) enemyTurn();
+}
+
+// ========== 奇遇 ==========
+// 按权重随机抽取一次奇遇
+function rollQyu() {
+  const pool = QYU_POOL;
+  let total = 0;
+  for (const q of pool) total += (q.weight || 1);
+  let r = Math.random() * total;
+  for (const q of pool) {
+    r -= (q.weight || 1);
+    if (r <= 0) return q;
+  }
+  return pool[pool.length - 1];
+}
+
+// 应用奇遇奖励，返回展示文本
+function applyQyuReward(s, q) {
+  const r = q.reward || {};
+  if (r.type === 'gongfa') {
+    const res = learnGongfa(s, r.id);
+    const g = GONGFA[r.id];
+    if (res.duplicate) {
+      return { text: `你再次参悟【${g.name}】，已有小成，化作 ${res.refund} 灵石。`, type: 'gongfa' };
+    }
+    return { text: `你习得了功法【${g.name}】！`, type: 'gongfa', gongfa: g };
+  } else if (r.type === 'stone') {
+    s.stone += r.value;
+    return { text: `你获得了 ${r.value} 灵石。`, type: 'stone' };
+  } else if (r.type === 'item') {
+    grantItem(s, r.id, r.count || 1);
+    const it = ITEMS[r.id];
+    return { text: `你获得了 ${it ? it.name : '道具'} ×${r.count || 1}。`, type: 'item' };
+  } else if (r.type === 'dao') {
+    s.dao += r.value;
+    return { text: `道韵 +${r.value}。`, type: 'dao' };
+  } else if (r.type === 'xp') {
+    addXp(s, r.value);
+    return { text: `修为 +${r.value}。`, type: 'xp' };
+  }
+  return { text: '你一无所获。', type: 'none' };
+}
+
+const QYU_COST = 10; // 主动云游一次消耗的道韵
+
+// 触发奇遇：cost=true 时消耗道韵（主动云游），否则为探索随机触发（免费）
+function triggerQiyu(s, cost) {
+  if (cost) {
+    if ((s.dao || 0) < QYU_COST) {
+      UI.showToast(`道韵不足（需 ${QYU_COST}）`);
+      return false;
+    }
+    s.dao -= QYU_COST;
+  }
+  const q = rollQyu();
+  const result = applyQyuReward(s, q);
+  Game.lastQiyu = { q, result };
+  goToNode('qiyu_result');
+  return true;
 }
 
 // ========== 物品 ==========
@@ -865,6 +997,13 @@ function goToNode(nodeId) {
   if (!node) {
     console.error('Node not found:', nodeId);
     return;
+  }
+
+  // 探索随机触发奇遇（标记 explore 的节点进入时，小概率撞到奇遇，惊喜彩蛋）
+  if (node.explore && nodeId !== 'qiyu_result' && Math.random() < 0.12) {
+    if (triggerQiyu(Game.state, false)) {
+      return;
+    }
   }
 
   // 执行 onEnter
