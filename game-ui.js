@@ -44,6 +44,8 @@ const UI = {
       loginContinue: document.getElementById('login-continue'),
       redeemInput: document.getElementById('redeem-input'),
       redeemResult: document.getElementById('redeem-result'),
+      dailySignin: document.getElementById('daily-signin'),
+      dailyTasks: document.getElementById('daily-tasks'),
     };
     this.updateStats();
   },
@@ -517,6 +519,7 @@ const UI = {
     });
     if (name === 'bag') this.updateBag('all');
     if (name === 'achievements') this.updateAchievements();
+    if (name === 'daily') this.renderDaily();
     if (name === 'save') this.updateSaveSlots();
   },
 
@@ -530,6 +533,65 @@ const UI = {
       this.els.redeemInput.value = '';
       this.updateStats();
     }
+  },
+
+  // ========== 每日签到与日常 ==========
+  renderDaily() {
+    refreshDaily();
+    const s = Game.state;
+    if (!s) return;
+    const si = s.signIn || { lastDate: '', streak: 0, total: 0 };
+    const signed = si.lastDate === getTodayStr();
+
+    let html = '<div class="daily-streak">已连续签到 <b>' + si.streak + '</b> 天 · 累计 ' + (si.total || 0) + ' 天</div>';
+    html += '<div class="daily-week">';
+    const todayIdx = signed ? ((si.streak - 1) % 7) + 1 : (si.streak % 7) + 1;
+    SIGNIN_REWARDS.forEach((r, i) => {
+      const day = i + 1;
+      let desc = '灵石' + r.stone;
+      if (r.item) desc += ' ' + (ITEMS[r.item.id] ? ITEMS[r.item.id].name : '') + '×' + r.item.count;
+      html += '<div class="daily-cell' + (day === todayIdx ? ' today' : '') + '">'
+        + '<div class="daily-day">' + day + '天</div>'
+        + '<div class="daily-reward">' + desc + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    html += signed
+      ? '<button class="ink-btn daily-sign-btn" disabled>今日已签到</button>'
+      : '<button class="ink-btn daily-sign-btn" onclick="UI.signInClick()">立即签到</button>';
+    this.els.dailySignin.innerHTML = html;
+
+    let taskHtml = '';
+    DAILY_TASKS.forEach(t => {
+      const done = (s.daily.tasks[t.key] || 0) >= 1;
+      const claimed = !!s.daily.claimed[t.key];
+      let rewardDesc = '';
+      if (t.reward.stone) rewardDesc += '灵石×' + t.reward.stone;
+      if (t.reward.xp) rewardDesc += (rewardDesc ? '、' : '') + '修为×' + t.reward.xp;
+      let stateHtml;
+      if (claimed) stateHtml = '<span class="daily-claimed">已领取</span>';
+      else if (done) stateHtml = '<button class="ink-btn" onclick="UI.claimDaily(\'' + t.key + '\')">领取</button>';
+      else stateHtml = '<span class="daily-undone">未完成</span>';
+      taskHtml += '<div class="daily-task">'
+        + '<div class="daily-task-name">' + t.name + ' <span class="daily-task-reward">（' + rewardDesc + '）</span></div>'
+        + '<div class="daily-task-state">' + stateHtml + '</div>'
+        + '</div>';
+    });
+    this.els.dailyTasks.innerHTML = taskHtml;
+  },
+
+  signInClick() {
+    const res = signIn();
+    this.showToast(res.msg);
+    this.renderDaily();
+    this.updateStats();
+  },
+
+  claimDaily(key) {
+    const res = claimDailyTask(key);
+    this.showToast(res.msg);
+    this.renderDaily();
+    this.updateStats();
   },
 
   // ========== 背包 ==========

@@ -1608,3 +1608,22 @@ const REDEEM_CODES = {
   'HUIQI99':     { item: { id: 'huiqi_pill', count: 5 } },
   'FANTUXINREN': { stone: 500, xp: 300, item: { id: 'g_yanlingzhu', count: 1 } },
 };
+
+// ========== 签到与日常 ==========
+// 连续签到奖励（7 天一个循环，越往后越丰厚）
+const SIGNIN_REWARDS = [
+  { stone: 50 },
+  { stone: 80 },
+  { stone: 120, item: { id: 'huiqi_pill', count: 1 } },
+  { stone: 150 },
+  { stone: 200, item: { id: 'juqi_pill', count: 1 } },
+  { stone: 260 },
+  { stone: 400, item: { id: 'dahuan_pill', count: 1 } },
+];
+
+// 每日任务（每天刷新，完成 1 次即可领取）
+const DAILY_TASKS = [
+  { key: 'battle',     name: '战斗胜利 1 次', reward: { stone: 40 } },
+  { key: 'pill',       name: '服用丹药 1 次', reward: { stone: 30, xp: 20 } },
+  { key: 'strengthen', name: '强化装备 1 次', reward: { stone: 60 } },
+];

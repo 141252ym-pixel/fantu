@@ -74,6 +74,8 @@ function newGame() {
     nodeId: 'start',
     flags: {},
     killCount: {},
+    signIn: { lastDate: '', streak: 0, total: 0 },
+    daily: { date: '', tasks: {}, claimed: {} },
   };
 }
 
@@ -345,6 +347,7 @@ function useItem(id) {
       return false;
     }
     removeItemFromState(s, id, 1);
+    incDailyTask('pill');
   } else if (item.type === 'weapon') {
     // 装备/卸下
     const key = item.effect && (item.effect.startsWith('def') || item.effect.startsWith('mdef')) ? 'armor' : 'weapon';
@@ -534,6 +537,7 @@ function strengthenItem(id) {
   if (!s.equipLevel) s.equipLevel = {};
   s.equipLevel[id] = lv + 1;
   UI.showToast(`强化成功！${item.name} +${lv + 1}`);
+  incDailyTask('strengthen');
   autoSave();
   UI.updateStats();
   UI.updateBag();
@@ -880,6 +884,7 @@ function checkBattleEnd() {
     s.stats.battleWin++;
     s.stats.winStreak++;
     s.stats.enemiesKilled++;
+    incDailyTask('battle');
     addXp(s, e.xp);
     const stoneGain = e.stoneMin + Math.floor(Math.random() * (e.stoneMax - e.stoneMin + 1));
     s.stone += stoneGain;
@@ -899,6 +904,7 @@ function checkBattleEnd() {
     s.stats.battleWin++;
     s.stats.winStreak++;
     s.stats.enemiesKilled++;
+    incDailyTask('battle');
     // 奖励（重复击杀同一敌人，经验递减）
     const xpGain = grantBattleXp(s, e.id, e.xp);
     addXp(s, xpGain);
@@ -954,4 +960,69 @@ function redeemCode(code) {
   s.redeemed.push(key);
   autoSave();
   return { ok: true, msg: '兑换成功：' + parts.join('、') };
+}
+
+// ========== 签到与日常 ==========
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function getYesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// 刷新每日状态（跨天时重置日常任务）
+function refreshDaily() {
+  const s = Game.state;
+  if (!s) return;
+  if (!s.signIn) s.signIn = { lastDate: '', streak: 0, total: 0 };
+  if (!s.daily) s.daily = { date: '', tasks: {}, claimed: {} };
+  const today = getTodayStr();
+  if (s.daily.date !== today) {
+    s.daily.date = today;
+    s.daily.tasks = {};
+    s.daily.claimed = {};
+    DAILY_TASKS.forEach(t => { s.daily.tasks[t.key] = 0; });
+  }
+}
+// 日常任务进度 +1（由各动作埋点调用）
+function incDailyTask(key) {
+  const s = Game.state;
+  if (!s) return;
+  refreshDaily();
+  if (s.daily.tasks[key] == null) s.daily.tasks[key] = 0;
+  s.daily.tasks[key]++;
+}
+// 每日签到
+function signIn() {
+  refreshDaily();
+  const s = Game.state;
+  const today = getTodayStr();
+  if (s.signIn.lastDate === today) return { ok: false, msg: '今日已签到' };
+  s.signIn.streak = (s.signIn.lastDate === getYesterdayStr()) ? s.signIn.streak + 1 : 1;
+  s.signIn.lastDate = today;
+  s.signIn.total = (s.signIn.total || 0) + 1;
+  const idx = (s.signIn.streak - 1) % SIGNIN_REWARDS.length;
+  const r = SIGNIN_REWARDS[idx];
+  const parts = [];
+  if (r.stone) { s.stone += r.stone; parts.push(`灵石×${r.stone}`); }
+  if (r.item && ITEMS[r.item.id]) { grantItem(s, r.item.id, r.item.count); parts.push(`${ITEMS[r.item.id].name}×${r.item.count}`); }
+  autoSave();
+  return { ok: true, msg: `签到成功！连续第 ${s.signIn.streak} 天，获得 ${parts.join('、')}` };
+}
+// 领取日常任务奖励
+function claimDailyTask(key) {
+  refreshDaily();
+  const s = Game.state;
+  const task = DAILY_TASKS.find(t => t.key === key);
+  if (!task) return { ok: false, msg: '任务不存在' };
+  if (s.daily.claimed[key]) return { ok: false, msg: '该奖励已领取' };
+  if ((s.daily.tasks[key] || 0) < 1) return { ok: false, msg: '任务尚未完成' };
+  s.daily.claimed[key] = true;
+  const parts = [];
+  if (task.reward.stone) { s.stone += task.reward.stone; parts.push(`灵石×${task.reward.stone}`); }
+  if (task.reward.xp) { addXp(s, task.reward.xp); parts.push(`修为×${task.reward.xp}`); }
+  autoSave();
+  return { ok: true, msg: `领取成功：${parts.join('、')}` };
 }

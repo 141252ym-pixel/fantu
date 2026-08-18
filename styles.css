@@ -694,3 +694,47 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .redeem-result.ok { color: #7fb56a; }
 .redeem-result.fail { color: #c96a5a; }
+
+/* ========== 签到与日常 ========== */
+.daily-streak {
+  font-size: 14px;
+  color: #e6d3a0;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.daily-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.daily-cell {
+  background: rgba(255, 249, 232, 0.06);
+  border: 1px solid #4a3a24;
+  border-radius: 4px;
+  padding: 6px 2px;
+  text-align: center;
+  font-size: 10px;
+  color: #b09a6a;
+  line-height: 1.3;
+}
+.daily-cell.today {
+  border-color: #c9a962;
+  background: rgba(201, 169, 98, 0.15);
+  color: #e6d3a0;
+}
+.daily-day { font-weight: 700; margin-bottom: 2px; }
+.daily-sign-btn { width: 100%; }
+.daily-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 4px;
+  border-bottom: 1px solid #3a2c1a;
+}
+.daily-task-name { font-size: 13px; color: #e6d3a0; }
+.daily-task-reward { color: #b09a6a; font-size: 12px; }
+.daily-task-state { flex-shrink: 0; margin-left: 8px; }
+.daily-task-state .ink-btn { padding: 5px 12px; font-size: 13px; }
+.daily-claimed { color: #7fb56a; font-size: 13px; }
+.daily-undone { color: #8a7a58; font-size: 13px; }
