@@ -13,6 +13,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ========== 布局 ========== */
 #app {
   height: 100vh;
+  height: 100dvh; /* 移动端动态视口高度，避免被浏览器地址栏/工具栏遮挡 */
   display: flex;
   flex-direction: column;
   background:
@@ -49,10 +50,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 主舞台 */
 #main-stage {
   flex: 1;
+  min-height: 0; /* 允许 flex 收缩，避免内容撑破视口 */
   display: flex;
   flex-direction: column;
   padding: 12px 16px 16px;
-  overflow: hidden;
+  overflow-y: auto; /* 小窗口兜底：内容超出时可滚动 */
+  overflow-x: hidden;
   gap: 8px;
 }
 
@@ -104,6 +107,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 故事区 */
 .story-box {
   flex: 1;
+  min-height: 0; /* 允许 flex 收缩 */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -125,6 +129,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .scene-text {
   flex: 1;
+  min-height: 0; /* 允许 flex 收缩，使文本区内部滚动而非撑破画面 */
   overflow-y: auto;
   font-size: 15px;
   line-height: 1.8;
@@ -436,6 +441,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   width: 85%;
   max-width: 360px;
   height: 100vh;
+  height: 100dvh;
   background: #f5e6c8;
   border-left: 2px solid #8b6b3d;
   z-index: 30;
@@ -448,6 +454,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .side-panel.open { transform: translateX(0); }
 .side-tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid #b09a6a;
   background: #e6d6a8;
   flex-shrink: 0;
@@ -651,6 +658,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .resource-row { padding: 4px 0; }
   .scene-image { height: 100px; }
   .story-box { padding: 10px; gap: 6px; }
+  .top-bar { padding: 6px 12px; }
+  #main-stage { padding: 8px 12px 12px; }
+  .ink-btn { padding: 8px 12px; }
+}
+
+/* 手机竖屏等窄屏 */
+@media (max-width: 480px) {
+  .top-bar { padding: 6px 12px; }
+  .top-left { font-size: 13px; }
+  .icon-btn { width: 30px; height: 30px; }
+  #main-stage { padding: 8px 12px 12px; }
+  .stat-bar { font-size: 12px; grid-template-columns: 38px 1fr auto; gap: 6px; }
+  .stat-val { min-width: 52px; }
+  .scene-title { font-size: 16px; }
+  .scene-text { font-size: 14px; }
+  .ink-btn { padding: 9px 12px; font-size: 13px; }
+  .battle-panel { padding: 12px; }
+  .battle-log { max-height: 160px; }
+  .gacha-icon { font-size: 44px; }
+  .side-tab { font-size: 11px; padding: 10px 4px; }
+  .side-panel { max-width: 300px; }
 }
 
 @media (min-width: 768px) {
