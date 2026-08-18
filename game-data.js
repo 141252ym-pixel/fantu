@@ -297,7 +297,7 @@ const PETS = {
 
 // 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）
 const PET_GACHA_COST = 200;
-const PET_GACHA_PITY = 100; // 神品保底：每100抽必出一次
+const PET_GACHA_PITY = 300; // 神品保底：每300抽必出一次
 const PET_GACHA_POOL = [
   { rarity: '废品', weight: 36, color: '#7a7a7a', items: ['lingshu', 'huitu'] },
   { rarity: '凡品', weight: 30, color: '#c9c9c9', items: ['xiaobaihu', 'qingshe'] },

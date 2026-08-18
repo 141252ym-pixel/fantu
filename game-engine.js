@@ -324,6 +324,42 @@ function petGachaDraw() {
   return r;
 }
 
+// 十连抽灵宠：保留品质最高的一只，其余转灵石补偿
+function petGachaDrawTen() {
+  const s = Game.state;
+  const cost = PET_GACHA_COST * 10;
+  if (s.stone < cost) { UI.showToast(`灵石不足（十连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 10; i++) list.push(rollPetOnce(s));
+
+  let best = list[0];
+  for (const r of list) {
+    if ((PET_QUALITY_RANK[r.pet.quality] || 0) > (PET_QUALITY_RANK[best.pet.quality] || 0)) best = r;
+  }
+
+  let refund = 0;
+  list.forEach(r => { if (r !== best) refund += (PET_REFUND[r.pet.quality] || 0); });
+
+  const old = s.pet ? PETS[s.pet.id] : null;
+  const oldRank = old ? (PET_QUALITY_RANK[old.quality] || 0) : -1;
+  const bestRank = PET_QUALITY_RANK[best.pet.quality] || 0;
+  let replaced = null, keptName = null;
+  if (!old || bestRank >= oldRank) {
+    if (old) refund += (PET_REFUND[old.quality] || 0);
+    s.pet = { id: best.pet.id, level: 1 };
+    replaced = old ? old.name : null;
+  } else {
+    refund += (PET_REFUND[best.pet.quality] || 0);
+    keptName = old.name;
+  }
+  s.stone += refund;
+
+  autoSave();
+  UI.updateStats();
+  return { list, best, refund, replaced, keptName };
+}
+
 // 喂食升级：消耗灵石提升灵宠等级
 function feedPet() {
   const s = Game.state;

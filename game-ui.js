@@ -323,6 +323,17 @@ const UI = {
     });
     el.appendChild(btn);
 
+    // 十连
+    const tenBtn = document.createElement('button');
+    tenBtn.className = 'ink-btn';
+    tenBtn.textContent = `🐾 十连抽灵宠（${PET_GACHA_COST * 10}灵石）`;
+    tenBtn.addEventListener('click', () => {
+      playClickSound();
+      const res = petGachaDrawTen();
+      if (res) { this.showPetGachaTen(res); this.renderTame(); }
+    });
+    el.appendChild(tenBtn);
+
     // 喂食 / 放生
     if (s.pet) {
       const lv = s.pet.level || 1;
@@ -366,6 +377,29 @@ const UI = {
     else if (r.refund) extra = `<br>已有更强的【${r.keptName}】，转为 ${r.refund} 灵石`;
     this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
     this.els.gachaOverlay.classList.remove('hidden');
+  },
+
+  // 灵宠十连结果弹窗（复用藏宝阁十连）
+  showPetGachaTen(res) {
+    const list = this.els.gachaTenList;
+    list.innerHTML = '';
+    res.list.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'gacha-ten-item';
+      div.style.color = r.color;
+      div.textContent = `${r.pet.icon}${r.pet.name}`;
+      list.appendChild(div);
+    });
+    const tip = document.createElement('div');
+    tip.className = 'gacha-ten-item';
+    tip.style.color = '#e6d3a0';
+    let msg = `保留最强：${res.best.pet.name}（${res.best.rarity}）`;
+    if (res.replaced) msg += `，替换了 ${res.replaced}`;
+    else if (res.keptName) msg += `，保留原灵宠 ${res.keptName}`;
+    if (res.refund) msg += `，其余转 ${res.refund} 灵石`;
+    tip.textContent = msg;
+    list.appendChild(tip);
+    this.els.gachaTenOverlay.classList.remove('hidden');
   },
 
   // ========== 侧边面板·灵宠 ==========
