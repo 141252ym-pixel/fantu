@@ -41,6 +41,10 @@ function continueGame() {
   if (!Game.state.tribulations) Game.state.tribulations = {};
   migratePets(Game.state);
   migrateGongfa(Game.state);
+  migrateCave(Game.state);
+  migrateSect(Game.state);
+  migrateArena(Game.state);
+  migrateMind(Game.state);
   backfillTribulations(Game.state);
   clampByTribulation(Game.state);
   realignRealm(Game.state);
@@ -82,6 +86,11 @@ function newGame() {
     pets: [],
     gongfa: [],
     mijing: { floor: 0, best: 0, active: false },
+    cave: { level: 1, plots: [] },
+    sect: null,
+    contribution: 0,
+    arena: { score: 0, wins: 0, losses: 0 },
+    mind: { xinjing: 0 },
   };
 }
 
@@ -273,7 +282,7 @@ function breakthrough(s, oldIdx, newIdx) {
   // 每突破一个小境界都加点
   for (let i = oldIdx + 1; i <= newIdx; i++) {
     const r = REALMS[i];
-    s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp');
+    s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
     s.atk = r.atk;
     s.def = r.def;
     s.matk = r.atk;
@@ -299,7 +308,7 @@ function updateStatsFromRealm(s) {
 // 依据当前修为重新对齐境界属性（用于纠正旧存档/渡劫后）
 function realignRealm(s) {
   const r = getRealmInfo(s);
-  s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp');
+  s.maxHp = Math.floor(r.max * 0.6) + 50 + getGongfaBonus(s, 'hp') + getXinjingHpBonus(s);
   s.atk = r.atk;
   s.def = r.def;
   s.matk = r.atk;
@@ -340,6 +349,231 @@ function migratePets(s) {
 // 迁移旧存档：确保 s.gongfa 是已学功法数组
 function migrateGongfa(s) {
   if (!Array.isArray(s.gongfa)) s.gongfa = [];
+}
+
+// ========== 洞府经营 ==========
+function migrateCave(s) {
+  if (!s.cave || typeof s.cave !== 'object') s.cave = { level: 1, plots: [] };
+  if (!s.cave.level) s.cave.level = 1;
+  if (!Array.isArray(s.cave.plots)) s.cave.plots = [];
+  s.cave.plots = s.cave.plots.filter(p => p && HERBS[p.herb]);
+}
+
+function getCaveInfo(s) {
+  if (!s) s = Game.state;
+  migrateCave(s);
+  const lv = Math.min(s.cave.level, CAVE_LEVELS.length);
+  const conf = CAVE_LEVELS[lv - 1];
+  return { level: lv, conf, plots: s.cave.plots, maxPlots: conf.plots, xpBonus: conf.xpBonus };
+}
+
+// 洞府修炼加成（作用于闭关修炼）
+function getCaveXpBonus(s) {
+  if (!s) s = Game.state;
+  return getCaveInfo(s).xpBonus;
+}
+
+// 种植灵药到第一块空闲田
+function plantHerb(s, herbId) {
+  const c = getCaveInfo(s);
+  const herb = HERBS[herbId];
+  if (!herb) return { ok: false, msg: '未知灵药' };
+  if (c.plots.length >= c.maxPlots) return { ok: false, msg: '灵田已满，请先收获或升级洞府' };
+  if ((s.stone || 0) < herb.seed) return { ok: false, msg: `灵石不足（需 ${herb.seed}）` };
+  s.stone -= herb.seed;
+  s.cave.plots.push({ herb: herbId, plantedAt: Date.now() });
+  autoSave();
+  return { ok: true, msg: `种下了${herb.name}` };
+}
+
+// 收获某块田
+function harvestPlot(s, index) {
+  const c = getCaveInfo(s);
+  const plot = c.plots[index];
+  if (!plot) return { ok: false, msg: '没有这块田' };
+  const herb = HERBS[plot.herb];
+  const now = Date.now();
+  if (now - plot.plantedAt < herb.growMs) {
+    const remain = Math.ceil((herb.growMs - (now - plot.plantedAt)) / 60000);
+    return { ok: false, msg: `${herb.name} 尚未成熟（约 ${remain} 分钟）` };
+  }
+  s.cave.plots.splice(index, 1);
+  const y = herb.yield;
+  let text = `收获 ${herb.name}：`;
+  if (y.stone) { s.stone += y.stone; text += `灵石 +${y.stone}`; }
+  if (y.item) { grantItem(s, y.item, y.count || 1); const it = ITEMS[y.item]; text += `${it ? it.name : '道具'} ×${y.count || 1}`; }
+  if (y.xp) { addXp(s, y.xp); text += `修为 +${y.xp}`; }
+  if (y.dao) { s.dao += y.dao; text += `道韵 +${y.dao}`; }
+  autoSave();
+  return { ok: true, msg: text };
+}
+
+// 升级洞府
+function upgradeCave(s) {
+  const c = getCaveInfo(s);
+  if (c.level >= CAVE_LEVELS.length) return { ok: false, msg: '洞府已满级' };
+  const next = CAVE_LEVELS[c.level];
+  if ((s.stone || 0) < next.cost) return { ok: false, msg: `灵石不足（需 ${next.cost}）` };
+  s.stone -= next.cost;
+  s.cave.level = c.level + 1;
+  autoSave();
+  return { ok: true, msg: `洞府升到 ${s.cave.level} 级，灵田 +1，修炼加成提升` };
+}
+
+// ========== 宗门系统 ==========
+function migrateSect(s) {
+  if (s.sect && !SECTS[s.sect]) s.sect = null;
+  if (typeof s.contribution !== 'number') s.contribution = 0;
+}
+
+function getSectInfo(s) {
+  if (!s) s = Game.state;
+  if (!s.sect) return null;
+  return SECTS[s.sect];
+}
+
+function joinSect(s, sectId) {
+  const sect = SECTS[sectId];
+  if (!sect) return;
+  s.sect = sectId;
+  s.contribution = 0;
+  realignRealm(s);
+  autoSave();
+}
+
+// 宗门被动加成
+function getSectBonus(s, prefix) {
+  const sect = getSectInfo(s);
+  if (!sect || !sect.bonus) return 0;
+  return sect.bonus[prefix] || 0;
+}
+
+// 完成宗门任务
+function doSectTask(s, taskId) {
+  const task = SECT_TASKS.find(t => t.id === taskId);
+  if (!task) return { ok: false, msg: '未知任务' };
+  if (!s.sect) return { ok: false, msg: '尚未加入宗门' };
+  if (task.cost && task.cost.item) {
+    const need = task.cost.count || 1;
+    if (!hasItem(task.cost.item, need)) {
+      const it = ITEMS[task.cost.item];
+      return { ok: false, msg: `材料不足（需 ${it ? it.name : task.cost.item} ×${need}）` };
+    }
+    removeItemFromState(s, task.cost.item, need);
+  }
+  s.contribution = (s.contribution || 0) + task.reward;
+  autoSave();
+  return { ok: true, msg: `任务完成，贡献 +${task.reward}` };
+}
+
+// 贡献商店购买
+function buySectItem(s, shopId) {
+  const item = SECT_SHOP.find(x => x.id === shopId);
+  if (!item) return { ok: false, msg: '未知商品' };
+  if ((s.contribution || 0) < item.cost) return { ok: false, msg: `贡献不足（需 ${item.cost}）` };
+  s.contribution -= item.cost;
+  const r = item.reward;
+  let text = `兑换 ${item.name}：`;
+  if (r.stone) { s.stone += r.stone; text += `灵石 +${r.stone}`; }
+  if (r.item) { grantItem(s, r.item, r.count || 1); const it = ITEMS[r.item]; text += `${it ? it.name : '道具'} ×${r.count || 1}`; }
+  if (r.dao) { s.dao += r.dao; text += `道韵 +${r.dao}`; }
+  if (r.gongfa) { const res = learnGongfa(s, r.gongfa); text += res.duplicate ? `功法重复，转 ${res.refund} 灵石` : `功法【${res.name}】`; }
+  autoSave();
+  return { ok: true, msg: text };
+}
+
+// ========== 竞技斗法 ==========
+function migrateArena(s) {
+  if (!s.arena || typeof s.arena !== 'object') s.arena = { score: 0, wins: 0, losses: 0 };
+  if (typeof s.arena.score !== 'number') s.arena.score = 0;
+  if (typeof s.arena.wins !== 'number') s.arena.wins = 0;
+  if (typeof s.arena.losses !== 'number') s.arena.losses = 0;
+}
+
+function getArenaTier(score) {
+  let cur = ARENA_TIERS[0];
+  for (const t of ARENA_TIERS) {
+    if (score >= t.min) cur = t;
+    else break;
+  }
+  return cur;
+}
+
+function getArenaLadderText(s) {
+  const score = (s.arena && s.arena.score) || 0;
+  const list = ARENA_LADDER.map(e => ({ name: e.name, score: e.score }));
+  list.push({ name: s.name + '（你）', score, me: true });
+  list.sort((a, b) => b.score - a.score);
+  const rank = list.findIndex(e => e.me) + 1;
+  let text = `你的排名：第 ${rank} 名\n\n`;
+  list.forEach((e, i) => {
+    text += `${i + 1}. ${e.name}　${e.score}\n`;
+  });
+  return text;
+}
+
+// 生成同阶对手
+function genArenaOpponent(s) {
+  const r = getRealmInfo(s);
+  const surname = ARENA_NAMES[Math.floor(Math.random() * ARENA_NAMES.length)];
+  const title = ['散修', '剑客', '道人', '仙子', '狂徒'][Math.floor(Math.random() * 5)];
+  const factor = 0.85 + Math.random() * 0.3; // 0.85~1.15
+  return {
+    name: surname + '·' + title,
+    hp: Math.floor((r.max * 0.5 + 50) * factor),
+    atk: Math.floor(r.atk * factor),
+    def: Math.floor(r.def * factor),
+    matk: Math.floor(r.atk * factor),
+    mdef: Math.floor(r.def * factor),
+    pen: Math.floor(10 * factor),
+  };
+}
+
+// ========== 心魔试炼 ==========
+function migrateMind(s) {
+  if (!s.mind || typeof s.mind !== 'object') s.mind = { xinjing: 0 };
+  if (typeof s.mind.xinjing !== 'number') s.mind.xinjing = 0;
+}
+
+function getXinjing(s) {
+  if (!s) s = Game.state;
+  return (s.mind && s.mind.xinjing) || 0;
+}
+function getXinjingBonus(s) {
+  return Math.floor(getXinjing(s) * 0.5);
+}
+function getXinjingHpBonus(s) {
+  return getXinjing(s) * 5;
+}
+function getMindInfo(s) {
+  if (!s) s = Game.state;
+  return { xinjing: getXinjing(s), bonus: getXinjingBonus(s), hpBonus: getXinjingHpBonus(s) };
+}
+
+// 触发心魔（随机事件或战斗）
+function triggerXinmo(s) {
+  if (Math.random() < 0.35) {
+    goToNode('xinmo_battle');
+  } else {
+    const ev = XINMO_EVENTS[Math.floor(Math.random() * XINMO_EVENTS.length)];
+    Game.currentXinmo = ev;
+    Game.xinmoResult = null;
+    goToNode('xinmo_event');
+  }
+}
+
+// 应用心魔选择题结果
+function applyXinmoChoice(delta) {
+  const s = Game.state;
+  s.mind = s.mind || { xinjing: 0 };
+  const before = s.mind.xinjing || 0;
+  s.mind.xinjing = Math.max(0, before + delta);
+  const diff = s.mind.xinjing - before;
+  Game.currentXinmo = null;
+  realignRealm(s);
+  autoSave();
+  Game.xinmoResult = diff >= 0 ? `心境 +${diff}（当前 ${s.mind.xinjing}）。道心愈发坚定。` : `心境 ${diff}（当前 ${s.mind.xinjing}）。需砥砺道心。`;
+  goToNode('xinmo_result');
 }
 
 // 获取当前出战灵宠（背包条目）
@@ -526,6 +760,8 @@ function getTotalAtk(s) {
   atk += getEquipBonus(s, 'weapon', 'atk');
   atk += getPetBonus(s, 'atk');
   atk += getGongfaBonus(s, 'atk');
+  atk += getSectBonus(s, 'atk');
+  atk += getXinjingBonus(s);
   return Math.floor(atk * PLAYER_ATK_SCALE);
 }
 function getTotalMatk(s) {
@@ -533,6 +769,8 @@ function getTotalMatk(s) {
   matk += getEquipBonus(s, 'weapon', 'matk');
   matk += getPetBonus(s, 'matk');
   matk += getGongfaBonus(s, 'matk');
+  matk += getSectBonus(s, 'matk');
+  matk += getXinjingBonus(s);
   return Math.floor(matk * PLAYER_ATK_SCALE);
 }
 function getTotalDef(s) {
@@ -540,6 +778,8 @@ function getTotalDef(s) {
   def += getEquipBonus(s, 'armor', 'def');
   def += getPetBonus(s, 'def');
   def += getGongfaBonus(s, 'def');
+  def += getSectBonus(s, 'def');
+  def += getXinjingBonus(s);
   return def;
 }
 function getTotalMdef(s) {
@@ -547,6 +787,8 @@ function getTotalMdef(s) {
   mdef += getEquipBonus(s, 'armor', 'mdef');
   mdef += getPetBonus(s, 'mdef');
   mdef += getGongfaBonus(s, 'mdef');
+  mdef += getSectBonus(s, 'mdef');
+  mdef += getXinjingBonus(s);
   return mdef;
 }
 function getTotalPen(s) {
@@ -555,6 +797,8 @@ function getTotalPen(s) {
   pen += getEquipBonus(s, 'armor', 'pen');
   pen += getPetBonus(s, 'pen');
   pen += getGongfaBonus(s, 'pen');
+  pen += getSectBonus(s, 'pen');
+  pen += getXinjingBonus(s);
   return pen;
 }
 
@@ -707,7 +951,9 @@ function useItem(id) {
   const s = Game.state;
   const item = ITEMS[id];
   if (!item) return false;
-  if (!hasItem(id)) return false;
+  // 已装备的武器/防具可卸下，此时不在背包里，跳过 hasItem 检查
+  const isEquipped = item.type === 'weapon' && (s.equipment.weapon === id || s.equipment.armor === id);
+  if (!hasItem(id) && !isEquipped) return false;
 
   // 喂养灵宠道具：兽粮 +1 级，灵兽丹 +3 级
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
@@ -743,8 +989,9 @@ function useItem(id) {
     // 装备/卸下
     const key = item.effect && (item.effect.startsWith('def') || item.effect.startsWith('mdef')) ? 'armor' : 'weapon';
     if (s.equipment[key] === id) {
-      // 卸下
+      // 卸下：装备放回背包
       s.equipment[key] = null;
+      grantItem(s, id, 1);
       UI.showToast(`卸下${item.name}`);
     } else {
       // 装备（旧的放回背包）

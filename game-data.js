@@ -376,6 +376,121 @@ const QYU_POOL = [
   { id: 'qyu_dunwu',     title: '顿悟', text: '行走间，你忽然福至心灵，对修行有了更深的理解。', weight: 12, reward: { type: 'xp', value: 300 } },
 ];
 
+// ========== 洞府经营 ==========
+// 灵药：种下后按真实时间挂机成长，成熟后可收获奖励
+// yield 类型：stone 灵石 / item 道具 / xp 修为 / dao 道韵
+const HERBS = {
+  lingzhi:   { id: 'lingzhi',   name: '灵芝',     icon: '🌿', growMs: 60000,     seed: 10,  yield: { stone: 28 } },
+  renshen:   { id: 'renshen',   name: '人参',     icon: '🥕', growMs: 300000,    seed: 30,  yield: { stone: 75 } },
+  xuelian:   { id: 'xuelian',   name: '雪莲',     icon: '❄️', growMs: 1800000,   seed: 120, yield: { item: 'lingshou_dan', count: 1 } },
+  longyan:   { id: 'longyan',   name: '龙涎草',   icon: '🌱', growMs: 7200000,   seed: 300, yield: { xp: 600 } },
+  jiuhua:    { id: 'jiuhua',    name: '九华仙莲', icon: '🪷', growMs: 21600000,  seed: 800, yield: { dao: 10 } },
+};
+
+// 洞府等级：等级越高，灵田越多、修炼加成越高
+const CAVE_LEVELS = [
+  { level: 1, plots: 1, cost: 0,     xpBonus: 0.00 },
+  { level: 2, plots: 2, cost: 300,   xpBonus: 0.05 },
+  { level: 3, plots: 3, cost: 800,   xpBonus: 0.10 },
+  { level: 4, plots: 4, cost: 2000,  xpBonus: 0.15 },
+  { level: 5, plots: 5, cost: 5000,  xpBonus: 0.22 },
+  { level: 6, plots: 6, cost: 12000, xpBonus: 0.30 },
+  { level: 7, plots: 7, cost: 30000, xpBonus: 0.40 },
+];
+
+// ========== 宗门系统 ==========
+// 宗门：加入后获得被动加成，可接宗门任务赚贡献、在贡献商店兑换
+const SECTS = {
+  qingyun: { id: 'qingyun', name: '青云宗', icon: '☁️', color: '#4a90d9',
+    desc: '名门正派，剑修云集。宗门加成：物攻+25、物抗+15。',
+    bonus: { atk: 25, def: 15 } },
+  danxia: { id: 'danxia', name: '丹霞谷', icon: '🌅', color: '#e6a23c',
+    desc: '炼丹圣地，富甲一方。宗门加成：法攻+25、法抗+15。',
+    bonus: { matk: 25, mdef: 15 } },
+  tianmo: { id: 'tianmo', name: '天魔教', icon: '🩸', color: '#e0473c',
+    desc: '魔道宗门，速成霸道。宗门加成：物攻+40、穿透+20。',
+    bonus: { atk: 40, pen: 20 } },
+};
+
+// 宗门任务：完成后获得贡献（cost 为 null 表示点击即完成；item 需交付材料；battle 需战斗）
+const SECT_TASKS = [
+  { id: 'sect_patrol', name: '巡山任务', icon: '🚶', desc: '巡视山门，驱赶宵小。', reward: 15, cost: null },
+  { id: 'sect_gather', name: '采药任务', icon: '🌿', desc: '采集灵药上交宗门。', reward: 30, cost: { item: 'yaowanggu_lingzhi', count: 1 } },
+  { id: 'sect_hunt',   name: '讨伐任务', icon: '⚔️', desc: '讨伐黑风岭妖兽。', reward: 60, cost: { battle: true } },
+];
+
+// 宗门贡献商店
+const SECT_SHOP = [
+  { id: 'ss_stone',  name: '灵石礼包',     icon: '💰', cost: 50,  reward: { stone: 200 } },
+  { id: 'ss_juqi',   name: '聚气丹',       icon: '🧪', cost: 80,  reward: { item: 'juqi_pill', count: 2 } },
+  { id: 'ss_huiqi',  name: '回气丹',       icon: '💊', cost: 40,  reward: { item: 'huiqi_pill', count: 1 } },
+  { id: 'ss_gongfa', name: '功法·金刚不坏', icon: '💪', cost: 300, reward: { gongfa: 'gong_jingang' } },
+  { id: 'ss_dao',    name: '道韵玉牌',     icon: '☯️', cost: 200, reward: { dao: 15 } },
+];
+
+// ========== 竞技斗法 ==========
+// 段位：按积分划分
+const ARENA_TIERS = [
+  { tier: '炼气斗者', min: 0 },
+  { tier: '筑基斗士', min: 100 },
+  { tier: '金丹斗尊', min: 300 },
+  { tier: '元婴斗皇', min: 800 },
+  { tier: '化神斗帝', min: 2000 },
+  { tier: '仙域斗仙', min: 5000 },
+];
+
+// 天梯假名（本地模拟排行榜，用于显示玩家排名）
+const ARENA_LADDER = [
+  { name: '剑痴·慕容',  score: 5200 },
+  { name: '丹霞仙子',   score: 4600 },
+  { name: '血手人屠',   score: 3900 },
+  { name: '青莲剑客',   score: 3100 },
+  { name: '白眉老道',   score: 2400 },
+  { name: '黑风双煞',   score: 1800 },
+  { name: '黄雀道人',   score: 1200 },
+  { name: '快剑阿七',   score: 650 },
+  { name: '铁掌水上漂', score: 320 },
+  { name: '无名散修',   score: 80 },
+];
+
+// 斗法对手名池
+const ARENA_NAMES = ['张铁牛', '李青', '王道人', '赵飞', '孙胜', '周玄', '吴风', '郑烈', '冯霜', '陈冲', '楚狂', '苏小小'];
+
+// ========== 心魔试炼 ==========
+// 心魔事件：选择题，选对加心境，选错减心境（xinjing 可为负）
+const XINMO_EVENTS = [
+  { id: 'xm_greed', title: '贪婪心魔',
+    text: '幻境之中，满山灵石铺就，一株仙药摇曳。心魔低语："尽取之，方不负此生。"',
+    choices: [
+      { label: '只取所需，留有余地', xinjing: 10 },
+      { label: '尽数搜刮，不落分毫', xinjing: -8 },
+    ] },
+  { id: 'xm_anger', title: '嗔怒心魔',
+    text: '你见旧日仇敌当众羞辱于你，杀意顿起。心魔狂笑："杀了他！"',
+    choices: [
+      { label: '忍一时，风平浪静', xinjing: 10 },
+      { label: '怒而出手，血溅当场', xinjing: -10 },
+    ] },
+  { id: 'xm_doubt', title: '道心之惑',
+    text: '你仰望仙路茫茫，忽觉万般皆是虚妄，萌生退意。',
+    choices: [
+      { label: '守本心，道在脚下', xinjing: 12 },
+      { label: '动摇怀疑，心乱如麻', xinjing: -10 },
+    ] },
+  { id: 'xm_fear', title: '恐惧心魔',
+    text: '无边的黑暗吞没天地，你只觉渺小如尘，双腿发软。',
+    choices: [
+      { label: '直面恐惧，逆流而上', xinjing: 12 },
+      { label: '退缩逃避，寻求庇护', xinjing: -8 },
+    ] },
+  { id: 'xm_lust', title: '色欲心魔',
+    text: '绝世仙子含笑相邀，红粉骷髅，不过一念之间。',
+    choices: [
+      { label: '心如止水，不动如山', xinjing: 10 },
+      { label: '心神摇曳，坠入温柔', xinjing: -8 },
+    ] },
+];
+
 // ========== 敌人设定 ==========
 const ENEMIES = {
   // 新手区
@@ -1183,6 +1298,7 @@ const STORY_NODES = {
     },
     choices: [
       { label: '继续修炼', next: 'inner_cultivate' },
+      { label: '回洞府', next: 'cave_home' },
       { label: '返回外门', next: 'qingyun_gate' },
       { label: '云游寻缘（奇遇）', next: 'qiyu_wander' },
       { label: '去内门任务堂', next: 'inner_quest_hall' },
@@ -1224,7 +1340,8 @@ const STORY_NODES = {
     title: '内门修炼',
     text: '内门洞府灵气浓度远胜外门，你修炼起来事半功倍。',
     onEnter: (s) => {
-      const gain = 80 + Math.floor(Math.random() * 40);
+      const base = 80 + Math.floor(Math.random() * 40);
+      const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
       setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为）`);
     },
@@ -1238,7 +1355,8 @@ const STORY_NODES = {
     title: '再修一轮',
     text: '你继续沉浸在修炼之中。',
     onEnter: (s) => {
-      const gain = 100 + Math.floor(Math.random() * 60);
+      const base = 100 + Math.floor(Math.random() * 60);
+      const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
       setNodeText(`你周身灵气愈发醇厚。（+${gain}修为）`);
     },
@@ -1897,6 +2015,209 @@ const STORY_NODES = {
     onEnter: (s) => { s.hp = Math.max(1, Math.floor(s.maxHp * 0.3)); },
     choices: [
       { label: '返回修养', next: 'inner_gate' },
+    ],
+  },
+
+  // ===== 洞府经营 =====
+  cave_home: {
+    title: '洞府',
+    dynamicText: (s) => {
+      const c = getCaveInfo(s);
+      return `这是你的修行洞府（${c.level}级）。灵田 ${c.plots.length}/${c.plots} 块，修炼加成 +${Math.round(c.xpBonus * 100)}%。\n洞府等级越高，灵田越多、修炼越快。`;
+    },
+    choices: [
+      { label: '闭关修炼', next: 'inner_cultivate' },
+      { label: '管理灵田与洞府', next: 'cave_manage' },
+      { label: '静心打坐（心魔试炼）', next: 'xinmo_enter' },
+      { label: '前往宗门', next: 'sect_home' },
+      { label: '前往斗法台', next: 'arena_hall' },
+      { label: '离开洞府', next: 'inner_gate' },
+    ],
+  },
+
+  cave_manage: {
+    title: '灵田管理',
+    text: '灵田之中灵气充沛，正是种植灵药、升级洞府的好地方。',
+    cave: true,
+  },
+
+  // ===== 宗门系统 =====
+  sect_home: {
+    title: '宗门',
+    dynamicText: (s) => {
+      if (!s.sect) return '你还未加入任何宗门。拜入一方势力，可获得宗门加成、接任务赚贡献、兑换资源。';
+      const sect = SECTS[s.sect];
+      return `你现属【${sect.icon} ${sect.name}】，贡献 ${s.contribution} 点。\n${sect.desc}`;
+    },
+    choices: [
+      { label: '加入青云宗', action: (s) => joinSect(s, 'qingyun'), next: 'sect_home', req: (s) => !s.sect },
+      { label: '加入丹霞谷', action: (s) => joinSect(s, 'danxia'), next: 'sect_home', req: (s) => !s.sect },
+      { label: '加入天魔教', action: (s) => joinSect(s, 'tianmo'), next: 'sect_home', req: (s) => !s.sect },
+      { label: '宗门任务', next: 'sect_tasks', req: (s) => !!s.sect },
+      { label: '贡献商店', next: 'sect_shop', req: (s) => !!s.sect },
+      { label: '离开宗门', next: 'sect_leave', req: (s) => !!s.sect },
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  sect_tasks: {
+    title: '宗门任务',
+    text: '宗门发布的任务，完成后可获得贡献值。',
+    sectTasks: true,
+  },
+
+  sect_shop: {
+    title: '贡献商店',
+    text: '用宗门贡献兑换珍稀资源。',
+    sectShop: true,
+  },
+
+  sect_leave: {
+    title: '离开宗门',
+    text: '你决定离开宗门，从此云游四方。',
+    onEnter: (s) => {
+      s.sect = null;
+      s.contribution = 0;
+    },
+    choices: [
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  // ===== 竞技斗法 =====
+  arena_hall: {
+    title: '斗法台',
+    dynamicText: (s) => {
+      const a = s.arena || {};
+      const tier = getArenaTier(a.score || 0);
+      return `斗法台上，众修士各显神通。你当前积分 ${a.score || 0}，段位【${tier.tier}】，胜 ${a.wins || 0} 负 ${a.losses || 0}。`;
+    },
+    choices: [
+      { label: '挑战同阶修士', next: 'arena_challenge' },
+      { label: '查看天梯', next: 'arena_ladder' },
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  arena_challenge: {
+    title: '斗法开始',
+    text: '你登上斗法台，一位同阶修士也缓缓走出。',
+    arena: true,
+  },
+
+  arena_win: {
+    title: '斗法得胜',
+    text: '你技高一筹，将对手击落台下，赢得满堂喝彩。',
+    onEnter: (s) => {
+      s.arena = s.arena || { score: 0, wins: 0, losses: 0 };
+      const gain = 15 + Math.floor(Math.random() * 16);
+      s.arena.score = (s.arena.score || 0) + gain;
+      s.arena.wins = (s.arena.wins || 0) + 1;
+      const stone = 50 + Math.floor(Math.random() * 50);
+      s.stone += stone;
+      s.fame += 10;
+      s.hp = s.maxHp;
+      setNodeText(`你赢得胜利！斗法积分 +${gain}，灵石 +${stone}，名望 +10。`);
+    },
+    choices: [
+      { label: '继续挑战', next: 'arena_challenge' },
+      { label: '返回斗法台', next: 'arena_hall' },
+    ],
+  },
+
+  arena_lose: {
+    title: '斗法落败',
+    text: '你一招不慎，被对手击退。斗法点到为止，未曾受重伤。',
+    onEnter: (s) => {
+      s.arena = s.arena || { score: 0, wins: 0, losses: 0 };
+      s.arena.score = Math.max(0, (s.arena.score || 0) - 5);
+      s.arena.losses = (s.arena.losses || 0) + 1;
+      s.hp = s.maxHp;
+      setNodeText(`你落败了。斗法积分 -5，好在点到为止。`);
+    },
+    choices: [
+      { label: '再战一场', next: 'arena_challenge' },
+      { label: '返回斗法台', next: 'arena_hall' },
+    ],
+  },
+
+  arena_ladder: {
+    title: '天梯榜',
+    dynamicText: (s) => getArenaLadderText(s),
+    choices: [
+      { label: '返回斗法台', next: 'arena_hall' },
+    ],
+  },
+
+  // ===== 心魔试炼 =====
+  xinmo_enter: {
+    title: '静心打坐',
+    dynamicText: (s) => {
+      const m = getMindInfo(s);
+      return `你欲静心凝神，斩却心中杂念。\n（当前心境 ${m.xinjing}，全属性 +${m.bonus}，气血 +${m.hpBonus}）`;
+    },
+    choices: [
+      { label: '开始静心（随机遭遇心魔）', action: (s) => { triggerXinmo(s); } },
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  xinmo_event: {
+    title: '心魔作祟',
+    dynamicText: (s) => {
+      const ev = Game.currentXinmo;
+      return ev ? `【${ev.title}】\n${ev.text}` : '心魔已散，如梦幻泡影。';
+    },
+    xinmo: true,
+  },
+
+  xinmo_result: {
+    title: '心境之悟',
+    dynamicText: (s) => {
+      const r = Game.xinmoResult;
+      return r ? r : '你心境已有所变化。';
+    },
+    choices: [
+      { label: '继续静心', next: 'xinmo_enter' },
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  xinmo_battle: {
+    title: '心魔劫',
+    text: '刹那间，你心中的执念化作一个与你一模一样的黑影，狰狞地扑了过来！',
+    xinmoBattle: true,
+  },
+
+  xinmo_battle_win: {
+    title: '斩却心魔',
+    text: '你一剑斩灭心魔，道心愈发澄澈。',
+    onEnter: (s) => {
+      s.mind = s.mind || { xinjing: 0 };
+      s.mind.xinjing += 30;
+      s.hp = s.maxHp;
+      realignRealm(s);
+      setNodeText(`你斩灭心魔，道心澄澈！心境 +30（当前 ${s.mind.xinjing}）。`);
+    },
+    choices: [
+      { label: '继续静心', next: 'xinmo_enter' },
+      { label: '返回洞府', next: 'cave_home' },
+    ],
+  },
+
+  xinmo_battle_lose: {
+    title: '心魔反噬',
+    text: '你心神失守，被心魔压制，好在及时稳住了道心。',
+    onEnter: (s) => {
+      s.mind = s.mind || { xinjing: 0 };
+      s.mind.xinjing = Math.max(0, (s.mind.xinjing || 0) - 5);
+      s.hp = s.maxHp;
+      realignRealm(s);
+      setNodeText('你被心魔反噬，心境 -5。稳住道心，方能再战。');
+    },
+    choices: [
+      { label: '继续静心', next: 'xinmo_enter' },
+      { label: '返回洞府', next: 'cave_home' },
     ],
   },
 };

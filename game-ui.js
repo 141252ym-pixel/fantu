@@ -159,6 +159,42 @@ const UI = {
       return;
     }
 
+    // 如果是洞府灵田
+    if (node.cave) {
+      this.renderCave();
+      return;
+    }
+
+    // 如果是宗门任务
+    if (node.sectTasks) {
+      this.renderSectTasks();
+      return;
+    }
+
+    // 如果是贡献商店
+    if (node.sectShop) {
+      this.renderSectShop();
+      return;
+    }
+
+    // 如果是竞技斗法挑战
+    if (node.arena) {
+      this.startArenaBattle(node);
+      return;
+    }
+
+    // 如果是心魔事件
+    if (node.xinmo) {
+      this.renderXinmo();
+      return;
+    }
+
+    // 如果是心魔战斗
+    if (node.xinmoBattle) {
+      this.startXinmoBattle(node);
+      return;
+    }
+
     // 存在延迟自动跳转（随机遭遇等）时，不渲染选项，等待跳转
     if (Game.delayedTimer) {
       this.updateStats();
@@ -188,6 +224,230 @@ const UI = {
     });
 
     this.updateStats();
+  },
+
+  // ========== 洞府经营 ==========
+  renderCave() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const c = getCaveInfo(s);
+
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    info.textContent = `洞府 ${c.level} 级 · 灵田 ${c.plots.length}/${c.maxPlots} 块 · 修炼加成 +${Math.round(c.xpBonus * 100)}%`;
+    el.appendChild(info);
+
+    c.plots.forEach((plot, i) => {
+      const herb = HERBS[plot.herb];
+      const remain = herb.growMs - (Date.now() - plot.plantedAt);
+      const row = document.createElement('button');
+      row.className = 'ink-btn';
+      if (remain > 0) {
+        const mins = Math.max(1, Math.ceil(remain / 60000));
+        row.disabled = true;
+        row.classList.add('disabled');
+        row.textContent = `田${i + 1} · ${herb.icon} ${herb.name}（生长中，约 ${mins} 分钟）`;
+      } else {
+        row.textContent = `田${i + 1} · ${herb.icon} ${herb.name}（已成熟，点击收获）`;
+        row.addEventListener('click', () => {
+          playClickSound();
+          const r = harvestPlot(s, i);
+          UI.showToast(r.msg);
+          UI.renderCave();
+          UI.updateStats();
+        });
+      }
+      el.appendChild(row);
+    });
+
+    if (c.plots.length < c.maxPlots) {
+      const tip = document.createElement('div');
+      tip.className = 'gacha-pity';
+      tip.textContent = `还有 ${c.maxPlots - c.plots.length} 块灵田空闲，可选择灵药种植：`;
+      el.appendChild(tip);
+      for (const hid in HERBS) {
+        const herb = HERBS[hid];
+        const btn = document.createElement('button');
+        btn.className = 'ink-btn';
+        btn.textContent = `${herb.icon} 种${herb.name}（${herb.seed}灵石 · ${Math.round(herb.growMs / 60000)}分钟）`;
+        btn.addEventListener('click', () => {
+          playClickSound();
+          const r = plantHerb(s, hid);
+          UI.showToast(r.msg);
+          UI.renderCave();
+          UI.updateStats();
+        });
+        el.appendChild(btn);
+      }
+    }
+
+    if (c.level < CAVE_LEVELS.length) {
+      const next = CAVE_LEVELS[c.level];
+      const up = document.createElement('button');
+      up.className = 'ink-btn';
+      up.textContent = `⬆ 升级洞府（${next.cost}灵石 → ${next.level}级，灵田+1，修炼加成+${Math.round(next.xpBonus * 100)}%）`;
+      up.addEventListener('click', () => {
+        playClickSound();
+        const r = upgradeCave(s);
+        UI.showToast(r.msg);
+        UI.renderCave();
+        UI.updateStats();
+      });
+      el.appendChild(up);
+    } else {
+      const tip = document.createElement('div');
+      tip.className = 'gacha-pity';
+      tip.textContent = '洞府已升至满级。';
+      el.appendChild(tip);
+    }
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('cave_home'));
+    el.appendChild(backBtn);
+  },
+
+  // ========== 宗门任务 ==========
+  renderSectTasks() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    info.textContent = `当前贡献：${s.contribution || 0} 点`;
+    el.appendChild(info);
+    SECT_TASKS.forEach(task => {
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      let costDesc = '';
+      if (task.cost && task.cost.item) {
+        const it = ITEMS[task.cost.item];
+        costDesc = `（需 ${it ? it.name : task.cost.item} ×${task.cost.count || 1}）`;
+      }
+      if (task.cost && task.cost.battle) costDesc = '（需讨伐妖兽）';
+      btn.textContent = `${task.icon} ${task.name} · 贡献+${task.reward}${costDesc}`;
+      btn.addEventListener('click', () => {
+        playClickSound();
+        if (task.cost && task.cost.battle) {
+          startSectHunt();
+        } else {
+          const r = doSectTask(s, task.id);
+          UI.showToast(r.msg);
+          UI.renderSectTasks();
+          UI.updateStats();
+        }
+      });
+      el.appendChild(btn);
+    });
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('sect_home'));
+    el.appendChild(backBtn);
+  },
+
+  // ========== 贡献商店 ==========
+  renderSectShop() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    info.textContent = `当前贡献：${s.contribution || 0} 点`;
+    el.appendChild(info);
+    SECT_SHOP.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      btn.textContent = `${item.icon} ${item.name}（${item.cost}贡献）`;
+      if ((s.contribution || 0) < item.cost) {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+        btn.textContent += ' （贡献不足）';
+      }
+      btn.addEventListener('click', () => {
+        playClickSound();
+        const r = buySectItem(s, item.id);
+        UI.showToast(r.msg);
+        UI.renderSectShop();
+        UI.updateStats();
+      });
+      el.appendChild(btn);
+    });
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('sect_home'));
+    el.appendChild(backBtn);
+  },
+
+  // ========== 竞技斗法 ==========
+  startArenaBattle(node) {
+    const s = Game.state;
+    const origAtk = s.atk, origDef = s.def, origMatk = s.matk, origMdef = s.mdef, origPen = s.pen;
+    s.atk = getTotalAtk(s);
+    s.def = getTotalDef(s);
+    s.matk = getTotalMatk(s);
+    s.mdef = getTotalMdef(s);
+    s.pen = getTotalPen(s);
+    const winCb = () => { s.atk = origAtk; s.def = origDef; s.matk = origMatk; s.mdef = origMdef; s.pen = origPen; checkAchievements(); };
+    const loseCb = () => { s.atk = origAtk; s.def = origDef; s.matk = origMatk; s.mdef = origMdef; s.pen = origPen; s.hp = Math.max(1, Math.floor(s.maxHp * 0.3)); };
+    const opp = genArenaOpponent(s);
+    const enemy = { id: 'arena', name: opp.name, maxHp: opp.hp, hp: opp.hp, atk: opp.atk, def: opp.def, matk: opp.matk, mdef: opp.mdef, pen: opp.pen, xp: 0, stoneMin: 0, stoneMax: 0, drops: [], fame: 0, boss: false, untouchable: false, tribDmg: 0.15 };
+    Game.battle = { enemy, turn: 'player', log: [], winCallback: winCb, loseCallback: loseCb, winNext: 'arena_win', loseNext: 'arena_lose', ended: false, tribulation: false, turns: 0, turnCount: 0, pillUsed: 0, specialCd: {} };
+    logBattle(`斗法台上，${enemy.name} 抱拳施礼。`, 'sys');
+    this.els.battleOverlay.classList.remove('hidden');
+    this.updateBattle();
+  },
+
+  // ========== 心魔试炼 ==========
+  renderXinmo() {
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const ev = Game.currentXinmo;
+    if (!ev) {
+      const backBtn = document.createElement('button');
+      backBtn.className = 'ink-btn';
+      backBtn.textContent = '返回';
+      backBtn.addEventListener('click', () => goToNode('xinmo_enter'));
+      el.appendChild(backBtn);
+      return;
+    }
+    ev.choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      btn.textContent = c.label;
+      btn.addEventListener('click', () => {
+        playClickSound();
+        applyXinmoChoice(c.xinjing);
+      });
+      el.appendChild(btn);
+    });
+  },
+
+  startXinmoBattle(node) {
+    const s = Game.state;
+    const origAtk = s.atk, origDef = s.def, origMatk = s.matk, origMdef = s.mdef, origPen = s.pen;
+    s.atk = getTotalAtk(s);
+    s.def = getTotalDef(s);
+    s.matk = getTotalMatk(s);
+    s.mdef = getTotalMdef(s);
+    s.pen = getTotalPen(s);
+    const winCb = () => { s.atk = origAtk; s.def = origDef; s.matk = origMatk; s.mdef = origMdef; s.pen = origPen; };
+    const loseCb = () => { s.atk = origAtk; s.def = origDef; s.matk = origMatk; s.mdef = origMdef; s.pen = origPen; s.hp = Math.max(1, Math.floor(s.maxHp * 0.3)); };
+    const factor = 0.85;
+    const hp = Math.max(20, Math.floor(s.maxHp * factor));
+    const atk = Math.max(1, Math.floor(getTotalAtk(s) * factor));
+    const def = Math.max(0, Math.floor(getTotalDef(s) * factor));
+    const matk = Math.max(1, Math.floor(getTotalMatk(s) * factor));
+    const mdef = Math.max(0, Math.floor(getTotalMdef(s) * factor));
+    const pen = Math.max(0, Math.floor(getTotalPen(s) * factor));
+    const enemy = { id: 'xinmo', name: '心魔化身', maxHp: hp, hp, atk, def, matk, mdef, pen, xp: 0, stoneMin: 0, stoneMax: 0, drops: [], fame: 0, boss: false, untouchable: false, tribDmg: 0.15 };
+    Game.battle = { enemy, turn: 'player', log: [], winCallback: winCb, loseCallback: loseCb, winNext: 'xinmo_battle_win', loseNext: 'xinmo_battle_lose', ended: false, tribulation: false, turns: 0, turnCount: 0, pillUsed: 0, specialCd: {} };
+    logBattle(`心魔化身狞笑着扑来！`, 'sys');
+    this.els.battleOverlay.classList.remove('hidden');
+    this.updateBattle();
   },
 
   // ========== 商店 ==========
@@ -900,6 +1160,16 @@ const UI = {
     const s = Game.state;
     if (!s) return;
     let items = [];
+    // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
+    for (const slot of ['weapon', 'armor']) {
+      const eqId = s.equipment && s.equipment[slot];
+      if (eqId && ITEMS[eqId]) {
+        const it = ITEMS[eqId];
+        if (cat === 'all' || it.type === cat) {
+          items.push({ id: eqId, ...it, count: 1, _equipped: true });
+        }
+      }
+    }
     for (const id in s.bag) {
       if (s.bag[id] > 0 && ITEMS[id]) {
         const it = ITEMS[id];
@@ -914,7 +1184,7 @@ const UI = {
     }
     this.els.bagList.innerHTML = '';
     items.forEach(item => {
-      const equipped = s.equipment.weapon === item.id || s.equipment.armor === item.id;
+      const equipped = item._equipped === true;
       const lv = (s.equipLevel && s.equipLevel[item.id]) || 0;
       const usable = item.type === 'weapon' || item.type === 'pill'
         || !!((item.type === 'material' || item.type === 'misc') && item.effect);
@@ -929,10 +1199,10 @@ const UI = {
       div.innerHTML = `
         <span class="item-icon">${item.icon}</span>
         <div class="item-info">
-          <div class="item-name"${nameStyle}>${item.name}${equipped && lv > 0 ? ` +${lv}` : ''}</div>
+          <div class="item-name"${nameStyle}>${item.name}${equipped ? '〔已装备〕' : ''}${equipped && lv > 0 ? ` +${lv}` : ''}</div>
           <div class="item-desc">${item.desc}${item.sell ? ` · 售价${item.sell}灵石` : ''}</div>
         </div>
-        <div class="item-count">×${item.count}</div>
+        <div class="item-count">${equipped ? '' : `×${item.count}`}</div>
       `;
 
       const actions = document.createElement('div');
