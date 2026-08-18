@@ -1002,13 +1002,25 @@ const UI = {
 
   updateSaveSlots() {
     const auto = loadGame(0);
-    let html = '<div class="pane-title" style="margin-top:0">存档概览</div>';
+    const pid = getPlayerId();
+    let html = `<div class="save-pid">玩家编号 <b>${pid}</b><button class="pid-copy" onclick="UI.copyPlayerId()">复制</button></div>`;
+    html += '<div class="pane-title" style="margin-top:0">存档概览</div>';
     html += `<div class="save-row"><span class="save-row-label">自动档</span><span class="save-row-info">${auto ? this._desc(auto) : '（空）'}</span></div>`;
     for (let i = 1; i <= 3; i++) {
       const d = loadGame(i);
       html += `<div class="save-row"><span class="save-row-label">存档 ${i}</span><span class="save-row-info">${d ? this._desc(d) : '（空）'}</span></div>`;
     }
     this.els.saveStatus.innerHTML = html;
+  },
+
+  copyPlayerId() {
+    const pid = getPlayerId();
+    const done = () => this.showToast('编号已复制');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pid).then(done).catch(() => this.showToast('复制失败，请手动抄写：' + pid));
+    } else {
+      this.showToast('复制失败，请手动抄写：' + pid);
+    }
   },
 
   saveToSlot(slot) {
@@ -1034,6 +1046,7 @@ const UI = {
   exportSave() {
     const data = loadGame(0);
     if (!data) { this.showToast('暂无自动存档可导出'); return; }
+    data.playerId = getPlayerId(); // 注入编号，便于客服对账
     const text = JSON.stringify(data);
     const done = () => this.showToast('存档已复制到剪贴板，请粘贴到记事本/备忘录保存');
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1047,10 +1060,12 @@ const UI = {
   downloadSave() {
     const data = loadGame(0);
     if (!data) { this.showToast('暂无自动存档可下载'); return; }
+    const pid = getPlayerId();
+    data.playerId = pid; // 注入编号
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'fantu_save.json';
+    a.download = `fantu_save_${pid}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1077,6 +1092,7 @@ const UI = {
     let data;
     try { data = JSON.parse(text); } catch (e) { this.showToast('存档文本格式错误'); return; }
     if (!data || typeof data !== 'object' || data.name == null) { this.showToast('无效的存档数据'); return; }
+    delete data.playerId; // 编号是设备级的，导入时不覆盖本机编号
     Game.state = data;
     if (!Game.state.equipLevel) Game.state.equipLevel = {};
     if (!Game.state.tribulations) Game.state.tribulations = {};

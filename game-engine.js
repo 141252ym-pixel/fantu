@@ -146,6 +146,25 @@ function autoSave() {
   saveGame(0);
 }
 
+// ========== 玩家编号 ==========
+// 每台设备生成一次唯一编号，独立于存档存储，删档重开编号不变，用于客服对账/定位问题
+function genPlayerId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 排除易混淆的 0/O/1/I/L
+  let id = 'F';
+  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
+function getPlayerId() {
+  let id = null;
+  try { id = localStorage.getItem('fantu_uid'); } catch (e) { /* 隐私模式可能禁用存储 */ }
+  if (!id) {
+    id = genPlayerId();
+    try { localStorage.setItem('fantu_uid', id); } catch (e) { /* 存不进去则本次会话内一致 */ }
+  }
+  return id;
+}
+
 // ========== 灵根 ==========
 function rollLinggen(s) {
   const keys = Object.keys(LINGGEN);
