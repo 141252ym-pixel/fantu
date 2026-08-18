@@ -1746,6 +1746,11 @@ function redeemCode(code) {
   if (s.redeemed.includes(key)) return { ok: false, msg: '该兑换码已领取过' };
 
   const parts = [];
+  if (reward.tribulations) {
+    if (!s.tribulations) s.tribulations = {};
+    for (const g of TRIBULATION_GATES) s.tribulations[g.key] = true;
+    parts.push('已渡全部天劫');
+  }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }
   if (reward.xp) { addXp(s, reward.xp); parts.push(`修为×${reward.xp}`); }
   if (reward.dao) { s.dao += reward.dao; parts.push(`道韵×${reward.dao}`); }
