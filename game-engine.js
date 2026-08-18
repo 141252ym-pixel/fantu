@@ -1436,6 +1436,7 @@ function playerAttack() {
   const e = Game.battle.enemy;
   const dmg = Math.max(1, s.atk - e.def + (s.pen || 0) + Math.floor(Math.random() * 5));
   e.hp -= dmg;
+  playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
   checkBattleEnd();
@@ -1452,6 +1453,7 @@ function playerSkill() {
   const mult = 1.5 + Math.random() * 0.5;
   const dmg = Math.max(1, Math.floor(s.matk * mult) - e.mdef + (s.pen || 0));
   e.hp -= dmg;
+  playBattleHitSound();
   logBattle(lg.skillText, 'player');
   logBattle(`【${lg.skill}】对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
   checkBattleEnd();
