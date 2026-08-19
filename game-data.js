@@ -1180,7 +1180,7 @@ const STORY_NODES = {
     title: '药王',
     text: '"小友能破老夫的迷踪雾，也算有缘。你可愿拜入老夫门下，学习丹道？"',
     choices: [
-      { label: '愿意拜师', next: 'yaowang_disciple' },
+      { label: '愿意拜师', next: 'yaowang_disciple', req: (s) => !s.yaowangDisciple },
       { label: '婉拒，告辞', next: 'qingyun_gate' },
     ],
   },
@@ -1189,6 +1189,8 @@ const STORY_NODES = {
     title: '药王弟子',
     text: '药王满意地点点头，传授你基础丹道知识，并赠你一瓶丹药。',
     onEnter: (s) => {
+      if (s.yaowangDisciple) return;
+      s.yaowangDisciple = true;
       s.dao += 5;
       grantItem(s, 'juqi_pill', 3);
       s.fame += 10;

@@ -766,12 +766,14 @@ const UI = {
       const stage = getPetStage(p);
       const trait = getPetTrait(p);
       const isEquipped = s.pet === p.uid;
+      const star = p.star || 1;
       const feedCost = lv * 100;
+      const starLabel = star > 1 ? ` <span style="color:#ffd54f">★${star}星</span>` : '';
       html += `
         <div class="pet-card">
           <div class="pet-icon">${pet.icon}</div>
-          <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
-          <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）</div>
+          <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${starLabel}${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
+          <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）${star > 1 ? ` · 升星加成 +${(star - 1) * 10}%` : ''}</div>
           <div class="pet-desc">${pet.desc}</div>
           <div class="pet-stats">固定值 + 主人属性百分比<br>物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')}<br>物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
           <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害（单次不超过主人本次伤害50%）</div>
@@ -780,6 +782,9 @@ const UI = {
         <div class="save-actions">
           ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
           <button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 灵石喂养（${feedCost}）</button>
+          <button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">💊 喂灵兽丹</button>
+          <button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">🥩 喂兽粮</button>
+          <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">⭐ 升星</button>
           <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
         </div>
       `;
@@ -797,6 +802,23 @@ const UI = {
 
   releasePetFromPanel(id) {
     if (releasePet(id)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  feedPetItemFromPanel(id, itemId) {
+    const s = Game.state;
+    const have = (s.bag && s.bag[itemId]) || 0;
+    if (have <= 0) { this.showToast('没有该喂养道具'); return; }
+    const name = itemId === 'lingshou_dan' ? '灵兽丹' : '兽粮';
+    const per = itemId === 'lingshou_dan' ? 3 : 1;
+    const input = prompt(`当前拥有${name}×${have}，每颗提升 ${per} 级。要喂多少颗？`, have);
+    if (input === null) return;
+    const n = parseInt(input, 10);
+    if (!n || n < 1) { this.showToast('数量无效'); return; }
+    if (feedPetByItem(id, itemId, n)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  starUpPetFromPanel(id) {
+    if (starUpPet(id)) { this.renderPetPanel(); this.updateStats(); }
   },
 
   renderSectTransfer() {

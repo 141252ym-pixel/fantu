@@ -924,7 +924,8 @@ function getPetStatBonus(s, entry, stat) {
   if (pet.affinity === 'attack') affinity = ['atk', 'matk', 'pen'].includes(stat) ? 1.35 : 0.78;
   if (pet.affinity === 'guard') affinity = ['def', 'mdef'].includes(stat) ? 1.35 : 0.78;
   const percent = owner * conf.pct * (1 + stage * 0.20) * affinity;
-  return Math.floor(fixed + percent);
+  const starMult = 1 + ((entry.star || 1) - 1) * 0.1;
+  return Math.floor((fixed + percent) * starMult);
 }
 
 function getPetSkillChance(entry) {
@@ -950,7 +951,7 @@ function addPetToBag(s, petId) {
     s.stone += refund;
     return { duplicate: true, refund };
   }
-  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1 };
+  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1, star: 1 };
   if (pet.quality === '神品') entry.trait = rollDivineTrait(petId);
   entry.skillLevel = 0;
   s.pets.push(entry);
@@ -1069,19 +1070,21 @@ function feedPet(petId) {
   return true;
 }
 
-// 用喂养道具升级：兽粮 +1 级，灵兽丹 +3 级
-function feedPetByItem(petId, itemId) {
+// 用喂养道具升级：兽粮 +1 级，灵兽丹 +3 级；count 可批量
+function feedPetByItem(petId, itemId, count) {
   const s = Game.state;
   if (!petId) petId = s.pet;
   if (!petId) { UI.showToast('你还没有灵宠'); return false; }
   const entry = s.pets.find(p => p.uid === petId);
   if (!entry) return false;
-  if (!hasItem(itemId)) { UI.showToast('没有该喂养道具'); return false; }
+  const have = (s.bag && s.bag[itemId]) || 0;
+  if (have <= 0) { UI.showToast('没有该喂养道具'); return false; }
   const pet = PETS[entry.id];
   const gain = itemId === 'lingshou_dan' ? 3 : 1;
+  count = Math.max(1, Math.min(count || 1, have));
   const beforeStage = getPetStage(entry);
-  removeItemFromState(s, itemId, 1);
-  entry.level = (entry.level || 1) + gain;
+  removeItemFromState(s, itemId, count);
+  entry.level = (entry.level || 1) + gain * count;
   const advanced = getPetStage(entry) > beforeStage;
   if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
   UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
@@ -1104,6 +1107,33 @@ function releasePet(petId) {
     s.pet = s.pets.length > 0 ? s.pets[0].uid : null;
   }
   UI.showToast(`放生了 ${pet.name}，获得 ${refund} 灵石`);
+  autoSave();
+  UI.updateStats();
+  return true;
+}
+
+// 灵宠升星：3 只同名同星宠物合成 1 只星级+1 的主宠（每星全属性 +10%）
+function starUpPet(petId) {
+  const s = Game.state;
+  if (!petId) petId = s.pet;
+  if (!petId) { UI.showToast('你还没有灵宠'); return false; }
+  const entry = s.pets.find(p => p.uid === petId);
+  if (!entry) return false;
+  const pet = PETS[entry.id];
+  const star = entry.star || 1;
+  // 找另外两只同名同星（且不是主宠自身）的宠物
+  const others = s.pets.filter(p => p.id === entry.id && p.uid !== entry.uid && (p.star || 1) === star);
+  if (others.length < 2) {
+    UI.showToast(`升星需 3 只同名${star}星宠物，还差 ${2 - others.length} 只（当前同星 ${others.length} 只）`);
+    return false;
+  }
+  // 消耗 2 只素材
+  for (let i = 0; i < 2; i++) {
+    const idx = s.pets.findIndex(p => p.uid === others[i].uid);
+    if (idx >= 0) s.pets.splice(idx, 1);
+  }
+  entry.star = star + 1;
+  UI.showToast(`✨ ${pet.name} 升为 ${star + 1} 星！全属性 +10%（累计 +${(star) * 10}%）`);
   autoSave();
   UI.updateStats();
   return true;
