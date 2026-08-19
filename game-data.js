@@ -292,7 +292,9 @@ const ITEMS = {
   nencao:      { id: 'nencao',      name: '嫩草',     type: 'misc', icon: '🌿', desc: '灵宠零食·草食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'grass', sell: 20 },
   lingcao:     { id: 'lingcao',     name: '灵草',     type: 'misc', icon: '🌱', desc: '灵宠零食·草食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'grass', sell: 60 },
   xianzhicao:  { id: 'xianzhicao',  name: '仙芝草',   type: 'misc', icon: '🍀', desc: '灵宠零食·草食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'grass', sell: 200 },
+  songzi:      { id: 'songzi',      name: '松子',     type: 'misc', icon: '🌰', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'nut',   sell: 20 },
   guazi:       { id: 'guazi',       name: '瓜子',     type: 'misc', icon: '🌻', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 14, cat: 'food', taste: 'nut',   sell: 60 },
+  xianhetao:   { id: 'xianhetao',   name: '仙核桃',   type: 'misc', icon: '🥥', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 32, cat: 'food', taste: 'nut',   sell: 200 },
 
   // ===== 灵宠装饰（投其所好送对风格好感加倍） =====
   tongling:    { id: 'tongling',    name: '铜铃',     type: 'misc', icon: '🔔', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'bell',   sell: 25 },
@@ -304,7 +306,9 @@ const ITEMS = {
   muzhu:       { id: 'muzhu',       name: '木珠',     type: 'misc', icon: '📿', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'gem',    sell: 25 },
   yuzhu:       { id: 'yuzhu',       name: '玉珠',     type: 'misc', icon: '💍', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 16, cat: 'decor', style: 'gem',    sell: 75 },
   yemingzhu:   { id: 'yemingzhu',   name: '夜明珠',   type: 'misc', icon: '💠', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 36, cat: 'decor', style: 'gem',    sell: 250 },
+  tengqiu:     { id: 'tengqiu',     name: '藤球',     type: 'misc', icon: '🧶', desc: '灵宠玩具·藤球，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'toy',    sell: 25 },
   mupaolun:    { id: 'mupaolun',    name: '木制跑轮', type: 'misc', icon: '🎡', desc: '灵宠玩具·跑轮，投其所好好感加倍', favor: 16, cat: 'decor', style: 'toy',    sell: 75 },
+  jiulianhuan: { id: 'jiulianhuan', name: '九连环',   type: 'misc', icon: '⛓️', desc: '灵宠玩具·九连环，投其所好好感加倍', favor: 36, cat: 'decor', style: 'toy',    sell: 250 },
 
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
@@ -610,9 +614,9 @@ const TUNTUNSHU_STEAL_BOSSES = ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong', 
 // 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
 const PET_TREAT_COST = 100;
 const PET_TREAT_POOL = [
-  { rarity: '凡品', weight: 40, color: '#c9c9c9', items: ['rougan', 'yeguo', 'nencao', 'tongling', 'cuchou', 'muzhu'] },
+  { rarity: '凡品', weight: 40, color: '#c9c9c9', items: ['rougan', 'yeguo', 'nencao', 'songzi', 'tongling', 'cuchou', 'muzhu', 'tengqiu'] },
   { rarity: '精制', weight: 28, color: '#4a90d9', items: ['xiangrou', 'lingguo', 'lingcao', 'yinling', 'jinduan', 'yuzhu', 'guazi', 'mupaolun'] },
-  { rarity: '仙品', weight: 10, color: '#e0473c', items: ['longgan', 'zhuguo', 'xianzhicao', 'xianyinling', 'yunxiaduan', 'yemingzhu'] },
+  { rarity: '仙品', weight: 10, color: '#e0473c', items: ['longgan', 'zhuguo', 'xianzhicao', 'xianhetao', 'xianyinling', 'yunxiaduan', 'yemingzhu', 'jiulianhuan'] },
   { rarity: '兽粮', weight: 14, color: '#d4a76a', items: ['shouliang'], type: 'item' },
   { rarity: '灵兽丹', weight: 8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
 ];
