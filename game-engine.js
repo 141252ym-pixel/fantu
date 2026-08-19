@@ -125,7 +125,7 @@ function newGame() {
     fame: 0,
     dao: 0,
     bag: { huiqi_pill: 2 },
-    equipment: { weapon: null, armor: null, artifact: null },
+    equipment: { weapon: null, armor: null, artifact: null, shoes: null },
     equipLevel: {},
     achievements: [],
     stats: {
@@ -506,7 +506,7 @@ function getItemSlot(item) {
 function migrateEquipment(s) {
   if (!s.bag || typeof s.bag !== 'object') s.bag = {};
   if (!s.equipment || typeof s.equipment !== 'object') s.equipment = {};
-  for (const slot of ['weapon', 'armor', 'artifact']) {
+  for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
     if (s.equipment[slot] == null) s.equipment[slot] = null;
   }
   // 混沌钟曾作为武器装备，版本更新后迁入独立法宝栏。
@@ -589,7 +589,7 @@ function getEquipBonus(s, slot, prefix) {
 }
 
 function getAllEquipBonus(s, prefix) {
-  return ['weapon', 'armor', 'artifact'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
+  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
 }
 
 // ========== 灵宠 ==========
@@ -1642,7 +1642,7 @@ function sellItem(id) {
   const item = ITEMS[id];
   if (!item) return false;
   if (!hasItem(id)) return false;
-  if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
+  if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
     UI.showToast('请先卸下装备');
     return false;
   }
@@ -1665,7 +1665,7 @@ function sellItemBatch(id) {
     const item = ITEMS[id];
     const count = s.bag[id] || 0;
     if (!item || count <= 0) return false;
-    if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
+    if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
         UI.showToast('已装备的物品无法出售');
         return false;
     }

@@ -1426,7 +1426,7 @@ const UI = {
     if (!s) return;
     let items = [];
     // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
-    for (const slot of ['weapon', 'armor', 'artifact']) {
+    for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
         const it = ITEMS[eqId];

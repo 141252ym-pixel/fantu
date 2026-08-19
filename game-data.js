@@ -2,6 +2,17 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v24',
+    date: '2026-08-19',
+    title: '鞋履装备 · 独立装备栏',
+    items: [
+      '新增第 4 个装备栏「鞋履」：鞋子可与武器、防具、法宝同时穿戴',
+      '藏宝阁新增 6 双鞋：粗布鞋/牛皮靴/鹿皮靴/流云靴/风行靴/神行靴',
+      '低阶鞋加物抗护足，高阶鞋加穿透显灵动，数值比同品级主装备更温和',
+      '原有「粗布鞋」自动迁入鞋履栏，老档无缝衔接',
+    ],
+  },
+  {
     version: 'v23',
     date: '2026-08-19',
     title: '战斗彩蛋 · 搞笑独白',
@@ -178,7 +189,7 @@ const ITEMS = {
 
   // ===== 抽卡装备（第二批：更多武器/防具） =====
   g_taomu:     { id: 'g_taomu',      name: '桃木剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+12',  effect: 'atk12',   sell: 30,   rarity: '凡品' },
-  g_cubu:      { id: 'g_cubu',       name: '粗布鞋',    type: 'armor', slot: 'armor', icon: '👟', desc: '凡品·防御+8',   effect: 'def8',    sell: 30,   rarity: '凡品' },
+  g_cubu:      { id: 'g_cubu',       name: '粗布鞋',    type: 'armor', slot: 'shoes', icon: '👟', desc: '凡品·防御+8',   effect: 'def8',    sell: 30,   rarity: '凡品' },
   g_tiejidao:  { id: 'g_tiejidao',   name: '铁脊刀',    type: 'weapon', icon: '🔪', desc: '良品·攻击+28',  effect: 'atk28',   sell: 70,   rarity: '良品' },
   g_niupijia:  { id: 'g_niupijia',   name: '牛皮甲',    type: 'armor', slot: 'armor', icon: '🛡️', desc: '良品·防御+18',  effect: 'def18',   sell: 70,   rarity: '良品' },
   g_hantieqiang:{id: 'g_hantieqiang',name: '寒铁枪',    type: 'weapon', icon: '🔱', desc: '中品·攻击+55',  effect: 'atk55',   sell: 180,  rarity: '中品' },
@@ -214,6 +225,13 @@ const ITEMS = {
   g_pojunzhui:   { id: 'g_pojunzhui',   name: '破军锥',  type: 'weapon', icon: '🔱', desc: '极品·穿透+110', effect: 'pen110',  sell: 1100, rarity: '极品' },
   g_zhuxianzhui: { id: 'g_zhuxianzhui', name: '诛仙锥',  type: 'weapon', icon: '💠', desc: '仙品·穿透+150', effect: 'pen150',  sell: 2500, rarity: '仙品' },
 
+  // ===== 抽卡装备（鞋子：独立装备栏「鞋履」，与衣服可同时穿戴） =====
+  g_niupixue:   { id: 'g_niupixue',    name: '牛皮靴',  type: 'armor', slot: 'shoes', icon: '👢', desc: '良品·防御+16',  effect: 'def16',   sell: 70,   rarity: '良品' },
+  g_lupixue:    { id: 'g_lupixue',     name: '鹿皮靴',  type: 'armor', slot: 'shoes', icon: '🥾', desc: '中品·防御+32',  effect: 'def32',   sell: 180,  rarity: '中品' },
+  g_liuyunxue:  { id: 'g_liuyunxue',   name: '流云靴',  type: 'armor', slot: 'shoes', icon: '👞', desc: '上品·穿透+50',  effect: 'pen50',   sell: 450,  rarity: '上品' },
+  g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
+  g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
+
   // ===== 抽卡废品（抽空产物，只能卖几灵石） =====
   shuzhi:  { id: 'shuzhi',  name: '枯树枝', type: 'misc', icon: '🌿', desc: '路边捡的，没什么用', effect: null, sell: 3 },
   shitou:  { id: 'shitou',  name: '碎石子', type: 'misc', icon: '🪨', desc: '随处可见的石头',     effect: null, sell: 5 },
@@ -234,28 +252,28 @@ const GACHA_POOL = [
     { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
-    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia',
+    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui',
+    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci',
+    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui',
+    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue',
     { id: 'jiuzhuan_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
-    'g_zhuxianzhui',
+    'g_zhuxianzhui', 'g_shenxingxue',
     { id: 'jiuzhuan_pill', count: 3 },
   ]},
   { rarity: '神品', weight: 0.05, color: '#ffd54f', items: [
