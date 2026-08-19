@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v36',
+    date: '2026-08-20',
+    title: '囤囤鼠神藏限定中后期Boss · Boss伤害加强',
+    items: [
+      '囤囤鼠偷神藏限定中后期 Boss（梼杌/混沌/禁地穷奇/烛龙/魔尊/域外天魔/上古魔君/洪荒祖兽/天道化身/混沌元灵），早期与秘境 Boss 不再掉落',
+      'Boss 普通攻击伤害加强 30%，中后期战斗更具挑战',
+    ],
+  },
+  {
     version: 'v35',
     date: '2026-08-20',
     title: '灵宠升星重构 · 重复全保留 · 消耗分档',
@@ -594,6 +603,8 @@ const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
 const TUNTUNSHU_BOSS_STEAL_CHANCE = 0.00001; // 偷 Boss 掉落装备的概率（0.001%，极稀有）
 // 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
 const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
+// 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
+const TUNTUNSHU_STEAL_BOSSES = ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong', 'demon_lord', 'tianmo', 'mojun', 'honghuang_shou', 'tian_dao', 'chaos_yuanling'];
 // 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
 const PET_TREAT_COST = 100;
 const PET_TREAT_POOL = [

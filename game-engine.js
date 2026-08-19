@@ -19,6 +19,7 @@ const PLAYER_ATK_SCALE = 0.6;
 const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
 const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
 const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
+const BOSS_DMG_MULT = 1.3;    // Boss 普通攻击伤害倍率（整体加强 Boss 伤害）
 
 // 论道台同门名册：避免切磋时总是遇到同一两个固定对手。
 const DAO_PEER_NAMES = [
@@ -1026,12 +1027,13 @@ function tuntunshuSteal(s, e, stoneGain) {
       grantItem(s, d.id, 1);
       parts.push(`偷来一份${ITEMS[d.id].name}`);
     }
-    if (e.boss && Math.random() < TUNTUNSHU_BOSS_STEAL_CHANCE) {
-      const d = TUNTUNSHU_BOSS_LOOT[Math.floor(Math.random() * TUNTUNSHU_BOSS_LOOT.length)];
-      grantItem(s, d, 1);
-      parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d].name}！！`);
-      grantAchievement('tuntun_theft');
-    }
+  }
+  // 偷神藏：仅限中后期 Boss（白名单）
+  if (TUNTUNSHU_STEAL_BOSSES.includes(e.id) && Math.random() < TUNTUNSHU_BOSS_STEAL_CHANCE) {
+    const d = TUNTUNSHU_BOSS_LOOT[Math.floor(Math.random() * TUNTUNSHU_BOSS_LOOT.length)];
+    grantItem(s, d, 1);
+    parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d].name}！！`);
+    grantAchievement('tuntun_theft');
   }
   return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
 }
@@ -2632,6 +2634,7 @@ function enemyTurn() {
       let dmg = isMagic
         ? Math.max(1, e.matk - s.mdef + (e.pen || 0) + Math.floor(Math.random() * 3))
         : Math.max(1, e.atk - s.def + (e.pen || 0) + Math.floor(Math.random() * 3));
+      if (e.boss) dmg = Math.floor(dmg * BOSS_DMG_MULT);
       if (Game.battle.defending) {
         dmg = Math.floor(dmg * 0.4);
         Game.battle.defending = false;
