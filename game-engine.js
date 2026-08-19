@@ -35,6 +35,36 @@ function getRandomDaoPeerName(s) {
   return name;
 }
 
+// ========== 战斗彩蛋台词（随机触发，仅普通小怪） ==========
+const EASTER_EGG_INTRO = [
+  '「此子恐怖如斯，断不可留！」——它说得义正辞严，仿佛自己不是先来送死的那一个。',
+  '「三十年河东，三十年河西——」敌人话没说完，你提醒它：「这句不是这么用的。」',
+  '敌人负手而立：「我为天帝，当镇杀世间一切敌……呃，至少镇杀你。」最后半句明显底气不足。',
+  '敌人上下打量你：「就这？本座闭关十年，一觉醒来宗门没了，正好拿你出气。」',
+  '「道友请留步。」敌人一脸和善——你心里咯噔一下，申公豹也是这么开场的。',
+  '敌人小声嘀咕：「反派死于话多……所以本座决定，先动手，再补台词！」',
+];
+const EASTER_EGG_PLAYER_ATK = [
+  '你心中默念「莫欺少年穷」，气势如虹——然后招式偏了三寸。',
+  '你大喊「手握日月摘星辰」，嗓音破音，场面一度十分尴尬。',
+  '你摆出「我为天帝」的架势，脚下一滑，顺势改成了一记平砍。',
+  '你想起师尊说「打架别废话」，于是你只废话了半句就出手了。',
+  '你默念口诀，念到一半忘了词，硬着头皮：「算了，能打到就行。」',
+  '「苟住，别浪。」你对自己说，然后一个浪翻，冲了上去。',
+];
+const EASTER_EGG_ENEMY_ATK = [
+  '「吃我这招『修为不够法宝来凑』！」它举起的法宝，怎么看都有点山寨。',
+  '「别躲啊，我大招都读条一半了，你躲了怪浪费的。」',
+  '敌人边打边喊「我于杀戮中绽放！」你：「你那是挨打中绽放吧。」',
+  '「看我这招——诶，打偏了……不，这叫佯攻，是战术！」',
+  '敌人喘着粗气骂骂咧咧：「你怎么这么抗揍，我手都打酸了，你改练铁布衫了？」',
+  '「反派死于话多」——敌人明显犹豫了一下，最后选择闭嘴，狠狠给你一下。',
+];
+
+function rollEasterEgg(list, chance) {
+  return Math.random() < chance ? list[Math.floor(Math.random() * list.length)] : null;
+}
+
 // ========== 初始化 ==========
 function initGame() {
   UI.init();
@@ -2073,6 +2103,11 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   };
 
   logBattle(`遭遇了 ${enemy.name}！`, 'sys');
+  // 战斗彩蛋：开场独白（仅普通小怪）
+  if (!enemy.boss && !enemy.untouchable) {
+    const introEgg = rollEasterEgg(EASTER_EGG_INTRO, 0.20);
+    if (introEgg) logBattle(introEgg, 'enemy');
+  }
   applyDivinePetBattleStart(Game.state);
 }
 
@@ -2142,6 +2177,11 @@ function playerAttack() {
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
+  // 战斗彩蛋：出手独白（仅普通小怪）
+  if (!e.boss && !e.untouchable) {
+    const atkEgg = rollEasterEgg(EASTER_EGG_PLAYER_ATK, 0.15);
+    if (atkEgg) logBattle(atkEgg, 'player');
+  }
   checkBattleEnd();
   if (!Game.battle.ended) petFollowUpOnPlayerAttack(dmg);
   if (!Game.battle.ended) petAssist(dmg);
@@ -2445,6 +2485,11 @@ function enemyTurn() {
       dmg = applyPetIncomingDamage(s, dmg);
       s.hp -= dmg;
       logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
+      // 战斗彩蛋：敌人独白（仅普通小怪）
+      if (!e.boss && !e.untouchable) {
+        const enemyEgg = rollEasterEgg(EASTER_EGG_ENEMY_ATK, 0.15);
+        if (enemyEgg) logBattle(enemyEgg, 'enemy');
+      }
       if (Game.battle.metalReflect) {
         const reflect = Math.max(1, Math.floor(dmg * Game.battle.metalReflect));
         e.hp -= reflect;
