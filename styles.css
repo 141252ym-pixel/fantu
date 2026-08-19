@@ -234,6 +234,33 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   letter-spacing: 3px;
   text-align: center;
 }
+.battle-player {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.battle-player-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a8d48f;
+}
+.battle-hp-bar, .battle-mp-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.battle-hp-val, .battle-mp-val {
+  font-size: 12px;
+  color: #d4c08a;
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  text-align: right;
+}
+.battle-player .bar { height: 8px; }
 .battle-enemy {
   display: flex;
   flex-direction: column;

@@ -23,6 +23,11 @@ const UI = {
       enemyName: document.getElementById('enemy-name'),
       enemyHpFill: document.getElementById('enemy-hp-fill'),
       enemyHpVal: document.getElementById('enemy-hp-val'),
+      battlePlayerName: document.getElementById('battle-player-name'),
+      battleHpFill: document.getElementById('battle-hp-fill'),
+      battleHpVal: document.getElementById('battle-hp-val'),
+      battleMpFill: document.getElementById('battle-mp-fill'),
+      battleMpVal: document.getElementById('battle-mp-val'),
       battleStatus: document.getElementById('battle-status'),
       battleLog: document.getElementById('battle-log'),
       battleActions: document.getElementById('battle-actions'),
@@ -994,6 +999,15 @@ const UI = {
     const hpPct = Math.max(0, (e.hp / e.maxHp) * 100);
     this.els.enemyHpFill.style.width = hpPct + '%';
     this.els.enemyHpVal.textContent = `${Math.max(0, e.hp)}/${e.maxHp}`;
+
+    // 玩家血条（战斗中也能看到自己的气血/灵力，渡劫时尤其关键）
+    this.els.battlePlayerName.textContent = s.name || '我';
+    const phpPct = Math.max(0, (s.hp / s.maxHp) * 100);
+    this.els.battleHpFill.style.width = phpPct + '%';
+    this.els.battleHpVal.textContent = `${Math.max(0, Math.round(s.hp))}/${Math.round(s.maxHp)}`;
+    const pmpPct = s.maxMp > 0 ? Math.max(0, (s.mp / s.maxMp) * 100) : 0;
+    this.els.battleMpFill.style.width = pmpPct + '%';
+    this.els.battleMpVal.textContent = `${Math.max(0, Math.round(s.mp))}/${Math.round(s.maxMp)}`;
 
     const statuses = [];
     if (e.burnTurns > 0) statuses.push(`敌·灼烧 ${e.burnTurns}回合`);

@@ -588,6 +588,11 @@ const ENEMIES = {
   // 魔尊：化神大圆满前不可力敌的终局强敌
   demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 230000, atk: 5600, def: 1200, matk: 7800, mdef: 1500, xp: 22000, stone: [12000,18000], drops: [], boss: true, special: { name: '魔神叩关', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
 
+  // 秘境过渡敌人（20~29层爬塔用，填平 6400→75000 的数值断层）
+  mijing_yuling:   { id: 'mijing_yuling',   name: '秘境妖灵', hp: 9000,  atk: 620,  def: 140, matk: 760,  mdef: 180, xp: 2800,  stone: [1400, 2000], drops: [{id:'juqi_pill',chance:0.5}], boss: true },
+  mijing_yaoshuai: { id: 'mijing_yaoshuai', name: '秘境妖帅', hp: 22000, atk: 1250, def: 260, matk: 1550, mdef: 330, xp: 5500,  stone: [3400, 4800], drops: [{id:'juqi_pill',chance:1},{id:'huichun_pill',chance:0.4}], boss: true },
+  mijing_yaozun:   { id: 'mijing_yaozun',   name: '秘境妖尊', hp: 52000, atk: 2100, def: 420, matk: 2600, mdef: 530, xp: 9800,  stone: [6200, 9000], drops: [{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true },
+
   // 四凶禁地（高难度挑战，强度递增；魔尊仍为此阶段最强）
   taowu:       { id: 'taowu',    name: '梼杌',       hp: 75000, atk: 2500, def: 480, matk: 2900, mdef: 560, xp: 8000,  stone: [3500,5000],  drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:0.5}], boss: true, special: { name: '凶煞裂地', type: 'weaken', rate: 0.35, turns: 2, chance: 0.24, cd: 3 } },
   hundun:      { id: 'hundun',   name: '混沌',       hp: 120000, atk: 3300, def: 650, matk: 3900, mdef: 760, xp: 12000, stone: [5500,8000], drops: [{id:'hanbingxue',chance:1},{id:'juqi_pill',chance:1}], boss: true, special: { name: '混沌侵蚀', type: 'poison', pct: 0.035, turns: 2, chance: 0.24, cd: 3 } },
@@ -616,8 +621,11 @@ const MIJING_POOLS = [
   { minFloor: 5,  enemies: ['stone_monkey', 'blood_cultist'] },
   { minFloor: 10, enemies: ['bifuluan', 'qiongqi', 'nine_tails'] },
   { minFloor: 15, enemies: ['taotie', 'yinglong'] },
-  { minFloor: 20, enemies: ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong'] },
-  { minFloor: 25, enemies: ['tianmo', 'mojun'] },
+  { minFloor: 20, enemies: ['mijing_yuling'] },
+  { minFloor: 24, enemies: ['mijing_yaoshuai'] },
+  { minFloor: 27, enemies: ['mijing_yaozun'] },
+  { minFloor: 30, enemies: ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong'] },
+  { minFloor: 35, enemies: ['tianmo', 'mojun'] },
 ];
 
 // 不存在的 daopei 物品兜底（上面的敌人 drop 里用到了）

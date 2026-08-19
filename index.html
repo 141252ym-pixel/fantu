@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -105,6 +105,17 @@
       <div class="battle-panel">
         <div class="battle-header">
           <div class="battle-title">⚔ 战斗</div>
+          <div class="battle-player">
+            <div class="battle-player-name" id="battle-player-name">—</div>
+            <div class="battle-hp-bar hp">
+              <div class="bar"><div class="bar-fill" id="battle-hp-fill"></div></div>
+              <div class="battle-hp-val" id="battle-hp-val">0/0</div>
+            </div>
+            <div class="battle-mp-bar mp">
+              <div class="bar"><div class="bar-fill" id="battle-mp-fill"></div></div>
+              <div class="battle-mp-val" id="battle-mp-val">0/0</div>
+            </div>
+          </div>
           <div class="battle-enemy">
             <div id="enemy-name" class="enemy-name">—</div>
             <div class="enemy-hp-bar">
@@ -245,9 +256,9 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=9"></script>
+  <script src="game-data.js?v=10"></script>
   <script src="game-engine.js?v=9"></script>
-  <script src="game-ui.js?v=9"></script>
+  <script src="game-ui.js?v=10"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
