@@ -2424,7 +2424,7 @@ function playerSkill() {
     extraText = `回复 ${heal} 气血${seal ? '，藤蔓封住敌方下次攻击' : ''}`;
   } else if (s.linggen === 'water') {
     dmg = Math.max(1, Math.floor(s.matk * 1.45) - magicDef() + (s.pen || 0));
-    const heal = Math.max(1, Math.floor(s.maxHp * 0.05));
+    const heal = Math.max(1, Math.floor(s.maxHp * 0.02));
     s.hp = Math.min(s.maxHp, s.hp + heal);
     Game.battle.waterGuard = 0.25;
     e.waterTurns = 2;
