@@ -122,15 +122,26 @@ const UI = {
     const list = document.getElementById('announce-list');
     if (list && Array.isArray(UPDATE_LOG)) {
       // 只默认展开最新一条，更早的公告折叠成标题行，点击标题可展开/收起
-      list.innerHTML = UPDATE_LOG.map((u, i) => `
-        <details class="announce-item" ${i === 0 ? 'open' : ''}>
-          <summary class="announce-head">
-            <span class="announce-title">${u.title}</span>
-            <span class="announce-date">${u.date} · ${u.version}</span>
-          </summary>
-          <ul>${(u.items || []).map(t => `<li>${t}</li>`).join('')}</ul>
-        </details>
-      `).join('');
+      // 玩家交流群二维码紧跟最新一条公告下方，随列表一起滚动，本身不折叠
+      const qunHtml = `
+        <div class="announce-qun">
+          <div class="announce-qun-title">📱 道友交流群</div>
+          <div class="announce-qun-desc">仙路漫漫，何不结伴同行？<br>遇 bug 或有高见，扫码入群共商大道。</div>
+          <img class="announce-qun-img" src="qun-qr.jpg" alt="玩家交流群二维码">
+        </div>
+      `;
+      list.innerHTML = UPDATE_LOG.map((u, i) => {
+        const item = `
+          <details class="announce-item" ${i === 0 ? 'open' : ''}>
+            <summary class="announce-head">
+              <span class="announce-title">${u.title}</span>
+              <span class="announce-date">${u.date} · ${u.version}</span>
+            </summary>
+            <ul>${(u.items || []).map(t => `<li>${t}</li>`).join('')}</ul>
+          </details>
+        `;
+        return i === 0 ? item + qunHtml : item;
+      }).join('');
     }
     document.getElementById('announce-overlay').classList.remove('hidden');
     try { localStorage.setItem('fantu_update_seen', UPDATE_LOG[0].version); } catch (e) {}
