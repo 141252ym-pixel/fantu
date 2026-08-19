@@ -808,13 +808,19 @@ const UI = {
       const star = p.star || 1;
       const maxLv = getPetMaxLevel(p);
       const isMax = lv >= maxLv;
-      const feedCost = 100 + lv * 10;
+      const exp = p.exp || 0;
+      const expNeed = getPetExpToNext(lv);
+      const feedCost = isMax ? 0 : expNeed - exp; // 升1级还差的经验 = 所需灵石
       const starLabel = star > 1 ? ` <span style="color:#ffd54f">★${star}星</span>` : '';
       html += `
         <div class="pet-card">
           <div class="pet-icon">${pet.icon}</div>
           <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${starLabel}${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
           <div class="pet-level">等级 ${lv}/${maxLv} · ${stage}阶（每10级进阶）${star > 1 ? ` · 升星加成 +${(star - 1) * 5}%` : ''}</div>
+          ${isMax
+            ? `<div class="pet-exp" style="color:#ffd54f">已满级，升星可突破上限</div>`
+            : `<div class="pet-exp-bar"><div class="pet-exp-fill" style="width:${Math.max(2, Math.round(exp / expNeed * 100))}%"></div></div>
+               <div class="pet-exp">经验 ${exp}/${expNeed} · 升1级还差 ${expNeed - exp}</div>`}
           <div class="pet-desc">${pet.desc}</div>
           <div class="pet-stats">固定值 + 主人属性百分比<br>物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')}<br>物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
           <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害（单次不超过主人本次伤害50%）</div>
@@ -824,7 +830,7 @@ const UI = {
           ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
           ${isMax
             ? `<button class="ink-btn disabled" disabled>🈵 已达上限（${maxLv}级）</button>`
-            : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 灵石喂养（${feedCost}）</button>
+            : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 升1级（${feedCost}灵石）</button>
                <button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">💊 喂灵兽丹</button>
                <button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">🥩 喂兽粮</button>`}
           <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">⭐ 升星</button>
@@ -854,16 +860,19 @@ const UI = {
     const entry = s.pets.find(p => p.uid === id);
     if (!entry) return;
     const name = itemId === 'lingshou_dan' ? '灵兽丹' : '兽粮';
-    const per = itemId === 'lingshou_dan' ? 2 : 1;
+    const perExp = getPetItemExp(itemId);
     const lv = entry.level || 1;
     const maxLv = getPetMaxLevel(entry);
-    const remain = maxLv - lv;
-    const maxCount = Math.min(have, Math.floor(remain / per));
-    if (maxCount <= 0) { this.showToast(`${name}一次+${per}级，距上限仅剩${remain}级，可用灵石或兽粮补满`); return; }
-    this._count = { petId: id, itemId, max: maxCount, name, per };
+    if (lv >= maxLv) { this.showToast(`已达等级上限（${maxLv}级），升星可突破`); return; }
+    // 升到上限还差的总经验（决定最多投喂多少颗，避免溢出浪费）
+    let toCap = 0;
+    for (let t = lv; t < maxLv; t++) toCap += getPetExpToNext(t);
+    toCap -= (entry.exp || 0);
+    const maxCount = Math.min(have, Math.ceil(toCap / perExp));
+    this._count = { petId: id, itemId, max: Math.max(1, maxCount), name, perExp };
     document.getElementById('count-title').textContent = `喂${name}`;
-    document.getElementById('count-desc').textContent = `等级 ${lv}/${maxLv}，拥有 ${name}×${have}，每颗 +${per} 级`;
-    document.getElementById('count-max').textContent = `最多可喂 ${maxCount} 颗（升到 ${Math.min(maxLv, lv + per * maxCount)} 级）`;
+    document.getElementById('count-desc').textContent = `等级 ${lv}/${maxLv}，拥有 ${name}×${have}，每颗 +${perExp} 经验`;
+    document.getElementById('count-max').textContent = `最多可喂 ${maxCount} 颗（共 ${perExp * maxCount} 经验）`;
     const input = document.getElementById('count-input');
     input.max = maxCount;
     input.value = maxCount;

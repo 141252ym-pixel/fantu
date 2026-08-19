@@ -948,6 +948,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pet-icon { font-size: 44px; line-height: 1.2; }
 .pet-name { font-size: 17px; font-weight: 700; margin-top: 4px; }
 .pet-level { color: #b09a6a; font-size: 13px; margin-top: 2px; }
+.pet-exp { color: #c9a962; font-size: 12px; margin-top: 4px; }
+.pet-exp-bar { height: 6px; background: #2a1f14; border: 1px solid #6b4f2a; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+.pet-exp-fill { height: 100%; background: linear-gradient(90deg, #c9a962, #e6c76a); }
 .pet-desc { color: #8a7a58; font-size: 12px; margin-top: 6px; line-height: 1.5; }
 .pet-stats { color: #e6d3a0; font-size: 13px; margin-top: 8px; line-height: 1.7; }
 .pet-skill { color: #ffd54f; font-size: 12px; margin-top: 8px; line-height: 1.5; }

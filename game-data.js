@@ -2,6 +2,17 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v16',
+    date: '2026-08-19',
+    title: '灵宠经验系统',
+    items: [
+      '灵宠升级改为经验条：灵石/兽粮/灵兽丹喂食后积累经验，攒满自动升级',
+      '升级经验按「100 × 等级²」递增，越往后越难，高等级更显珍贵',
+      '灵石喂养：1 灵石 = 1 经验，点「升1级」自动补满当前所需',
+      '兽粮 +40 经验、灵兽丹 +200 经验（老档已有等级自动保留转换）',
+    ],
+  },
+  {
     version: 'v14',
     date: '2026-08-19',
     title: '灵宠机制调整',
@@ -118,8 +129,8 @@ const ITEMS = {
   shanzhifu:    { id: 'shanzhifu',    name: '山贼符',     type: 'misc',     icon: '📜', desc: '似乎没什么用',   effect: null,    sell: 10 },
   dao_compass:  { id: 'dao_compass',  name: '问道罗盘',   type: 'misc',     icon: '🧭', desc: '感应机缘',       effect: 'dao10', sell: 100 },
   lianhua_meng: { id: 'lianhua_meng', name: '莲花盟令',   type: 'misc',     icon: '🌸', desc: '莲花盟信物',     effect: null,    sell: 50 },
-  shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可提升出战灵宠1级', effect: 'pet_food1', sell: 40 },
-  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可提升出战灵宠2级', effect: 'pet_food3', sell: 200 },
+  shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可为出战灵宠增加40经验', effect: 'pet_food1', sell: 40 },
+  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可为出战灵宠增加200经验', effect: 'pet_food3', sell: 200 },
 
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
