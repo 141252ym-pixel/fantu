@@ -15,7 +15,7 @@ const MAX_PILLS_PER_BATTLE = 5;
 // 玩家攻击力系数（整体削弱，避免打 boss 过快）
 const PLAYER_ATK_SCALE = 0.6;
 
-// Boss 动态平衡参数（无限境界后生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
+// Boss 动态平衡参数（按玩家当前强度生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
 const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
 const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
 const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
@@ -2214,20 +2214,22 @@ function scaleEnemyForRealm(enemy, s) {
   enemy.realmName = realm.name;
 }
 
-// Boss 动态平衡：无限境界后按玩家总属性对齐，保证不被秒、能破防（仅 boss 且非天劫）
+// Boss 动态平衡：按玩家当前总强度（含装备/神兽/功法/宗门）对齐，保证不被秒、能破防（仅 boss 且非天劫）
 function scaleBossForPlayer(enemy, s) {
   if (!enemy.boss || enemy.untouchable) return;
-  if (getRealmIndex(s) <= 35) return; // 仙帝及以下保持原数值
   const p = enemy.power || 1;
-  const perHit = Math.max(1, Math.floor(s.atk * (1 - BOSS_DEF_VS_ATK)));
+  const atk = getTotalAtk(s);
+  const def = getTotalDef(s);
+  const mdef = getTotalMdef(s);
+  const perHit = Math.max(1, Math.floor(atk * (1 - BOSS_DEF_VS_ATK)));
   const targetHp = perHit * BOSS_HP_PER_HIT * p;
-  const targetAtk = Math.floor(s.def * BOSS_ATK_VS_DEF * p);
-  const targetDef = Math.floor(s.atk * BOSS_DEF_VS_ATK);
+  const targetAtk = Math.floor(def * BOSS_ATK_VS_DEF * p);
+  const targetDef = Math.floor(atk * BOSS_DEF_VS_ATK);
   enemy.maxHp = Math.max(enemy.maxHp, targetHp);
   enemy.hp = enemy.maxHp;
   enemy.atk = Math.max(enemy.atk, targetAtk);
   enemy.def = Math.max(enemy.def, targetDef);
-  enemy.matk = Math.max(enemy.matk, targetAtk);
+  enemy.matk = Math.max(enemy.matk, Math.floor(mdef * BOSS_ATK_VS_DEF * p));
   enemy.mdef = Math.max(enemy.mdef, targetDef);
 }
 
