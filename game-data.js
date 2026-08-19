@@ -588,7 +588,7 @@ const PETS = {
     base: { atk: 20, matk: 20, def: 18, mdef: 16, pen: 8 },
     growth: { atk: 6, matk: 6, def: 6, mdef: 5, pen: 2 },
     skill: '囤粮遁', skillChance: 0.20, skillMult: 1.0,
-    desc: '神品灵兽，天生敛财囤粮。战斗中能叼着主人躲开攻击，战后顺手牵羊偷灵石材料，极低概率连Boss的掉落都能顺走。', likes: { food: 'nut', decor: 'toy' } },
+    desc: '神品灵兽，天生敛财囤粮。战斗中能叼着主人躲开攻击，战后顺手牵羊偷灵石材料，极低概率连Boss的掉落都能顺走。', likes: { food: ['nut', 'fruit'], decor: ['toy', 'gem'] } },
 };
 
 // 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）

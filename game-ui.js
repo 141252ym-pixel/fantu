@@ -1034,6 +1034,8 @@ const UI = {
       return (b.level || 1) - (a.level || 1);
     }).filter(p => filter === 'all' || (PETS[p.id] && PETS[p.id].quality === filter));
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
+    html += `<div style="text-align:center;margin:8px 0"><button class="ink-btn" onclick="UI.openPetCodex()">📖 灵宠图鉴</button> <button class="ink-btn" onclick="UI.openGiftCodex()">📖 礼物图鉴</button></div>`;
+    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
     html += `<div class="pet-filter"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
     else if (pets.length === 0) html += `<div class="pet-empty">没有「${filter}」品质的灵宠。</div>`;
@@ -1052,6 +1054,10 @@ const UI = {
       const starLabel = star > 1 ? ` <span style="color:#ffd54f">★${star}星</span>` : '';
       const fi = getPetFavorInfo(p);
       const likes = pet.likes || {};
+      const likeFood = Array.isArray(likes.food) ? likes.food : [likes.food];
+      const likeDecor = Array.isArray(likes.decor) ? likes.decor : [likes.decor];
+      const foodStr = likeFood.map(f => FOOD_NAME[f]).filter(Boolean).join('、') || '—';
+      const decorStr = likeDecor.map(d => DECOR_NAME[d]).filter(Boolean).join('、') || '—';
       const chance = Math.round(getPetSkillChance(p) * 100);
       html += `
         <div class="pet-overlay-card">
@@ -1060,7 +1066,7 @@ const UI = {
           <div class="pet-level">等级 ${lv}/${maxLv} · ${stage}阶${star > 1 ? ` · 升星加成 +${(star - 1) * 5}%` : ''}</div>
           ${isMax ? `<div class="pet-exp" style="color:#ffd54f">已满级，升星可突破上限</div>` : `<div class="pet-exp-bar"><div class="pet-exp-fill" style="width:${Math.max(2, Math.round(exp / expNeed * 100))}%"></div></div><div class="pet-exp">经验 ${exp}/${expNeed}</div>`}
           <div class="pet-desc">${pet.desc}</div>
-          <div class="pet-like">喜好：${FOOD_NAME[likes.food] || '—'} · ${DECOR_NAME[likes.decor] || '—'}（送对好感加倍）</div>
+          <div class="pet-like">喜好：${foodStr} · ${decorStr}（送对好感加倍）</div>
           <div class="pet-favor">
             <div class="pet-favor-head"><span>❤️ 好感</span><span>Lv.${fi.favor}/${fi.max}${fi.favor >= fi.max ? '（已满）' : ''}</span></div>
             <div class="pet-favor-bar"><div class="pet-favor-fill" style="width:${fi.favor >= fi.max ? 100 : Math.max(2, fi.pct)}%"></div></div>
@@ -1085,7 +1091,7 @@ const UI = {
         html += `<div class="treat-list">`;
         if (!treats.length) html += `<div class="treat-empty">暂无零食/装饰，可去「🎡 零食转盘」抽取</div>`;
         treats.forEach(it => {
-          const liked = (it.cat === 'food' && likes.food === it.taste) || (it.cat === 'decor' && likes.decor === it.style);
+          const liked = (it.cat === 'food' && petLikeFood(pet, it.taste)) || (it.cat === 'decor' && petLikeDecor(pet, it.style));
           html += `<button class="treat-item${liked ? ' liked' : ''}" onclick="UI.giveTreat('${p.uid}', '${it.id}')"><span>${it.icon} ${it.name}×${s.bag[it.id]}</span><span class="treat-gain">${liked ? '❤️+' + Math.floor(it.favor * 2) : '+' + Math.floor(it.favor * 0.5)}</span></button>`;
         });
         html += `</div>`;
@@ -1106,6 +1112,88 @@ const UI = {
 
   giveTreat(uid, itemId) {
     if (feedPetTreat(Game.state, uid, itemId)) { this.renderPetOverlay(); this.updateStats(); }
+  },
+
+  // ========== 灵宠图鉴 ==========
+  openPetCodex() {
+    const list = document.getElementById('pet-codex-list');
+    if (!list || !PETS) return;
+    const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食', nut: '坚果' };
+    const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠', toy: '玩具' };
+    const QUALITY_ORDER = ['神品', '极品', '上品', '中品', '良品', '凡品', '废品'];
+    const QUALITY_COLOR = { '废品': '#7a7a7a', '凡品': '#c9c9c9', '良品': '#4caf50', '中品': '#4a90d9', '上品': '#9b59b6', '极品': '#e6a23c', '神品': '#e0473c' };
+    const owned = (Game.state.pets || []).map(p => p.id);
+    const html = QUALITY_ORDER.map(q => {
+      const pets = Object.values(PETS).filter(p => p.quality === q);
+      if (!pets.length) return '';
+      const rows = pets.map(p => {
+        const likes = p.likes || {};
+        const foodStr = (Array.isArray(likes.food) ? likes.food : [likes.food]).map(f => FOOD_NAME[f]).filter(Boolean).join('、') || '—';
+        const decorStr = (Array.isArray(likes.decor) ? likes.decor : [likes.decor]).map(d => DECOR_NAME[d]).filter(Boolean).join('、') || '—';
+        const has = owned.includes(p.id);
+        return `
+          <div class="codex-row" style="${has ? '' : 'opacity:.5;'}">
+            <span class="codex-icon">${p.icon}</span>
+            <span class="codex-name" style="color:${p.qc}">${p.name}${has ? ' ✓' : ''}</span>
+            <span class="codex-desc">【${p.skill}】喜 ${foodStr}/${decorStr} · ${p.desc}</span>
+          </div>
+        `;
+      }).join('');
+      return `
+        <div class="codex-tier">
+          <div class="codex-tier-head">
+            <span style="color:${QUALITY_COLOR[q]}">${q}</span>
+            <span class="codex-weight">共 ${pets.length} 只</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+    list.innerHTML = html;
+    document.getElementById('pet-codex-overlay').classList.remove('hidden');
+  },
+
+  closePetCodex() {
+    document.getElementById('pet-codex-overlay').classList.add('hidden');
+  },
+
+  // ========== 礼物图鉴（灵宠零食/装饰） ==========
+  openGiftCodex() {
+    const list = document.getElementById('gift-codex-list');
+    if (!list || !ITEMS) return;
+    const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食', nut: '坚果' };
+    const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠', toy: '玩具' };
+    const treats = Object.values(ITEMS).filter(it => it.favor);
+    const groups = [];
+    ['meat', 'fruit', 'grass', 'nut'].forEach(taste => {
+      const items = treats.filter(it => it.cat === 'food' && it.taste === taste);
+      if (items.length) groups.push({ title: `🍽 零食 · ${FOOD_NAME[taste]}`, items });
+    });
+    ['bell', 'ribbon', 'gem', 'toy'].forEach(style => {
+      const items = treats.filter(it => it.cat === 'decor' && it.style === style);
+      if (items.length) groups.push({ title: `🎁 装饰 · ${DECOR_NAME[style]}`, items });
+    });
+    const html = groups.map(g => {
+      const rows = g.items.map(it => `
+        <div class="codex-row">
+          <span class="codex-icon">${it.icon}</span>
+          <span class="codex-name">${it.name}</span>
+          <span class="codex-desc">好感 +${it.favor} · 投其所好 ×2 / 送错 ×0.5</span>
+        </div>
+      `).join('');
+      return `
+        <div class="codex-tier">
+          <div class="codex-tier-head"><span>${g.title}</span><span class="codex-weight">共 ${g.items.length} 种</span></div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+    list.innerHTML = html;
+    document.getElementById('gift-codex-overlay').classList.remove('hidden');
+  },
+
+  closeGiftCodex() {
+    document.getElementById('gift-codex-overlay').classList.add('hidden');
   },
 
   // ========== 灵宠零食/装饰转盘 ==========

@@ -1039,6 +1039,16 @@ function tuntunshuSteal(s, e, stoneGain) {
   return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
 }
 
+// 灵宠喜好判断：likes.food / likes.decor 支持单个或多个（数组）
+function petLikeFood(pet, taste) {
+  const f = pet && pet.likes && pet.likes.food;
+  return Array.isArray(f) ? f.includes(taste) : f === taste;
+}
+function petLikeDecor(pet, style) {
+  const d = pet && pet.likes && pet.likes.decor;
+  return Array.isArray(d) ? d.includes(style) : d === style;
+}
+
 // 送灵宠零食/装饰：投其所好 ×2、送错 ×0.5，叠加好感进度，进度满升 1 级
 function feedPetTreat(s, petId, itemId) {
   const item = ITEMS[itemId];
@@ -1047,8 +1057,7 @@ function feedPetTreat(s, petId, itemId) {
   if (!entry) { UI.showToast('找不到这只灵宠'); return null; }
   if ((s.bag[itemId] || 0) <= 0) { UI.showToast('没有该礼物'); return null; }
   const pet = PETS[entry.id];
-  const likes = pet.likes || {};
-  const liked = (item.cat === 'food' && likes.food === item.taste) || (item.cat === 'decor' && likes.decor === item.style);
+  const liked = (item.cat === 'food' && petLikeFood(pet, item.taste)) || (item.cat === 'decor' && petLikeDecor(pet, item.style));
   const gain = liked ? Math.floor(item.favor * 2) : Math.floor(item.favor * 0.5);
   const before = entry.favor || 0;
   if (before >= PET_FAVOR_MAX) {
