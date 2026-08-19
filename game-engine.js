@@ -1069,7 +1069,7 @@ function feedPetTreat(s, petId, itemId) {
   return { gained: gain, favor, favorExp, liked, leveledUp: up };
 }
 
-// 抽到的宠物入背包；神品允许重复，每只神品都随机拥有不同天赋。
+// 抽到的宠物入背包；重复的非神品也保留（用于升星），同名数量达到上限才转灵石；神品不受上限约束，每只都随机拥有不同天赋。
 function addPetToBag(s, petId) {
   if (!Array.isArray(s.pets)) s.pets = [];
   const pet = PETS[petId];
@@ -1079,7 +1079,7 @@ function addPetToBag(s, petId) {
     s.stone += refund;
     return { released: true, refund };
   }
-  if (pet.quality !== '神品' && s.pets.some(p => p.id === petId)) {
+  if (pet.quality !== '神品' && s.pets.filter(p => p.id === petId).length >= PET_DUPE_LIMIT) {
     s.stone += refund;
     return { duplicate: true, refund };
   }

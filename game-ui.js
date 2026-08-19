@@ -894,8 +894,8 @@ const UI = {
       const b = r.pet.base;
       let extra = '';
       if (r.released) extra = `<br>已按自动放生设置转为 ${r.refund} 灵石`;
-      else if (r.refund) extra = `<br>已拥有同名灵宠，转为 ${r.refund} 灵石`;
-      else extra = `<br>已放入灵宠背包`;
+      else if (r.refund) extra = `<br>同名灵宠已达 ${PET_DUPE_LIMIT} 只上限，转为 ${r.refund} 灵石`;
+      else extra = `<br>已放入灵宠背包（重复灵宠可攒齐 3 只升星）`;
       this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
     }
     this.els.gachaOverlay.classList.remove('hidden');
@@ -917,7 +917,7 @@ const UI = {
     tip.className = 'gacha-ten-item';
     tip.style.color = '#e6d3a0';
     let msg = '全部奖励已放入背包';
-    if (res.refund) msg += `，重复或自动放生灵宠转 ${res.refund} 灵石`;
+    if (res.refund) msg += `，自动放生或同名已满转 ${res.refund} 灵石`;
     tip.textContent = msg;
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
@@ -963,7 +963,7 @@ const UI = {
       const tip = document.createElement('div');
       tip.className = 'gacha-ten-item';
       tip.style.color = '#e6d3a0';
-      tip.textContent = `重复或自动放生灵宠转 ${res.refund} 灵石`;
+      tip.textContent = `自动放生或同名已满转 ${res.refund} 灵石`;
       list.appendChild(tip);
     }
     this.els.gachaHundredOverlay.classList.remove('hidden');
