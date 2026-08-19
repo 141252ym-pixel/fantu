@@ -20,6 +20,21 @@ const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
 const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
 const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
 
+// 论道台同门名册：避免切磋时总是遇到同一两个固定对手。
+const DAO_PEER_NAMES = [
+  '顾长风', '沈青萝', '陆惊鸿', '苏晚晴', '萧云澜', '叶知秋',
+  '楚凌霄', '宁采薇', '谢无尘', '白玉衡', '柳清弦', '温如玉',
+  '秦逐月', '林听雪', '裴玄策', '唐栖梧', '姜明月', '程观澜',
+  '方临渊', '宋流云', '洛星河', '韩青棠', '许归真', '钟离墨',
+];
+
+function getRandomDaoPeerName(s) {
+  const candidates = DAO_PEER_NAMES.filter(name => name !== s.lastDaoPeerName);
+  const name = candidates[Math.floor(Math.random() * candidates.length)];
+  s.lastDaoPeerName = name;
+  return name;
+}
+
 // ========== 初始化 ==========
 function initGame() {
   UI.init();
@@ -56,6 +71,8 @@ function continueGame() {
   backfillTribulations(Game.state);
   clampByTribulation(Game.state);
   realignRealm(Game.state);
+  migrateUpdateVitals(Game.state);
+  migrateLegacyTribulationNode(Game.state);
   goToNode(Game.state.nodeId || 'start');
 }
 
@@ -498,6 +515,26 @@ function migrateGacha(s) {
   }
   s.gachaShenPityRemaining = Math.min(GACHA_PITY, Math.floor(s.gachaShenPityRemaining));
   s.gachaXianCount = Math.min(2, Math.floor(s.gachaXianCount));
+}
+
+// 本次更新后，所有已有玩家首次登录均恢复满状态；新档天然为满值。
+function migrateUpdateVitals(s) {
+  if (s.updateVitalsFullV1) return;
+  s.hp = s.maxHp;
+  s.mp = s.maxMp;
+  s.updateVitalsFullV1 = true;
+}
+
+// 旧版按境界拆分的渡劫节点仅作存档兼容，统一回到渡劫台。
+function migrateLegacyTribulationNode(s) {
+  const legacy = new Set([
+    'zhuji_prep', 'zhuji_tribulation', 'zhuji_success', 'zhuji_fail',
+    'jindan_prep', 'jindan_tribulation', 'jindan_success', 'jindan_fail',
+    'yuanying_prep', 'yuanying_tribulation', 'yuanying_success', 'yuanying_fail',
+    'huashen_prep', 'huashen_tribulation', 'huashen_success', 'huashen_fail',
+    'feisheng_prep', 'feisheng_tribulation', 'feisheng_success', 'feisheng_fail',
+  ]);
+  if (legacy.has(s.nodeId)) s.nodeId = 'tribulation_hall';
 }
 
 function getManaCost(s, pct) {
@@ -1148,14 +1185,40 @@ function playerCastGongfa(id) {
     UI.updateBattle();
     return;
   }
-  const mult = g.combat.mult;
-  const dmg = Math.max(1, Math.floor(s.matk * mult) - getEnemyDefense(e, true) + (s.pen || 0));
+  const combat = g.combat;
   s.mp -= manaCost;
-  e.hp -= dmg;
-  logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
-  logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
   Game.battle.specialCd = Game.battle.specialCd || {};
-  Game.battle.specialCd[cdKey] = g.combat.cd;
+  Game.battle.specialCd[cdKey] = combat.cd;
+  if (combat.kind === 'heal') {
+    const heal = Math.max(1, Math.floor(s.maxHp * combat.healPct));
+    s.hp = Math.min(s.maxHp, s.hp + heal);
+    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，回复 ${heal} 点气血！`, 'player');
+  } else if (combat.kind === 'buff') {
+    Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
+    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns);
+    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
+  } else if (combat.kind === 'guard') {
+    Game.battle.danxiaGuard = { reduce: combat.guard, reflect: combat.reflect || 1 };
+    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，下一次受击减伤 ${Math.round(combat.guard * 100)}%，并反弹 ${Math.round((combat.reflect || 1) * 100)}% 来袭伤害！`, 'player');
+  } else if (combat.kind === 'blood_rage') {
+    const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
+    if (s.hp <= hpCost) {
+      s.mp += manaCost;
+      delete Game.battle.specialCd[cdKey];
+      logBattle(`气血不足，无法施展【${g.name}】。`, 'sys');
+      UI.updateBattle();
+      return;
+    }
+    s.hp -= hpCost;
+    Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
+    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns);
+    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
+  } else {
+    const dmg = Math.max(1, Math.floor(s.matk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, true) + (s.pen || 0));
+    e.hp -= dmg;
+    logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
+    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
+  }
   checkBattleEnd();
   if (!Game.battle.ended) petAssist();
   if (!Game.battle.ended) enemyTurn();
@@ -1163,8 +1226,8 @@ function playerCastGongfa(id) {
 
 // ========== 奇遇 ==========
 // 按权重随机抽取一次奇遇
-function rollQyu() {
-  const pool = QYU_POOL;
+function rollQyu(s) {
+  const pool = QYU_POOL.filter(q => !q.sect || q.sect === s.sect);
   let total = 0;
   for (const q of pool) total += (q.weight || 1);
   let r = Math.random() * total;
@@ -1213,10 +1276,29 @@ function triggerQiyu(s, cost) {
     }
     s.dao -= QYU_COST;
   }
-  const q = rollQyu();
+  const q = rollQyu(s);
   const result = applyQyuReward(s, q);
   Game.lastQiyu = { q, result };
-  goToNode('qiyu_result');
+  goToNode(cost ? 'qiyu_wander' : 'qiyu_result');
+  return true;
+}
+
+function triggerQiyuTen(s) {
+  const cost = QYU_COST * 10;
+  if ((s.dao || 0) < cost) {
+    UI.showToast(`道韵不足（需 ${cost}）`);
+    return false;
+  }
+  s.dao -= cost;
+  const draws = [];
+  for (let i = 0; i < 10; i++) {
+    const q = rollQyu(s);
+    draws.push({ q, result: applyQyuReward(s, q) });
+  }
+  const last = draws[draws.length - 1];
+  Game.lastQiyu = { ...last, draws };
+  autoSave();
+  goToNode('qiyu_wander');
   return true;
 }
 
@@ -1352,7 +1434,32 @@ function sellItem(id) {
   autoSave();
   UI.updateStats();
   UI.updateBag();
-  return true;
+    return true;
+}
+
+function sellItemBatch(id) {
+    const s = Game.state;
+    const item = ITEMS[id];
+    const count = s.bag[id] || 0;
+    if (!item || count <= 0) return false;
+    if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
+        UI.showToast('已装备的物品无法出售');
+        return false;
+    }
+    if (!item.sell || item.sell <= 0) {
+        UI.showToast('该物品无法出售');
+        return false;
+    }
+
+    removeItemFromState(s, id, count);
+    if (s.equipLevel) delete s.equipLevel[id];
+    const gain = item.sell * count;
+    s.stone += gain;
+    UI.showToast(`批量出售${item.name}×${count}，获得${gain}灵石`);
+    autoSave();
+    UI.updateStats();
+    UI.updateBag();
+    return true;
 }
 
 // 抽卡（藏宝阁）：100 抽必出仙品；每获得 3 件仙品后，下一抽必出神品。
@@ -1652,6 +1759,7 @@ function petFollowUpOnPlayerAttack() {
   if (Math.random() >= Math.min(0.65, 0.20 + stage * 0.06)) return;
   const e = Game.battle.enemy;
   const dmg = Math.max(1, Math.floor(s.atk * (0.45 + stage * 0.10)) - getEnemyDefense(e, false) + (s.pen || 0));
+  dmg = Math.max(1, Math.floor(dmg * (1 - getPlayerWeakenRate())));
   e.hp -= dmg;
   logBattle(`【${PETS[entry.id].name}·${trait.name}】随主人攻势追击，造成 ${dmg} 点伤害！`, 'player');
   checkBattleEnd();
@@ -1732,7 +1840,9 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
     untouchable: !!enemyData.untouchable,
     tribDmg: enemyData.tribDmg || 0.15,
     power: enemyData.power,
+    special: enemyData.special || null,
   };
+  if (enemyId === 'dao_competitor') enemy.name = getRandomDaoPeerName(Game.state);
   if (enemyId === 'lei_jie_unified') {
     const pending = Game.state.pendingTribulation;
     const gate = pending && getTribulationGateForIndex(pending.gateIdx);
@@ -1776,11 +1886,59 @@ function getEnemyDefense(enemy, magic) {
   return Math.max(0, base - (enemy.armorBreak || 0));
 }
 
+function getPlayerWeakenRate() {
+  return (Game.battle && Game.battle.playerWeakenRate) || 0;
+}
+
+function performEnemySpecial(s, e) {
+  const skill = e.special;
+  if (!skill) return false;
+  Game.battle.enemySpecialCd = Game.battle.enemySpecialCd || 0;
+  if (Game.battle.enemySpecialCd > 0 || Math.random() >= (skill.chance || 0.24)) return false;
+  Game.battle.enemySpecialCd = skill.cd || 3;
+  if (skill.type === 'poison') {
+    Game.battle.poisonTurns = Math.max(Game.battle.poisonTurns || 0, skill.turns || 2);
+    Game.battle.poisonPct = Math.max(Game.battle.poisonPct || 0, skill.pct || 0.02);
+    logBattle(`${e.name} 施展【${skill.name}】，毒煞侵入经脉！`, 'enemy');
+  } else if (skill.type === 'weaken') {
+    // 内部多留一轮，确保玩家能完整经历标注的两次行动。
+    Game.battle.playerWeakenTurns = Math.max(Game.battle.playerWeakenTurns || 0, (skill.turns || 2) + 1);
+    Game.battle.playerWeakenRate = Math.max(Game.battle.playerWeakenRate || 0, skill.rate || 0.25);
+    logBattle(`${e.name} 施展【${skill.name}】，你的攻势被压制 ${Math.round(Game.battle.playerWeakenRate * 100)}%！`, 'enemy');
+  } else if (skill.type === 'stun') {
+    Game.battle.playerStunnedTurns = 1;
+    logBattle(`${e.name} 施展【${skill.name}】，你神魂震荡，下一次行动将被跳过！`, 'enemy');
+  } else if (skill.type === 'percent') {
+    let dmg = Math.max(1, Math.floor(s.maxHp * (skill.pct || 0.05)));
+    if (Game.battle.defending) {
+      dmg = Math.floor(dmg * 0.4);
+      Game.battle.defending = false;
+      logBattle('你以守代攻，硬接这记致命神通！', 'player');
+    }
+    if (Game.battle.waterGuard) {
+      dmg = Math.floor(dmg * (1 - Game.battle.waterGuard));
+      Game.battle.waterGuard = 0;
+    }
+    if (Game.battle.danxiaGuard) {
+      const guard = Game.battle.danxiaGuard;
+      const reflect = Math.max(1, Math.floor(dmg * guard.reflect));
+      dmg = Math.floor(dmg * (1 - guard.reduce));
+      Game.battle.danxiaGuard = 0;
+      e.hp -= reflect;
+      logBattle(`丹霞灵壁反震【${skill.name}】，${e.name} 受到 ${reflect} 点伤害！`, 'player');
+    }
+    dmg = applyPetIncomingDamage(s, dmg);
+    s.hp -= dmg;
+    logBattle(`${e.name} 施展【${skill.name}】，造成 ${dmg} 点（最大气血${Math.round((skill.pct || 0) * 100)}%）伤害！`, 'enemy');
+  }
+  return true;
+}
+
 function playerAttack() {
   if (Game.battle.ended || Game.battle.turn !== 'player') return;
   const s = Game.state;
   const e = Game.battle.enemy;
-  const dmg = Math.max(1, s.atk - getEnemyDefense(e, false) + (s.pen || 0) + Math.floor(Math.random() * 5));
+  const dmg = Math.max(1, Math.floor(s.atk * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, false) + (s.pen || 0) + Math.floor(Math.random() * 5));
   e.hp -= dmg;
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
@@ -1845,6 +2003,7 @@ function playerSkill() {
     Game.battle.metalReflect = 0.35;
     extraText = `敌方防御降低 ${e.armorBreak}，并反震下一击35%伤害`;
   }
+  dmg = Math.max(1, Math.floor(dmg * (1 - getPlayerWeakenRate())));
   e.hp -= dmg;
   playBattleHitSound();
   logBattle(lg.skillText, 'player');
@@ -2000,12 +2159,22 @@ function enemyTurn() {
       checkBattleEnd();
       if (Game.battle.ended) return;
     }
+    if (Game.battle.poisonTurns > 0) {
+      const poison = Math.max(1, Math.floor(s.maxHp * (Game.battle.poisonPct || 0.02)));
+      s.hp -= poison;
+      Game.battle.poisonTurns--;
+      logBattle(`毒煞发作，你损失 ${poison} 点气血！`, 'enemy');
+      checkBattleEnd();
+      if (Game.battle.ended) return;
+    }
     if (e.stunned) {
       e.stunned = false;
       logBattle(`${e.name} 被法宝定在原地，动弹不得！`, 'sys');
     } else if (!e.untouchable && e.rootedTurns > 0) {
       e.rootedTurns--;
       logBattle(`${e.name} 被藤蔓封住经脉，下一次攻击完全落空！`, 'sys');
+    } else if (!e.untouchable && performEnemySpecial(s, e)) {
+      // 敌方施展专属神通的回合，不再叠加普通攻击。
     } else if (e.untouchable) {
       // 天劫特殊：每次造成固定大伤害，但玩家可用防御硬扛
       let dmg = Math.max(5, Math.floor(s.maxHp * (e.tribDmg || 0.15)));
@@ -2018,6 +2187,14 @@ function enemyTurn() {
         dmg = Math.floor(dmg * (1 - Game.battle.waterGuard));
         Game.battle.waterGuard = 0;
         logBattle('水幕流转，替你卸去了大半伤势！', 'player');
+      }
+      if (Game.battle.danxiaGuard) {
+        const guard = Game.battle.danxiaGuard;
+        const reflect = Math.max(1, Math.floor(dmg * guard.reflect));
+        dmg = Math.floor(dmg * (1 - guard.reduce));
+        Game.battle.danxiaGuard = 0;
+        e.hp -= reflect;
+        logBattle(`丹霞灵壁展开，将来袭之力卸去大半，并反震 ${e.name} ${reflect} 点伤害！`, 'player');
       }
       dmg = applyPetIncomingDamage(s, dmg);
       s.hp -= dmg;
@@ -2058,6 +2235,14 @@ function enemyTurn() {
         Game.battle.waterGuard = 0;
         logBattle('水幕流转，替你卸去了大半伤势！', 'player');
       }
+      if (Game.battle.danxiaGuard) {
+        const guard = Game.battle.danxiaGuard;
+        const reflect = Math.max(1, Math.floor(dmg * guard.reflect));
+        dmg = Math.floor(dmg * (1 - guard.reduce));
+        Game.battle.danxiaGuard = 0;
+        e.hp -= reflect;
+        logBattle(`丹霞灵壁展开，将来袭之力卸去大半，并反震 ${e.name} ${reflect} 点伤害！`, 'player');
+      }
       dmg = applyPetIncomingDamage(s, dmg);
       s.hp -= dmg;
       logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
@@ -2071,9 +2256,24 @@ function enemyTurn() {
     checkBattleEnd();
     if (!Game.battle.ended) {
       if (e.armorBreakTurns > 0 && --e.armorBreakTurns === 0) e.armorBreak = 0;
+      if (Game.battle.enemySpecialCd > 0) Game.battle.enemySpecialCd--;
+      if (Game.battle.playerWeakenTurns > 0 && --Game.battle.playerWeakenTurns === 0) {
+        Game.battle.playerWeakenRate = 0;
+        logBattle('压制感消散，你的攻势恢复如常。', 'sys');
+      }
+      if (Game.battle.attackBoostTurns > 0 && --Game.battle.attackBoostTurns === 0) {
+        Game.battle.attackBoost = 0;
+        logBattle('增益真元渐渐散去，攻击恢复如常。', 'sys');
+      }
       decrementSpecialCd();
       const manaGain = restoreBattleMana(s);
       logBattle(`灵气回流，恢复 ${manaGain} 点灵力。`, 'sys');
+      if (Game.battle.playerStunnedTurns > 0) {
+        Game.battle.playerStunnedTurns--;
+        logBattle('你仍陷在眩晕之中，本次行动被迫跳过！', 'enemy');
+        enemyTurn();
+        return;
+      }
       Game.battle.turn = 'player';
       UI.updateBattle();
     }

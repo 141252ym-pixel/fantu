@@ -944,6 +944,10 @@ const UI = {
     if (e.armorBreakTurns > 0) statuses.push(`敌·破甲 ${e.armorBreakTurns}回合`);
     if (Game.battle.waterGuard) statuses.push('我·水幕护体');
     if (Game.battle.metalReflect) statuses.push('我·金灵反震');
+    if (Game.battle.poisonTurns > 0) statuses.push(`我·中毒 ${Game.battle.poisonTurns}回合`);
+    if (Game.battle.playerWeakenTurns > 0) statuses.push(`我·虚弱 ${Math.max(1, Game.battle.playerWeakenTurns - 1)}回合`);
+    if (Game.battle.playerStunnedTurns > 0) statuses.push('我·眩晕（下回合跳过）');
+    if (Game.battle.enemySpecialCd > 0 && e.special) statuses.push(`敌·${e.special.name}冷却${Game.battle.enemySpecialCd}`);
     this.els.battleStatus.textContent = statuses.length ? `状态：${statuses.join(' ｜ ')}` : '状态：无';
 
     // 日志（用 DOM 文本节点注入，确保不会解析出 HTML/按钮文字）
@@ -1132,6 +1136,7 @@ const UI = {
       p.classList.toggle('active', p.id === 'tab-' + name);
     });
     if (name === 'bag') this.updateBag('all');
+    if (name === 'stats') this.renderStatDetail();
     if (name === 'achievements') this.updateAchievements();
     if (name === 'pet') this.renderPetPanel();
     if (name === 'daily') this.renderDaily();
@@ -1309,15 +1314,32 @@ const UI = {
         sellBtn.disabled = true;
         sellBtn.style.opacity = '0.4';
       }
-      sellBtn.addEventListener('click', () => {
-        playClickSound();
-        if (sellItem(item.id)) {
-          UI.updateBag(cat);
-          UI.updateStats();
-          UI.renderStatDetail();
-        }
-      });
-      actions.appendChild(sellBtn);
+            sellBtn.addEventListener('click', () => {
+                playClickSound();
+                if (sellItem(item.id)) {
+                    UI.updateBag(cat);
+                    UI.updateStats();
+                    UI.renderStatDetail();
+                }
+            });
+            actions.appendChild(sellBtn);
+
+            if (!equipped && item.sell > 0 && item.count > 1) {
+                const sellAllBtn = document.createElement('button');
+                sellAllBtn.className = 'item-sell';
+                sellAllBtn.textContent = `全部出售×${item.count}`;
+                sellAllBtn.addEventListener('click', () => {
+                    const gain = item.sell * item.count;
+                    if (!confirm(`确定出售${item.name}×${item.count}，获得${gain}灵石？`)) return;
+                    playClickSound();
+                    if (sellItemBatch(item.id)) {
+                        UI.updateBag(cat);
+                        UI.updateStats();
+                        UI.renderStatDetail();
+                    }
+                });
+                actions.appendChild(sellAllBtn);
+            }
 
       div.appendChild(actions);
       this.els.bagList.appendChild(div);
@@ -1406,6 +1428,8 @@ const UI = {
     backfillTribulations(Game.state);
     clampByTribulation(Game.state);
     realignRealm(Game.state);
+    migrateUpdateVitals(Game.state);
+    migrateLegacyTribulationNode(Game.state);
     goToNode(Game.state.nodeId || 'start');
     this.showToast('读档成功');
     this.closeSidePanel();
@@ -1477,6 +1501,8 @@ const UI = {
     backfillTribulations(Game.state);
     clampByTribulation(Game.state);
     realignRealm(Game.state);
+    migrateUpdateVitals(Game.state);
+    migrateLegacyTribulationNode(Game.state);
     autoSave();
     goToNode(Game.state.nodeId || 'start');
     document.getElementById('import-box').classList.add('hidden');
@@ -1520,8 +1546,11 @@ UI.renderStatDetail = function() {
   const totalMatk = getTotalMatk(s);
   const totalMdef = getTotalMdef(s);
   const totalPen = getTotalPen(s);
+  const sect = s.sect && SECTS[s.sect];
+  const identity = sect ? `${sect.icon} ${sect.name}弟子` : '云游散修';
 
   this.els.statDetail.innerHTML = `
+    <div class="stat-intro"><div class="stat-intro-name">${s.name || '无名'}</div><div class="stat-intro-desc">${identity} · ${realm.name}修士</div></div>
     <div class="stat-line"><span class="label">境界</span><span class="value">${realm.name}</span></div>
     <div class="stat-line"><span class="label">修为</span><span class="value">${xp.cur}/${xp.max}</span></div>
     <div class="stat-line"><span class="label">气血</span><span class="value">${Math.floor(s.hp)}/${s.maxHp}</span></div>

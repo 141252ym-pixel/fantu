@@ -150,21 +150,21 @@ const GACHA_POOL = [
   ]},
   { rarity: '凡品', weight: 30, color: '#c9c9c9', items: [
     'g_qingfeng', 'g_taomu', 'g_qingbu', 'g_cubu',
-    { id: 'huiqi_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
+    { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
     'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia',
-    { id: 'huichun_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
+    { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
     'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui',
-    { id: 'dahuan_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
+    { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
     'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci',
-    { id: 'jiuzhuan_pill', count: 1 },
+    { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
@@ -389,6 +389,10 @@ const GONGFA = {
   gong_jiumiao:    { id: 'gong_jiumiao',    name: '九霄神雷',   grade: '仙级', icon: '🌩️', color: '#e6a23c', desc: '主动·神雷天降（法攻3.0倍，灵力35%，冷却5回合）', combat: { name: '九霄神雷', mult: 3.0, manaPct: 0.35, cd: 5 } },
   gong_wanjian:    { id: 'gong_wanjian',    name: '万剑归宗',   grade: '神级', icon: '🗡️', color: '#e0473c', desc: '主动·万剑齐发（法攻4.5倍，灵力45%，冷却8回合）', combat: { name: '万剑归宗', mult: 4.5, manaPct: 0.45, cd: 8 } },
   gong_xingyun:    { id: 'gong_xingyun',    name: '星陨术',     grade: '神级', icon: '☄️', color: '#e0473c', desc: '主动·星辰坠落（法攻5.5倍，灵力55%，冷却10回合）', combat: { name: '星陨术', mult: 5.5, manaPct: 0.55, cd: 10 } },
+  gong_danxia_chunfeng: { id: 'gong_danxia_chunfeng', name: '春风化雨诀', grade: '天级', icon: '🌿', color: '#e6a23c', desc: '主动·回复30%气血（灵力25%，冷却4回合）', combat: { kind: 'heal', healPct: 0.30, manaPct: 0.25, cd: 4 } },
+  gong_danxia_fuhua: { id: 'gong_danxia_fuhua', name: '扶华增元诀', grade: '仙级', icon: '✨', color: '#e6a23c', desc: '主动·攻击提高70%，持续3回合（灵力30%，冷却6回合）', combat: { kind: 'buff', boost: 0.70, turns: 3, manaPct: 0.30, cd: 6 } },
+  gong_danxia_lingbi: { id: 'gong_danxia_lingbi', name: '丹霞灵壁', grade: '仙级', icon: '🛡️', color: '#e6a23c', desc: '主动·下一次受击减伤65%，并反弹敌方来袭伤害的150%（灵力25%，冷却5回合）', combat: { kind: 'guard', guard: 0.65, reflect: 1.5, manaPct: 0.25, cd: 5 } },
+  gong_tianmo_bloodsacrifice: { id: 'gong_tianmo_bloodsacrifice', name: '血煞燃元术', grade: '仙级', icon: '🩸', color: '#e0473c', desc: '主动·消耗8%气血，攻击提高100%，持续3回合（灵力20%，冷却6回合）', combat: { kind: 'blood_rage', hpPct: 0.08, boost: 1.00, turns: 3, manaPct: 0.20, cd: 6 } },
 };
 // 重复获得同一本功法时的灵石补偿
 const GONGFA_REFUND = { '黄级': 100, '玄级': 300, '地级': 800, '天级': 2000, '仙级': 5000, '神级': 12000 };
@@ -408,10 +412,14 @@ const QYU_POOL = [
   { id: 'qyu_taiyi',     title: '太乙传承', text: '太乙真人残存的一缕神念，将太乙归元诀传授于你。', weight: 5, reward: { type: 'gongfa', id: 'gong_taiyi' } },
   { id: 'qyu_budong',    title: '不动明王', text: '面对滔天魔气，你岿然不动，心如磐石，悟得不动明王真意。', weight: 3, reward: { type: 'gongfa', id: 'gong_budong' } },
   { id: 'qyu_xianling',  title: '仙灵护体', text: '一道仙灵之气融入你身，四肢百骸仿佛重获新生。', weight: 3, reward: { type: 'gongfa', id: 'gong_xianling' } },
-  { id: 'qyu_yujian',    title: '剑冢悟剑', text: '万剑剑冢之中，剑意冲霄，你悟得御剑诀。', weight: 5, reward: { type: 'gongfa', id: 'gong_yujian' } },
-  { id: 'qyu_jiumiao',   title: '雷池淬体', text: '你闯入九霄雷池，以神雷淬体，炼成九霄神雷。', weight: 3, reward: { type: 'gongfa', id: 'gong_jiumiao' } },
-  { id: 'qyu_wanjian',   title: '剑仙遗赠', text: '剑仙坐化之地，万剑齐鸣，将万剑归宗馈赠于你。', weight: 1.5, reward: { type: 'gongfa', id: 'gong_wanjian' } },
-  { id: 'qyu_xingyun',   title: '天外星辰', text: '一颗流星划破长空，你从中参悟了星陨术。', weight: 1.5, reward: { type: 'gongfa', id: 'gong_xingyun' } },
+  { id: 'qyu_yujian',    title: '剑冢悟剑', text: '万剑剑冢之中，剑意冲霄，你悟得御剑诀。', weight: 5, sect: 'qingyun', reward: { type: 'gongfa', id: 'gong_yujian' } },
+  { id: 'qyu_jiumiao',   title: '雷池淬体', text: '你闯入九霄雷池，以神雷淬体，炼成九霄神雷。', weight: 3, sect: 'qingyun', reward: { type: 'gongfa', id: 'gong_jiumiao' } },
+  { id: 'qyu_wanjian',   title: '剑仙遗赠', text: '剑仙坐化之地，万剑齐鸣，将万剑归宗馈赠于你。', weight: 1.5, sect: 'qingyun', reward: { type: 'gongfa', id: 'gong_wanjian' } },
+  { id: 'qyu_xingyun',   title: '天外星辰', text: '一颗流星划破长空，你从中参悟了星陨术。', weight: 1.5, sect: 'qingyun', reward: { type: 'gongfa', id: 'gong_xingyun' } },
+  { id: 'qyu_danxia_chunfeng', title: '药谷春雨', text: '丹霞药谷的灵雨洒落识海，你悟得春风化雨诀。', weight: 4, sect: 'danxia', reward: { type: 'gongfa', id: 'gong_danxia_chunfeng' } },
+  { id: 'qyu_danxia_fuhua', title: '丹火蕴元', text: '一炉丹火映照经脉，你悟得扶华增元诀。', weight: 2.5, sect: 'danxia', reward: { type: 'gongfa', id: 'gong_danxia_fuhua' } },
+  { id: 'qyu_danxia_lingbi', title: '霞光护身', text: '丹霞铺开如幕，你领悟丹霞灵壁。', weight: 2.5, sect: 'danxia', reward: { type: 'gongfa', id: 'gong_danxia_lingbi' } },
+  { id: 'qyu_tianmo_blood', title: '血池残卷', text: '魔教血池中浮出一卷残经，你悟得血煞燃元术。', weight: 3, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodsacrifice' } },
   { id: 'qyu_lingkuang', title: '灵脉矿脉', text: '你发现一处裸露的灵脉，采得不少灵石。', weight: 14, reward: { type: 'stone', value: 500 } },
   { id: 'qyu_yaoyuan',   title: '药香引路', text: '一阵异香引你来到一株灵药前，你小心采下。', weight: 10, reward: { type: 'item', id: 'lingshou_dan', count: 2 } },
   { id: 'qyu_daoyun',    title: '天道垂青', text: '你抬头望天，忽觉天道运转自有其理，道韵顿生。', weight: 10, reward: { type: 'dao', value: 20 } },
@@ -541,18 +549,18 @@ const ENEMIES = {
   bandit:     { id: 'bandit',     name: '山贼',       hp: 50,  atk: 9,  def: 2,  xp: 20,  stone: [10, 20], drops: [{id:'shanzhifu',chance:0.5}] },
   bandit_chief:{id: 'bandit_chief',name:'清风寨寨主', hp: 300, atk: 24, def: 7,  xp: 150, stone: [80, 150],drops: [{id:'tiebi',chance:0.5},{id:'juqi_pill',chance:1}], boss: true },
   snake_demon:{ id: 'snake_demon',name: '蛇妖',       hp: 70,  atk: 14, def: 2,  matk: 18, mdef: 4, xp: 40,  stone: [15, 30], drops: [{id:'hanbingxue',chance:0.4}] },
-  low_monk:   { id: 'low_monk',   name: '低阶修士',   hp: 80,  atk: 13, def: 4,  matk: 18, mdef: 6, xp: 35,  stone: [20, 40], drops: [{id:'huiqi_pill',chance:0.6}] },
+  low_monk:   { id: 'low_monk',   name: '低阶修士',   hp: 80,  atk: 13, def: 4,  matk: 18, mdef: 6, xp: 35,  stone: [20, 40], drops: [{id:'huiqi_pill',chance:0.6},{id:'huiling_pill',chance:0.25}] },
 
   // 中段
   stone_monkey:{id: 'stone_monkey',name:'石猴',      hp: 150, atk: 22, def: 10, xp: 80,  stone: [30, 60], drops: [{id:'lieyangshi',chance:0.5}] },
-  blood_cultist:{id:'blood_cultist',name:'血教弟子', hp: 180, atk: 28, def: 8,  matk: 38, mdef: 12, xp: 100, stone: [40, 80], drops: [{id:'juqi_pill',chance:0.4}] },
-  bifuluan:    { id: 'bifuluan',   name: '毕方（灵禽）', hp: 500, atk: 52, def: 15, matk: 70, mdef: 20, xp: 220, stone: [100,180], drops: [{id:'lieyangshi',chance:1}], boss: true },
+  blood_cultist:{id:'blood_cultist',name:'血教弟子', hp: 180, atk: 28, def: 8,  matk: 38, mdef: 12, xp: 100, stone: [40, 80], drops: [{id:'juqi_pill',chance:0.4},{id:'yuling_pill',chance:0.25}] },
+  bifuluan:    { id: 'bifuluan',   name: '毕方（灵禽）', hp: 500, atk: 52, def: 15, matk: 70, mdef: 20, xp: 220, stone: [100,180], drops: [{id:'lieyangshi',chance:1},{id:'dahuiling_pill',chance:0.2}], boss: true },
 
   // 高阶
-  qiongqi:     { id: 'qiongqi',    name: '穷奇',      hp: 2400, atk: 280, def: 40, xp: 650, stone: [300,450], drops: [{id:'fengyuteng',chance:1}], boss: true },
-  taotie:      { id: 'taotie',     name: '饕餮',      hp: 4500, atk: 380, def: 52, xp: 1100, stone: [500,750], drops: [{id:'hanbingxue',chance:1}], boss: true },
-  nine_tails:  { id: 'nine_tails', name: '九尾天狐',  hp: 3200, atk: 330, def: 48, matk: 460, mdef: 60, xp: 950, stone: [400,700], drops: [{id:'dao_compass',chance:1}], boss: true },
-  yinglong:    { id: 'yinglong',   name: '应龙',      hp: 6400, atk: 470, def: 72, xp: 1600, stone: [750,1100], drops: [{id:'tieyijia',chance:0.5}], boss: true },
+  qiongqi:     { id: 'qiongqi',    name: '穷奇',      hp: 2400, atk: 280, def: 40, xp: 650, stone: [300,450], drops: [{id:'fengyuteng',chance:1},{id:'yuling_pill',chance:0.5}], boss: true, special: { name: '裂风蚀骨', type: 'poison', pct: 0.025, turns: 2, chance: 0.24, cd: 3 } },
+  taotie:      { id: 'taotie',     name: '饕餮',      hp: 4500, atk: 380, def: 52, xp: 1100, stone: [500,750], drops: [{id:'hanbingxue',chance:1},{id:'dahuiling_pill',chance:0.5}], boss: true, special: { name: '吞天噬元', type: 'percent', pct: 0.07, chance: 0.24, cd: 3 } },
+  nine_tails:  { id: 'nine_tails', name: '九尾天狐',  hp: 3200, atk: 330, def: 48, matk: 460, mdef: 60, xp: 950, stone: [400,700], drops: [{id:'dao_compass',chance:1}], boss: true, special: { name: '魅影摄魂', type: 'weaken', rate: 0.30, turns: 2, chance: 0.24, cd: 3 } },
+  yinglong:    { id: 'yinglong',   name: '应龙',      hp: 6400, atk: 470, def: 72, xp: 1600, stone: [750,1100], drops: [{id:'tieyijia',chance:0.5}], boss: true, special: { name: '雷云震魄', type: 'stun', chance: 0.20, cd: 4 } },
 
   // 论道
   dao_competitor:{ id:'dao_competitor',name:'论道对手',hp: 250, atk: 30, def: 10, xp: 150, stone: [60,100], drops: [{id:'daopei',chance:0.3}], untouchable: false },
@@ -563,13 +571,13 @@ const ENEMIES = {
   lei_jie_1:   { id: 'lei_jie_1',  name: '筑基天劫·一重', hp: 1, atk: 0, def: 0, xp: 500, stone: [100,100], drops: [], untouchable: true, boss: true, tribDmg: 0.15 },
 
   // 魔尊：化神大圆满前不可力敌的终局强敌
-  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 230000, atk: 5600, def: 1200, matk: 7800, mdef: 1500, xp: 22000, stone: [12000,18000], drops: [], boss: true },
+  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 230000, atk: 5600, def: 1200, matk: 7800, mdef: 1500, xp: 22000, stone: [12000,18000], drops: [], boss: true, special: { name: '魔神叩关', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
 
   // 四凶禁地（高难度挑战，强度递增；魔尊仍为此阶段最强）
-  taowu:       { id: 'taowu',    name: '梼杌',       hp: 75000, atk: 2500, def: 480, matk: 2900, mdef: 560, xp: 8000,  stone: [3500,5000],  drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:0.5}], boss: true },
-  hundun:      { id: 'hundun',   name: '混沌',       hp: 120000, atk: 3300, def: 650, matk: 3900, mdef: 760, xp: 12000, stone: [5500,8000], drops: [{id:'hanbingxue',chance:1},{id:'juqi_pill',chance:1}], boss: true },
-  qiongchi_fiend:{ id: 'qiongchi_fiend', name: '禁地穷奇', hp: 150000, atk: 3900, def: 780, matk: 4700, mdef: 920, xp: 16000, stone: [8000,11000], drops: [{id:'fengyuteng',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true },
-  zhulong:     { id: 'zhulong',  name: '烛龙',       hp: 175000, atk: 4600, def: 950, matk: 5500, mdef: 1120, xp: 20000, stone: [10000,14000], drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true },
+  taowu:       { id: 'taowu',    name: '梼杌',       hp: 75000, atk: 2500, def: 480, matk: 2900, mdef: 560, xp: 8000,  stone: [3500,5000],  drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:0.5}], boss: true, special: { name: '凶煞裂地', type: 'weaken', rate: 0.35, turns: 2, chance: 0.24, cd: 3 } },
+  hundun:      { id: 'hundun',   name: '混沌',       hp: 120000, atk: 3300, def: 650, matk: 3900, mdef: 760, xp: 12000, stone: [5500,8000], drops: [{id:'hanbingxue',chance:1},{id:'juqi_pill',chance:1}], boss: true, special: { name: '混沌侵蚀', type: 'poison', pct: 0.035, turns: 2, chance: 0.24, cd: 3 } },
+  qiongchi_fiend:{ id: 'qiongchi_fiend', name: '禁地穷奇', hp: 150000, atk: 3900, def: 780, matk: 4700, mdef: 920, xp: 16000, stone: [8000,11000], drops: [{id:'fengyuteng',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true, special: { name: '裂天妖羽', type: 'percent', pct: 0.08, chance: 0.24, cd: 3 } },
+  zhulong:     { id: 'zhulong',  name: '烛龙',       hp: 175000, atk: 4600, def: 950, matk: 5500, mdef: 1120, xp: 20000, stone: [10000,14000], drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true, special: { name: '烛阴凝视', type: 'stun', chance: 0.20, cd: 4 } },
 
   // 天劫
   lei_jie_2:   { id: 'lei_jie_2',  name: '金丹天劫·二重', hp: 1, atk: 0, def: 0, xp: 1500, stone: [300,300], drops: [], untouchable: true, boss: true, tribDmg: 0.20 },
@@ -579,11 +587,11 @@ const ENEMIES = {
   lei_jie_4:   { id: 'lei_jie_4',   name: '化神天劫·四重', hp: 1, atk: 0, def: 0, xp: 4000, stone: [800,800], drops: [], untouchable: true, boss: true, tribDmg: 0.24 },
   fei_sheng_jie:{ id:'fei_sheng_jie',name:'飞升天劫·九重',hp: 1, atk: 0, def: 0, xp: 8000, stone: [2000,2000], drops: [], untouchable: true, boss: true, tribDmg: 0.22 },
   // 仙人级强敌：基础数值覆盖人仙期，仙帝后继续按动态 Boss 规则增长
-  tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1 },
-  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3 },
-  honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5 },
-  tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8 },
-  chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1 },
+  tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1, special: { name: '蚀魂魔焰', type: 'poison', pct: 0.04, turns: 2, chance: 0.24, cd: 3 } },
+  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, special: { name: '魔君威压', type: 'weaken', rate: 0.40, turns: 2, chance: 0.24, cd: 3 } },
+  honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5, special: { name: '荒兽践踏', type: 'percent', pct: 0.08, chance: 0.24, cd: 3 } },
+  tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8, special: { name: '天罚枷锁', type: 'stun', chance: 0.20, cd: 4 } },
+  chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1, special: { name: '归墟湮灭', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
 };
 
 // ========== 秘境爬塔 ==========
@@ -1031,6 +1039,7 @@ const STORY_NODES = {
     },
     choices: [
       { label: '进入秘境（从第一层开始）', action: (s) => { s.mijing.floor = 0; s.mijing.active = true; }, next: 'mijing_fight' },
+      { label: '从最高层继续挑战', action: (s) => { s.mijing.floor = Math.max(0, (s.mijing.best || 1) - 1); s.mijing.active = true; }, next: 'mijing_fight', req: (s) => (s.mijing && s.mijing.best > 0) },
       { label: '返回', next: 'qingyun_gate' },
     ],
   },
@@ -1418,9 +1427,15 @@ const STORY_NODES = {
   // ===== 奇遇 =====
   qiyu_wander: {
     title: '云游寻缘',
-    text: '你欲云游四方，寻找属于自己的仙缘。天机渺渺，有缘者自会遇见奇遇。\n（每次云游消耗 10 道韵，可获得功法、灵石、道具等机缘）',
+    dynamicText: () => {
+      const last = Game.lastQiyu;
+      const result = last && last.result ? `\n\n最近机缘：${last.q.title}——${last.result.text}` : '';
+      const ten = last && last.draws ? `\n\n本次十连共获得 ${last.draws.length} 份机缘。` : '';
+      return `你欲云游四方，寻找属于自己的仙缘。天机渺渺，有缘者自会遇见奇遇。\n单次消耗 10 道韵，十连消耗 100 道韵；获得机缘后可继续云游。${result}${ten}`;
+    },
     choices: [
       { label: '开始云游（消耗 10 道韵）', action: (s) => { triggerQiyu(s, true); } },
+      { label: '云游十连（消耗 100 道韵）', action: (s) => { triggerQiyuTen(s); } },
       { label: '再想想', next: 'inner_gate' },
     ],
   },
@@ -1436,7 +1451,8 @@ const STORY_NODES = {
       return `【${ly.q.title}】\n${ly.q.text}\n\n${ly.result.text}${extra}`;
     },
     choices: [
-      { label: '继续前行', next: 'inner_gate' },
+      { label: '继续云游', next: 'qiyu_wander' },
+      { label: '返回内门', next: 'inner_gate' },
     ],
   },
 
@@ -2432,7 +2448,7 @@ const STORY_NODES = {
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
   'JZYHQQS4': { stone: 1000000 },
-  'SOMETINGFORNOTHING': { tribulationBlessing: true },
+  'SOMETHINGFORNOTHING': { tribulationBlessing: true },
 };
 
 // ========== 签到与日常 ==========

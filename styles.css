@@ -523,6 +523,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pane-title:first-child { margin-top: 0; }
 
 /* 修为详情 */
+.stat-intro { margin: 4px 0 10px; padding: 9px 10px; border-left: 3px solid #c9a962; background: rgba(201, 169, 98, 0.10); }
+.stat-intro-name { color: #2d2a24; font-size: 17px; font-weight: 700; }
+.stat-intro-desc { margin-top: 3px; color: #7a6a4a; font-size: 12px; }
 .stat-detail .stat-line {
   display: flex;
   justify-content: space-between;
@@ -797,10 +800,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   flex: 1;
   min-width: 0;
   padding: 9px 12px;
-  background: rgba(255, 249, 232, 0.08);
+  background: #fff9e8;
   border: 1px solid #8b6b3d;
   border-radius: 4px;
-  color: #f0e4c2;
+  color: #111;
   font-size: 14px;
   letter-spacing: 1px;
   font-family: inherit;
@@ -810,7 +813,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-color: #c9a962;
   box-shadow: 0 0 10px rgba(201, 169, 98, 0.35);
 }
-.redeem-input::placeholder { color: #8a7a58; }
+.redeem-input::placeholder { color: #5f5542; }
 .redeem-box .ink-btn { white-space: nowrap; }
 .redeem-result {
   font-size: 13px;
