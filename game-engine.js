@@ -1023,11 +1023,9 @@ function tuntunshuSteal(s, e, stoneGain) {
       parts.push(`偷来一份${ITEMS[d.id].name}`);
     }
     if (e.boss && Math.random() < TUNTUNSHU_BOSS_STEAL_CHANCE) {
-      const equipDrops = e.drops.filter(d => ITEMS[d.id] && ['weapon', 'armor', 'artifact'].includes(ITEMS[d.id].type));
-      const pool = equipDrops.length ? equipDrops : e.drops;
-      const d = pool[Math.floor(Math.random() * pool.length)];
-      grantItem(s, d.id, 1);
-      parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d.id].name}！！`);
+      const d = TUNTUNSHU_BOSS_LOOT[Math.floor(Math.random() * TUNTUNSHU_BOSS_LOOT.length)];
+      grantItem(s, d, 1);
+      parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d].name}！！`);
     }
   }
   return parts.length ? `囤囤鼠${parts.join('，')}！` : '';

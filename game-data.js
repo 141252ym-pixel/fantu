@@ -6,7 +6,7 @@ const UPDATE_LOG = [
     date: '2026-08-20',
     title: '新神品灵宠 · 囤囤鼠',
     items: [
-      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料，极低概率(0.01%)偷走Boss掉落',
+      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料，极低概率(0.01%)偷走Boss私藏神装（专属掉落，仅囤囤鼠能偷）',
       '囤囤鼠专注闪避与搜刮，靠「囤粮」慢慢变富，不参与普通技能追击',
     ],
   },
@@ -327,6 +327,13 @@ const ITEMS = {
   g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
   g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
 
+  // ===== 囤囤鼠私藏（仅能由囤囤鼠 0.01% 概率偷 Boss 获得，无其他获取途径） =====
+  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·攻击+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'atk600', sell: 8000, rarity: '神品' },
+  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法攻+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'matk600', sell: 8000, rarity: '神品' },
+  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·物抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'def360', sell: 8000, rarity: '神品' },
+  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·法抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'mdef360', sell: 8000, rarity: '神品' },
+  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·穿透+250（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'pen250', sell: 8000, rarity: '神品' },
+
   // ===== 抽卡废品（抽空产物，只能卖几灵石） =====
   shuzhi:  { id: 'shuzhi',  name: '枯树枝', type: 'misc', icon: '🌿', desc: '路边捡的，没什么用', effect: null, sell: 3 },
   shitou:  { id: 'shitou',  name: '碎石子', type: 'misc', icon: '🪨', desc: '随处可见的石头',     effect: null, sell: 5 },
@@ -557,6 +564,8 @@ const TUNTUNSHU_DODGE_CAP = 0.30;         // 闪避率封顶
 const TUNTUNSHU_STEAL_CHANCE = 0.40;      // 战后偷灵石/材料的概率
 const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
 const TUNTUNSHU_BOSS_STEAL_CHANCE = 0.0001; // 偷 Boss 掉落装备的概率（0.01%）
+// 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
+const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
 // 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
 const PET_TREAT_COST = 100;
 const PET_TREAT_POOL = [
