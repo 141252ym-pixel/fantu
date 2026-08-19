@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v21',
+    date: '2026-08-19',
+    title: '灵宠数值平衡',
+    items: [
+      '灵宠属性百分比加成整体下调约 1/3，后期不再过度放大',
+      '灵宠升星加成由每星 +5% 调整为 +3%',
+    ],
+  },
+  {
     version: 'v16',
     date: '2026-08-19',
     title: '灵宠经验系统',
@@ -405,13 +414,13 @@ const PET_REFUND = { '废品': 10, '凡品': 30, '良品': 60, '中品': 120, '�
 const PET_MAX_LEVEL = { '废品': 30, '凡品': 40, '良品': 50, '中品': 60, '上品': 70, '极品': 80, '神品': 100 };
 // 双轨成长：固定属性照常随等级增长，百分比属性取决于主人基础属性；品质越高，系数与技能强度越高。
 const PET_QUALITY_GROWTH = {
-  '废品': { pct: 0.003, skillChance: 0.70, skillPower: 0.72 },
-  '凡品': { pct: 0.006, skillChance: 0.82, skillPower: 0.82 },
-  '良品': { pct: 0.010, skillChance: 0.94, skillPower: 0.94 },
-  '中品': { pct: 0.015, skillChance: 1.06, skillPower: 1.06 },
-  '上品': { pct: 0.022, skillChance: 1.18, skillPower: 1.18 },
-  '极品': { pct: 0.032, skillChance: 1.32, skillPower: 1.32 },
-  '神品': { pct: 0.045, skillChance: 1.48, skillPower: 1.48 },
+  '废品': { pct: 0.002, skillChance: 0.70, skillPower: 0.72 },
+  '凡品': { pct: 0.004, skillChance: 0.82, skillPower: 0.82 },
+  '良品': { pct: 0.007, skillChance: 0.94, skillPower: 0.94 },
+  '中品': { pct: 0.010, skillChance: 1.06, skillPower: 1.06 },
+  '上品': { pct: 0.015, skillChance: 1.18, skillPower: 1.18 },
+  '极品': { pct: 0.021, skillChance: 1.32, skillPower: 1.32 },
+  '神品': { pct: 0.030, skillChance: 1.48, skillPower: 1.48 },
 };
 // 神品灵宠出生时随机获得一个天赋；天赋数值仅在每十级进阶时提高。
 const DIVINE_PET_TRAITS = {

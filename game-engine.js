@@ -933,7 +933,7 @@ function getPetStatBonus(s, entry, stat) {
   if (pet.affinity === 'attack') affinity = ['atk', 'matk', 'pen'].includes(stat) ? 1.35 : 0.78;
   if (pet.affinity === 'guard') affinity = ['def', 'mdef'].includes(stat) ? 1.35 : 0.78;
   const percent = owner * conf.pct * (1 + stage * 0.20) * affinity;
-  const starMult = 1 + ((entry.star || 1) - 1) * 0.05;
+  const starMult = 1 + ((entry.star || 1) - 1) * 0.03;
   return Math.floor((fixed + percent) * starMult);
 }
 
