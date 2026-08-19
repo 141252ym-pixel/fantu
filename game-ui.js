@@ -62,13 +62,19 @@ const UI = {
     updateBgmIcon();
     // BGM 首次用户交互后自动播放（浏览器自动播放策略要求先有用户手势）。
     // 每次交互时若该播放却没在播放则重试，避免首次手势时音频尚未就绪、play() 被拒后永远没声音。
+    // 除 pointerdown/keydown 外再兜底 click/touchstart：老版 iOS Safari 及部分 WebView 不支持 PointerEvent，
+    // 此时音效(click 触发)能响而 BGM(仅 pointerdown 触发)会一直无声。
     const tryStartBgm = () => {
       if (!_bgmEnabled) return;
       const audio = getBgmAudio();
-      if (audio && audio.paused) startBgm();
+      if (!audio) return;
+      // 音频曾加载失败时重载一次，避免一次网络抖动导致永久无声
+      if (audio.error) { try { audio.load(); } catch (e) {} }
+      if (audio.paused) startBgm();
     };
-    document.addEventListener('pointerdown', tryStartBgm);
-    document.addEventListener('keydown', tryStartBgm);
+    ['pointerdown', 'keydown', 'click', 'touchstart'].forEach(evt =>
+      document.addEventListener(evt, tryStartBgm)
+    );
   },
 
   // ========== 登录界面 ==========
@@ -1902,10 +1908,20 @@ function startBgm() {
   const p = audio.play();
   if (p && typeof p.catch === 'function') {
     p.catch(() => {
-      // 音频尚未就绪导致 play 被拒时，等可播放后再试一次
-      audio.addEventListener('canplay', () => {
-        if (_bgmEnabled) { const q = audio.play(); if (q && typeof q.catch === 'function') q.catch(() => {}); }
-      }, { once: true });
+      // play() 被自动播放策略或音频未就绪拒绝时重试一次。
+      // 注意：若音频 preload 已就绪(readyState>=2)，canplay 早已触发过、不会再触发，需立即重试；
+      // 否则同时监听 canplay/loadeddata，等数据就绪后再试。
+      const retry = () => {
+        if (!_bgmEnabled) return;
+        const q = audio.play();
+        if (q && typeof q.catch === 'function') q.catch(() => {});
+      };
+      if (audio.readyState >= 2) {
+        retry();
+      } else {
+        audio.addEventListener('canplay', retry, { once: true });
+        audio.addEventListener('loadeddata', retry, { once: true });
+      }
     });
   }
 }
