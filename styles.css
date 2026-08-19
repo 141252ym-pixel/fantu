@@ -416,6 +416,45 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: #fff;
 }
 
+/* ========== 藏宝阁图鉴 ========== */
+.codex-card { max-width: 440px; }
+.codex-list {
+  width: 100%;
+  text-align: left;
+  max-height: 64vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.codex-tier {
+  border: 1px solid #8b6b3d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #1a120a;
+}
+.codex-tier-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.codex-weight { color: #a08c5a; font-size: 12px; font-weight: 400; }
+.codex-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px dashed #3a2c18;
+}
+.codex-row:first-of-type { border-top: none; }
+.codex-icon { flex: 0 0 auto; font-size: 16px; }
+.codex-name { flex: 0 0 auto; font-size: 14px; font-weight: 600; }
+.codex-desc { color: #d4c08a; font-size: 12px; }
+
 /* ========== 登录/取名界面 ========== */
 .login-overlay {
   position: fixed;

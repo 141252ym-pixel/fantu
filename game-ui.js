@@ -150,6 +150,42 @@ const UI = {
     document.getElementById('announce-overlay').classList.add('hidden');
   },
 
+  // ========== 藏宝阁图鉴 ==========
+  openCodex() {
+    const list = document.getElementById('codex-list');
+    if (!list || !Array.isArray(GACHA_POOL)) return;
+    list.innerHTML = GACHA_POOL.map(tier => {
+      const rows = tier.items.map(entry => {
+        const id = typeof entry === 'string' ? entry : entry.id;
+        const count = typeof entry === 'string' ? 1 : entry.count;
+        const it = ITEMS[id];
+        if (!it) return '';
+        const desc = (it.desc || '').replace(/^[^·]+·\s*/, '');
+        return `
+          <div class="codex-row">
+            <span class="codex-icon">${it.icon}</span>
+            <span class="codex-name" style="color:${tier.color}">${it.name}${count > 1 ? ` ×${count}` : ''}</span>
+            <span class="codex-desc">${desc}</span>
+          </div>
+        `;
+      }).join('');
+      return `
+        <div class="codex-tier">
+          <div class="codex-tier-head">
+            <span style="color:${tier.color}">${tier.rarity}</span>
+            <span class="codex-weight">概率 ${tier.weight}%</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+    document.getElementById('codex-overlay').classList.remove('hidden');
+  },
+
+  closeCodex() {
+    document.getElementById('codex-overlay').classList.add('hidden');
+  },
+
   // 每次上线自动弹出公告
   maybeShowAnnounce() {
     try { this.openAnnounce(); } catch (e) {}
@@ -1029,6 +1065,13 @@ const UI = {
       if (rs) { this.showGachaTen(rs); this.renderGacha(); }
     });
     el.appendChild(tenBtn);
+
+    // 图鉴
+    const codexBtn = document.createElement('button');
+    codexBtn.className = 'ink-btn';
+    codexBtn.textContent = '📖 图鉴';
+    codexBtn.addEventListener('click', () => { playClickSound(); this.openCodex(); });
+    el.appendChild(codexBtn);
 
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
