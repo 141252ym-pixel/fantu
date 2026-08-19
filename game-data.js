@@ -385,14 +385,17 @@ const GONGFA = {
   gong_budong:     { id: 'gong_budong',     name: '不动明王',   grade: '仙级', icon: '🗿', color: '#e6a23c', desc: '被动·物抗+220',  type: 'def',  value: 220 },
   gong_xianling:   { id: 'gong_xianling',   name: '仙灵护体',   grade: '仙级', icon: '✨', color: '#e6a23c', desc: '被动·气血+4000', type: 'hp',   value: 4000 },
   // ---- 战斗技能功法 ----
-  gong_yujian:     { id: 'gong_yujian',     name: '御剑诀',     grade: '天级', icon: '⚔️', color: '#9b59b6', desc: '主动·御剑攻敌（法攻2.0倍，灵力25%，冷却3回合）', combat: { name: '御剑诀', mult: 2.0, manaPct: 0.25, cd: 3 } },
-  gong_jiumiao:    { id: 'gong_jiumiao',    name: '九霄神雷',   grade: '仙级', icon: '🌩️', color: '#e6a23c', desc: '主动·神雷天降（法攻3.0倍，灵力35%，冷却5回合）', combat: { name: '九霄神雷', mult: 3.0, manaPct: 0.35, cd: 5 } },
-  gong_wanjian:    { id: 'gong_wanjian',    name: '万剑归宗',   grade: '神级', icon: '🗡️', color: '#e0473c', desc: '主动·万剑齐发（法攻4.5倍，灵力45%，冷却8回合）', combat: { name: '万剑归宗', mult: 4.5, manaPct: 0.45, cd: 8 } },
-  gong_xingyun:    { id: 'gong_xingyun',    name: '星陨术',     grade: '神级', icon: '☄️', color: '#e0473c', desc: '主动·星辰坠落（法攻5.5倍，灵力55%，冷却10回合）', combat: { name: '星陨术', mult: 5.5, manaPct: 0.55, cd: 10 } },
-  gong_danxia_chunfeng: { id: 'gong_danxia_chunfeng', name: '春风化雨诀', grade: '天级', icon: '🌿', color: '#e6a23c', desc: '主动·回复30%气血（灵力25%，冷却4回合）', combat: { kind: 'heal', healPct: 0.30, manaPct: 0.25, cd: 4 } },
-  gong_danxia_fuhua: { id: 'gong_danxia_fuhua', name: '扶华增元诀', grade: '仙级', icon: '✨', color: '#e6a23c', desc: '主动·攻击提高70%，持续3回合（灵力30%，冷却6回合）', combat: { kind: 'buff', boost: 0.70, turns: 3, manaPct: 0.30, cd: 6 } },
-  gong_danxia_lingbi: { id: 'gong_danxia_lingbi', name: '丹霞灵壁', grade: '仙级', icon: '🛡️', color: '#e6a23c', desc: '主动·下一次受击减伤65%，并反弹敌方来袭伤害的150%（灵力25%，冷却5回合）', combat: { kind: 'guard', guard: 0.65, reflect: 1.5, manaPct: 0.25, cd: 5 } },
-  gong_tianmo_bloodsacrifice: { id: 'gong_tianmo_bloodsacrifice', name: '血煞燃元术', grade: '仙级', icon: '🩸', color: '#e0473c', desc: '主动·消耗8%气血，攻击提高100%，持续3回合（灵力20%，冷却6回合）', combat: { kind: 'blood_rage', hpPct: 0.08, boost: 1.00, turns: 3, manaPct: 0.20, cd: 6 } },
+  gong_yujian:     { id: 'gong_yujian',     name: '御剑诀',     grade: '天级', icon: '⚔️', color: '#9b59b6', sect: 'qingyun', desc: '主动·御剑攻敌（法攻2.0倍，灵力25%，冷却3回合）', combat: { name: '御剑诀', mult: 2.0, manaPct: 0.25, cd: 3 } },
+  gong_jiumiao:    { id: 'gong_jiumiao',    name: '九霄神雷',   grade: '仙级', icon: '🌩️', color: '#e6a23c', sect: 'qingyun', desc: '主动·神雷天降（法攻3.0倍，灵力35%，冷却5回合）', combat: { name: '九霄神雷', mult: 3.0, manaPct: 0.35, cd: 5 } },
+  gong_wanjian:    { id: 'gong_wanjian',    name: '万剑归宗',   grade: '神级', icon: '🗡️', color: '#e0473c', sect: 'qingyun', desc: '主动·万剑齐发（法攻4.5倍，灵力45%，冷却8回合）', combat: { name: '万剑归宗', mult: 4.5, manaPct: 0.45, cd: 8 } },
+  gong_xingyun:    { id: 'gong_xingyun',    name: '星陨术',     grade: '神级', icon: '☄️', color: '#e0473c', sect: 'qingyun', desc: '主动·星辰坠落（法攻5.5倍，灵力55%，冷却10回合）', combat: { name: '星陨术', mult: 5.5, manaPct: 0.55, cd: 10 } },
+  gong_danxia_chunfeng: { id: 'gong_danxia_chunfeng', name: '春风化雨诀', grade: '天级', icon: '🌿', color: '#e6a23c', sect: 'danxia', desc: '主动·回复30%气血（灵力25%，冷却4回合）', combat: { kind: 'heal', healPct: 0.30, manaPct: 0.25, cd: 4 } },
+  gong_danxia_fuhua: { id: 'gong_danxia_fuhua', name: '扶华增元诀', grade: '仙级', icon: '✨', color: '#e6a23c', sect: 'danxia', desc: '主动·攻击提高70%，持续3回合（灵力30%，冷却6回合）', combat: { kind: 'buff', boost: 0.70, turns: 3, manaPct: 0.30, cd: 6 } },
+  gong_danxia_lingbi: { id: 'gong_danxia_lingbi', name: '丹霞灵壁', grade: '仙级', icon: '🛡️', color: '#e6a23c', sect: 'danxia', desc: '主动·下一次受击减伤65%，并反弹敌方来袭伤害的150%（灵力25%，冷却5回合）', combat: { kind: 'guard', guard: 0.65, reflect: 1.5, manaPct: 0.25, cd: 5 } },
+  gong_tianmo_bloodsacrifice: { id: 'gong_tianmo_bloodsacrifice', name: '血煞燃元术', grade: '仙级', icon: '🩸', color: '#e0473c', sect: 'tianmo', desc: '主动·消耗8%气血，攻击提高100%，持续3回合（灵力20%，冷却6回合）', combat: { kind: 'blood_rage', hpPct: 0.08, boost: 1.00, turns: 3, manaPct: 0.20, cd: 6 } },
+  gong_tianmo_bloodflame: { id: 'gong_tianmo_bloodflame', name: '血焰焚天诀', grade: '仙级', icon: '🔥', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧15%气血，轰出血焰重击（物攻3.6倍，灵力15%，冷却5回合）', combat: { kind: 'blood_strike', hpPct: 0.15, mult: 3.6, manaPct: 0.15, cd: 5 } },
+  gong_tianmo_bloodescape: { id: 'gong_tianmo_bloodescape', name: '血遁大法', grade: '天级', icon: '💨', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血血遁逃离（95%成功；失败则爆体战败，不耗灵力）', combat: { kind: 'blood_escape', hpPct: 0.20, manaPct: 0, cd: 0 } },
+  gong_tianmo_bloodplunder: { id: 'gong_tianmo_bloodplunder', name: '燃血夺宝诀', grade: '仙级', icon: '💰', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血，本场经验、灵石、名望及掉落概率提高20%（每场一次，不耗灵力）', combat: { kind: 'reward_boost', hpPct: 0.20, rewardBoost: 0.20, onceBattle: true, manaPct: 0, cd: 0 } },
 };
 // 重复获得同一本功法时的灵石补偿
 const GONGFA_REFUND = { '黄级': 100, '玄级': 300, '地级': 800, '天级': 2000, '仙级': 5000, '神级': 12000 };
@@ -420,6 +423,9 @@ const QYU_POOL = [
   { id: 'qyu_danxia_fuhua', title: '丹火蕴元', text: '一炉丹火映照经脉，你悟得扶华增元诀。', weight: 2.5, sect: 'danxia', reward: { type: 'gongfa', id: 'gong_danxia_fuhua' } },
   { id: 'qyu_danxia_lingbi', title: '霞光护身', text: '丹霞铺开如幕，你领悟丹霞灵壁。', weight: 2.5, sect: 'danxia', reward: { type: 'gongfa', id: 'gong_danxia_lingbi' } },
   { id: 'qyu_tianmo_blood', title: '血池残卷', text: '魔教血池中浮出一卷残经，你悟得血煞燃元术。', weight: 3, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodsacrifice' } },
+  { id: 'qyu_tianmo_bloodflame', title: '血焰魔窟', text: '你在魔窟深处见血焰焚空，参悟血焰焚天诀。', weight: 2, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodflame' } },
+  { id: 'qyu_tianmo_bloodescape', title: '血影秘遁', text: '残碑上留有一道血影遁法，你悟得血遁大法。', weight: 2, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodescape' } },
+  { id: 'qyu_tianmo_bloodplunder', title: '魔君宝录', text: '一册以精血书就的魔君宝录，记载着燃血夺宝之法。', weight: 1.5, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodplunder' } },
   { id: 'qyu_lingkuang', title: '灵脉矿脉', text: '你发现一处裸露的灵脉，采得不少灵石。', weight: 14, reward: { type: 'stone', value: 500 } },
   { id: 'qyu_yaoyuan',   title: '药香引路', text: '一阵异香引你来到一株灵药前，你小心采下。', weight: 10, reward: { type: 'item', id: 'lingshou_dan', count: 2 } },
   { id: 'qyu_daoyun',    title: '天道垂青', text: '你抬头望天，忽觉天道运转自有其理，道韵顿生。', weight: 10, reward: { type: 'dao', value: 20 } },
@@ -464,9 +470,18 @@ const SECTS = {
 
 // 宗门任务：完成后获得贡献（cost 为 null 表示点击即完成；item 需交付材料；battle 需战斗）
 const SECT_TASKS = [
-  { id: 'sect_patrol', name: '巡山任务', icon: '🚶', desc: '巡视山门，驱赶宵小。', reward: 15, cost: null },
-  { id: 'sect_gather', name: '采药任务', icon: '🌿', desc: '采集灵药上交宗门。', reward: 30, cost: { item: 'yaowanggu_lingzhi', count: 1 } },
-  { id: 'sect_hunt',   name: '讨伐任务', icon: '⚔️', desc: '讨伐黑风岭妖兽。', reward: 60, cost: { battle: true } },
+  { id: 'sect_patrol', name: '巡守山门', icon: '🚶', desc: '巡视外门山道，驱赶宵小。', tier: 'outer', minRealm: 0, reward: 15, cost: null },
+  { id: 'sect_gather', name: '采集灵草', icon: '🌿', desc: '上交药王谷灵草。', tier: 'outer', minRealm: 0, reward: 30, cost: { item: 'yaowanggu_lingzhi', count: 1 } },
+  { id: 'sect_wolf', name: '清剿狼患', icon: '🐺', desc: '讨伐炼气期野狼。', tier: 'outer', minRealm: 0, reward: 25, cost: { battle: true, enemy: 'wolf' } },
+  { id: 'sect_bandit', name: '缉拿山贼', icon: '⚔️', desc: '讨伐炼气后期山贼。', tier: 'outer', minRealm: 4, reward: 40, cost: { battle: true, enemy: 'bandit' } },
+  { id: 'sect_snake', name: '蛇窟除妖', icon: '🐍', desc: '讨伐筑基期蛇妖。', tier: 'outer', minRealm: 8, reward: 55, cost: { battle: true, enemy: 'snake_demon' } },
+  { id: 'sect_monkey', name: '黑岭镇乱', icon: '🐒', desc: '讨伐筑基期石猴。', tier: 'outer', minRealm: 10, reward: 70, cost: { battle: true, enemy: 'stone_monkey' } },
+  { id: 'sect_blood', name: '血教缉凶', icon: '🩸', desc: '讨伐金丹期血教弟子。', tier: 'inner', minRealm: 14, reward: 100, cost: { battle: true, enemy: 'blood_cultist' } },
+  { id: 'sect_bifang', name: '镇压毕方', icon: '🦅', desc: '讨伐金丹期灵禽毕方。', tier: 'inner', minRealm: 14, reward: 125, cost: { battle: true, enemy: 'bifuluan' } },
+  { id: 'sect_qiongqi', name: '巡猎穷奇', icon: '🐯', desc: '讨伐元婴期凶兽穷奇。', tier: 'inner', minRealm: 18, reward: 170, cost: { battle: true, enemy: 'qiongqi' } },
+  { id: 'sect_taotie', name: '荒原诛饕餮', icon: '👹', desc: '讨伐元婴后期饕餮。', tier: 'inner', minRealm: 20, reward: 210, cost: { battle: true, enemy: 'taotie' } },
+  { id: 'sect_taowu', name: '禁地战梼杌', icon: '🦴', desc: '讨伐化神期梼杌。', tier: 'inner', minRealm: 22, reward: 280, cost: { battle: true, enemy: 'taowu' } },
+  { id: 'sect_hundun', name: '混沌镇封', icon: '🌑', desc: '讨伐化神后期混沌。', tier: 'inner', minRealm: 24, reward: 350, cost: { battle: true, enemy: 'hundun' } },
 ];
 
 // 宗门贡献商店
@@ -2263,7 +2278,7 @@ const STORY_NODES = {
       { label: '加入天魔教', action: (s) => joinSect(s, 'tianmo'), next: 'sect_home', req: (s) => !s.sect },
       { label: '宗门任务', next: 'sect_tasks', req: (s) => !!s.sect },
       { label: '贡献商店', next: 'sect_shop', req: (s) => !!s.sect },
-      { label: '离开宗门', next: 'sect_leave', req: (s) => !!s.sect },
+      { label: '转换门派 / 成为散修（1000贡献）', next: 'sect_transfer', req: (s) => !!s.sect },
       { label: '返回洞府', next: 'cave_home' },
     ],
   },
@@ -2278,6 +2293,12 @@ const STORY_NODES = {
     title: '贡献商店',
     text: '用宗门贡献兑换珍稀资源。',
     sectShop: true,
+  },
+
+  sect_transfer: {
+    title: '转换门派',
+    text: '消耗 1000 宗门贡献可改投其他宗门，或脱离宗门成为散修。旧宗门绝学将保留但被封禁，改投后将获得新宗门绝学。',
+    sectTransfer: true,
   },
 
   sect_leave: {

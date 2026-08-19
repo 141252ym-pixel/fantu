@@ -1,39 +1,41 @@
-// 凡途修仙 Service Worker（缓存静态资源，支持离线 + 秒开）
-const CACHE_NAME = 'fantu-v1';
+// 凡途修仙 Service Worker：联网时始终优先获取最新版，离线时才回退缓存。
+// 每次发布递增此版本，activate 会清理所有旧版资源缓存。
+const CACHE_NAME = 'fantu-v9';
 
-self.addEventListener('install', (e) => {
-  self.skipWaiting();
+self.addEventListener('install', () => {});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('fantu-') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
+async function cacheNetworkResponse(request, response) {
+  if (!response || !response.ok || request.method !== 'GET') return response;
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response.clone());
+  return response;
+}
 
-  // 页面导航走「网络优先」，确保玩家拿到最新版本号（?v=N 更新时不会卡旧缓存）
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).catch(() => caches.match('./index.html')));
-    return;
-  }
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
 
-  // 静态资源「缓存优先」+ 运行时回填
-  e.respondWith(
-    caches.match(req).then(cached => {
+  // 网络优先：刷新时一定尝试拉取新文件；断网才使用最近一次的缓存。
+  event.respondWith((async () => {
+    try {
+      return await cacheNetworkResponse(request, await fetch(request));
+    } catch (_) {
+      const cached = await caches.match(request, { ignoreSearch: request.mode === 'navigate' });
       if (cached) return cached;
-      return fetch(req).then(resp => {
-        if (resp && resp.status === 200 && req.method === 'GET') {
-          const copy = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, copy));
-        }
-        return resp;
-      });
-    })
-  );
+      if (request.mode === 'navigate') return caches.match('./index.html', { ignoreSearch: true });
+      return Response.error();
+    }
+  })());
 });

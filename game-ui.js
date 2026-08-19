@@ -184,6 +184,12 @@ const UI = {
       return;
     }
 
+    // 如果是转换门派
+    if (node.sectTransfer) {
+      this.renderSectTransfer();
+      return;
+    }
+
     // 如果是竞技斗法挑战
     if (node.arena) {
       this.startArenaBattle(node);
@@ -325,7 +331,12 @@ const UI = {
     info.className = 'gacha-pity';
     info.textContent = `当前贡献：${s.contribution || 0} 点`;
     el.appendChild(info);
-    SECT_TASKS.forEach(task => {
+    ['outer', 'inner'].forEach(tier => {
+      const title = document.createElement('div');
+      title.className = 'pane-title';
+      title.textContent = tier === 'outer' ? '外门任务' : '内门任务';
+      el.appendChild(title);
+      SECT_TASKS.filter(task => task.tier === tier).forEach(task => {
       const btn = document.createElement('button');
       btn.className = 'ink-btn';
       let costDesc = '';
@@ -333,12 +344,17 @@ const UI = {
         const it = ITEMS[task.cost.item];
         costDesc = `（需 ${it ? it.name : task.cost.item} ×${task.cost.count || 1}）`;
       }
-      if (task.cost && task.cost.battle) costDesc = '（需讨伐妖兽）';
-      btn.textContent = `${task.icon} ${task.name} · 贡献+${task.reward}${costDesc}`;
+      if (task.cost && task.cost.battle) costDesc = `（讨伐${ENEMIES[task.cost.enemy].name}）`;
+      const locked = getRealmIndex(s) < (task.minRealm || 0);
+      btn.textContent = `${task.icon} ${task.name} · 贡献+${task.reward}${costDesc}${locked ? `（需${getRealm(task.minRealm).name}）` : ''}`;
+      if (locked) {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+      }
       btn.addEventListener('click', () => {
         playClickSound();
         if (task.cost && task.cost.battle) {
-          startSectHunt();
+          startSectHunt(task.id);
         } else {
           const r = doSectTask(s, task.id);
           UI.showToast(r.msg);
@@ -347,6 +363,7 @@ const UI = {
         }
       });
       el.appendChild(btn);
+      });
     });
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
@@ -603,7 +620,7 @@ const UI = {
         <div style="color:${pet.qc};font-weight:bold;font-size:17px">出战中：${pet.name} <span style="color:#ccc;font-size:13px">· ${pet.quality}</span></div>
         <div style="color:#aaa;font-size:12px">等级 ${lv} · ${stage}阶 · ${pet.desc}</div>
         <div style="color:#ddd;font-size:12px;margin-top:4px">物攻+${getPetStatBonus(s, equipped, 'atk')} 法攻+${getPetStatBonus(s, equipped, 'matk')} 物抗+${getPetStatBonus(s, equipped, 'def')} 法抗+${getPetStatBonus(s, equipped, 'mdef')} 穿透+${getPetStatBonus(s, equipped, 'pen')}</div>
-        <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：${Math.round(getPetSkillChance(equipped) * 100)}% 概率追加伤害（每10级进阶强化）</div>
+        <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：${Math.round(getPetSkillChance(equipped) * 100)}% 概率追加伤害（单次不超过主人本次伤害50%，每10级进阶强化）</div>
         ${trait ? `<div style="color:#ffad66;font-size:12px;margin-top:4px">神品天赋【${trait.name}】：${trait.desc}（仅进阶强化）</div>` : ''}
       `;
     } else {
@@ -752,7 +769,7 @@ const UI = {
           <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）</div>
           <div class="pet-desc">${pet.desc}</div>
           <div class="pet-stats">固定值 + 主人属性百分比<br>物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')}<br>物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
-          <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害</div>
+          <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害（单次不超过主人本次伤害50%）</div>
           ${trait ? `<div class="pet-trait">神品天赋【${trait.name}】：${trait.desc}（仅随进阶强化）</div>` : ''}
         </div>
         <div class="save-actions">
@@ -775,6 +792,47 @@ const UI = {
 
   releasePetFromPanel(id) {
     if (releasePet(id)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  renderSectTransfer() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    info.textContent = `当前贡献：${s.contribution || 0} 点 · 转换门派需 ${SECT_TRANSFER_COST} 点`;
+    el.appendChild(info);
+    for (const sectId of Object.keys(SECTS)) {
+      if (sectId === s.sect) continue;
+      const sect = SECTS[sectId];
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      btn.textContent = `转入 ${sect.icon} ${sect.name}（${SECT_TRANSFER_COST}贡献）`;
+      btn.addEventListener('click', () => {
+        if (!confirm(`确定消耗${SECT_TRANSFER_COST}贡献转入${sect.name}？旧门派绝学将被封禁。`)) return;
+        playClickSound();
+        const result = changeSect(s, sectId);
+        this.showToast(result.msg);
+        if (result.ok) goToNode('sect_home');
+      });
+      el.appendChild(btn);
+    }
+    const rogueBtn = document.createElement('button');
+    rogueBtn.className = 'ink-btn danger';
+    rogueBtn.textContent = `叛出宗门，成为散修（${SECT_TRANSFER_COST}贡献）`;
+    rogueBtn.addEventListener('click', () => {
+      if (!confirm(`确定消耗${SECT_TRANSFER_COST}贡献成为散修？所有门派绝学都会被封禁。`)) return;
+      playClickSound();
+      const result = changeSect(s, null);
+      this.showToast(result.msg);
+      if (result.ok) goToNode('sect_home');
+    });
+    el.appendChild(rogueBtn);
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('sect_home'));
+    el.appendChild(backBtn);
   },
 
   togglePetAutoRelease(quality, enabled) {
@@ -1041,14 +1099,17 @@ const UI = {
       // 功法技能按钮：已学的战斗功法才显示
       for (const gid of (s.gongfa || [])) {
         const g = GONGFA[gid];
-        if (!g || !g.combat) continue;
+        if (!g || !g.combat || !isGongfaUsable(s, g)) continue;
         const cdKey = 'gong_' + gid;
         const cd = (Game.battle.specialCd && Game.battle.specialCd[cdKey]) || 0;
+        const onceUsed = !!g.combat.onceBattle && !!Game.battle.rewardBoostUsed;
+        const disabled = cd > 0 || onceUsed;
         const btn = document.createElement('button');
-        btn.className = cd > 0 ? 'ink-btn disabled' : 'ink-btn';
-        btn.disabled = cd > 0;
-        const manaCost = getManaCost(s, g.combat.manaPct || 0.25);
-        btn.textContent = cd > 0 ? `${g.icon} ${g.name}（冷却${cd}回合）` : `${g.icon} ${g.name}（${manaCost}灵力）`;
+        btn.className = disabled ? 'ink-btn disabled' : 'ink-btn';
+        btn.disabled = disabled;
+        const manaPct = g.combat.manaPct ?? 0.25;
+        const manaCost = manaPct > 0 ? getManaCost(s, manaPct) : 0;
+        btn.textContent = cd > 0 ? `${g.icon} ${g.name}（冷却${cd}回合）` : onceUsed ? `${g.icon} ${g.name}（本场已用）` : `${g.icon} ${g.name}（${manaCost > 0 ? `${manaCost}灵力` : '无需灵力'}）`;
         btn.addEventListener('click', () => {
           playClickSound();
           playerCastGongfa(gid);
@@ -1574,7 +1635,8 @@ UI.renderStatDetail = function() {
     for (const gid of gongfaList) {
       const g = GONGFA[gid];
       if (!g) continue;
-      gongfaHtml += `<div class="gongfa-item" style="border-left:3px solid ${g.color}"><span style="font-weight:600">${g.icon} ${g.name}</span> <span style="color:#7a6a4a;font-size:11px">${g.grade}</span><div style="color:#5c3a1a;font-size:11px;margin-top:2px">${g.desc}</div></div>`;
+      const sealed = !isGongfaUsable(s, g);
+      gongfaHtml += `<div class="gongfa-item" style="border-left:3px solid ${sealed ? '#888' : g.color};${sealed ? 'opacity:.55' : ''}"><span style="font-weight:600">${g.icon} ${g.name}</span> <span style="color:#7a6a4a;font-size:11px">${g.grade}${sealed ? ' · 已封禁' : ''}</span><div style="color:#5c3a1a;font-size:11px;margin-top:2px">${g.desc}${sealed ? '（需重返所属宗门方可使用）' : ''}</div></div>`;
     }
   } else {
     gongfaHtml = '<div class="pane-title" style="margin-top:14px">已学功法</div><div style="color:#7a6a4a;font-size:12px">尚未习得功法。云游寻缘或外出探索，或有奇遇。</div>';

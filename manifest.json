@@ -3,7 +3,7 @@
   "short_name": "凡途修仙",
   "description": "凡途问道 · 一念成仙 — 文字修仙游戏",
   "lang": "zh-CN",
-  "start_url": "./index.html",
+  "start_url": "./index.html?v=9",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

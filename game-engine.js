@@ -580,7 +580,10 @@ function migratePets(s) {
     used.add(uid);
     const level = Math.max(1, p.level || 1);
     // 旧档若已有独立技能等级，完整保留；没有时按已有等级补齐进阶对应的技能等级。
-    return { ...p, uid, level, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0) };
+    const entry = { ...p, uid, level, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0) };
+    // 老玩家福利：历史神品灵宠补发一次随机神品天赋；已有天赋绝不改动。
+    if (PETS[entry.id].quality === '神品' && !getPetTrait(entry)) entry.trait = rollDivineTrait(entry.id);
+    return entry;
   });
   if (typeof oldEquipped === 'string' && s.pets.some(p => p.uid === oldEquipped)) s.pet = oldEquipped;
   else {
@@ -689,6 +692,32 @@ function joinSect(s, sectId) {
   autoSave();
 }
 
+const SECT_TRANSFER_COST = 1000;
+
+function changeSect(s, sectId) {
+  if (sectId && !SECTS[sectId]) return { ok: false, msg: '目标宗门不存在' };
+  if (!s.sect) return { ok: false, msg: '当前已是散修，请直接加入宗门' };
+  if (s.sect === sectId) return { ok: false, msg: '你已在该宗门' };
+  if ((s.contribution || 0) < SECT_TRANSFER_COST) return { ok: false, msg: `贡献不足，转换门派需要 ${SECT_TRANSFER_COST} 贡献` };
+  s.contribution -= SECT_TRANSFER_COST;
+  s.sect = sectId || null;
+  const learned = [];
+  if (sectId) {
+    for (const id of Object.keys(GONGFA)) {
+      const g = GONGFA[id];
+      if (g.sect === sectId && !s.gongfa.includes(id)) {
+        s.gongfa.push(id);
+        learned.push(g.name);
+      }
+    }
+  }
+  realignRealm(s);
+  updateStatsFromRealm(s);
+  autoSave();
+  const target = sectId ? SECTS[sectId].name : '散修';
+  return { ok: true, msg: `已转入${target}。旧门派绝学已封禁${learned.length ? `，习得：${learned.map(name => `【${name}】`).join('、')}` : ''}` };
+}
+
 // 宗门被动加成
 function getSectBonus(s, prefix) {
   const sect = getSectInfo(s);
@@ -701,6 +730,7 @@ function doSectTask(s, taskId) {
   const task = SECT_TASKS.find(t => t.id === taskId);
   if (!task) return { ok: false, msg: '未知任务' };
   if (!s.sect) return { ok: false, msg: '尚未加入宗门' };
+  if (getRealmIndex(s) < (task.minRealm || 0)) return { ok: false, msg: `修为不足，需达到${getRealm(task.minRealm).name}` };
   if (task.cost && task.cost.item) {
     const need = task.cost.count || 1;
     if (!hasItem(task.cost.item, need)) {
@@ -732,10 +762,16 @@ function buySectItem(s, shopId) {
 }
 
 // 宗门讨伐任务：进入一场战斗，胜利后获得贡献
-function startSectHunt() {
+function startSectHunt(taskId) {
   const s = Game.state;
   if (!s.sect) return;
-  const enemyId = ['stone_monkey', 'blood_cultist'][Math.floor(Math.random() * 2)];
+  const task = SECT_TASKS.find(t => t.id === taskId && t.cost && t.cost.battle);
+  if (!task) return;
+  if (getRealmIndex(s) < (task.minRealm || 0)) {
+    UI.showToast(`修为不足，需达到${getRealm(task.minRealm).name}`);
+    return;
+  }
+  const enemyId = task.cost.enemy;
   const enemyData = ENEMIES[enemyId];
   if (!enemyData) return;
   const orig = { atk: s.atk, def: s.def, matk: s.matk, mdef: s.mdef, pen: s.pen };
@@ -746,9 +782,10 @@ function startSectHunt() {
   s.pen = getTotalPen(s);
   const winCb = () => {
     s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
-    s.contribution = (s.contribution || 0) + 60;
+    s.contribution = (s.contribution || 0) + task.reward;
     if (s.contribution >= 300) grantAchievement('sect_contrib');
     checkAchievements();
+    autoSave();
   };
   const loseCb = () => {
     s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
@@ -1073,15 +1110,16 @@ function releasePet(petId) {
 }
 
 // 灵宠战斗助攻：有概率触发技能造成额外伤害
-function petAssist() {
+function petAssist(ownerDamage) {
   const s = Game.state;
   const entry = getEquippedPet(s);
-  if (!entry) return;
+  if (!entry || !ownerDamage || ownerDamage <= 0) return;
   const pet = PETS[entry.id];
   if (!pet || Game.battle.ended) return;
   if (Math.random() < getPetSkillChance(entry)) {
     const e = Game.battle.enemy;
-    const dmg = Math.max(1, Math.floor(s.atk * getPetSkillMult(entry)) + (entry.level || 1) * 4 - getEnemyDefense(e, false) + (s.pen || 0));
+    const rawDamage = Math.max(1, Math.floor(s.atk * getPetSkillMult(entry)) + (entry.level || 1) * 4 - getEnemyDefense(e, false) + (s.pen || 0));
+    const dmg = Math.min(rawDamage, Math.max(1, Math.floor(ownerDamage * 0.5)));
     e.hp -= dmg;
     logBattle(`【${pet.name}】吐出${pet.skill}，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
     checkBattleEnd();
@@ -1143,9 +1181,13 @@ function getGongfaBonus(s, prefix) {
   if (!Array.isArray(list)) return 0;
   for (const id of list) {
     const g = GONGFA[id];
-    if (g && g.type === prefix) total += g.value;
+    if (g && g.type === prefix && isGongfaUsable(s, g)) total += g.value;
   }
   return total;
+}
+
+function isGongfaUsable(s, gongfa) {
+  return !!gongfa && (!gongfa.sect || s.sect === gongfa.sect);
 }
 
 // 学习功法：加入已学列表；重复获得则转灵石补偿
@@ -1171,6 +1213,11 @@ function playerCastGongfa(id) {
   const g = GONGFA[id];
   if (!g || !g.combat) return;
   const s = Game.state;
+  if (!isGongfaUsable(s, g)) {
+    logBattle(`【${g.name}】已被宗门禁制封禁，当前无法施展。`, 'sys');
+    UI.updateBattle();
+    return;
+  }
   const e = Game.battle.enemy;
   const cdKey = 'gong_' + id;
   const cd = (Game.battle.specialCd && Game.battle.specialCd[cdKey]) || 0;
@@ -1179,16 +1226,85 @@ function playerCastGongfa(id) {
     UI.updateBattle();
     return;
   }
-  const manaCost = getManaCost(s, g.combat.manaPct || 0.25);
-  if (s.mp < manaCost) {
+  const manaPct = g.combat.manaPct ?? 0.25;
+  const manaCost = manaPct > 0 ? getManaCost(s, manaPct) : 0;
+  if (manaCost > 0 && s.mp < manaCost) {
     logBattle(`灵力不足，施展【${g.name}】需 ${manaCost} 点灵力。`, 'sys');
     UI.updateBattle();
     return;
   }
   const combat = g.combat;
+  let dealtDamage = 0;
   s.mp -= manaCost;
   Game.battle.specialCd = Game.battle.specialCd || {};
   Game.battle.specialCd[cdKey] = combat.cd;
+  if (combat.kind === 'blood_escape') {
+    const e = Game.battle.enemy;
+    if (e.id === 'demon_lord' || e.untouchable) {
+      delete Game.battle.specialCd[cdKey];
+      logBattle('这是你无法逃脱的宿命。', 'sys');
+      UI.updateBattle();
+      return;
+    }
+    if (e.id === 'dao_competitor' || e.id === 'dao_elder') {
+      delete Game.battle.specialCd[cdKey];
+      logBattle('打个表演跑啥跑。', 'sys');
+      UI.updateBattle();
+      return;
+    }
+    const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
+    if (s.hp <= hpCost) {
+      delete Game.battle.specialCd[cdKey];
+      logBattle(`气血不足，无法施展【${g.name}】。`, 'sys');
+      UI.updateBattle();
+      return;
+    }
+    s.hp -= hpCost;
+    if (Math.random() < 0.95) {
+      logBattle(`【${g.name}】燃去 ${hpCost} 点气血，化作血光远遁而去（血遁成功）。`, 'player');
+      Game.battle.ended = true;
+      s.stats.battleLoss++;
+      s.stats.winStreak = 0;
+      setTimeout(() => {
+        Game.battle.loseCallback && Game.battle.loseCallback();
+        UI.battleEnd(false, Game.battle.loseNext || Game.state.nodeId);
+      }, 1000);
+    } else {
+      s.hp = 0;
+      Game.battle.ended = true;
+      s.stats.battleLoss++;
+      s.stats.winStreak = 0;
+      logBattle('血遁失败，你炸成了一团血雾，然后挑战失败。', 'sys');
+      playLoseSound();
+      setTimeout(() => {
+        Game.battle.loseCallback && Game.battle.loseCallback();
+        UI.battleEnd(false, Game.battle.loseNext || Game.state.nodeId);
+      }, 1500);
+    }
+    UI.updateBattle();
+    return;
+  }
+  if (combat.kind === 'reward_boost') {
+    const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
+    if (Game.battle.rewardBoostUsed) {
+      delete Game.battle.specialCd[cdKey];
+      logBattle(`【${g.name}】本场已施展过。`, 'sys');
+      UI.updateBattle();
+      return;
+    }
+    if (s.hp <= hpCost) {
+      delete Game.battle.specialCd[cdKey];
+      logBattle(`气血不足，无法施展【${g.name}】。`, 'sys');
+      UI.updateBattle();
+      return;
+    }
+    s.hp -= hpCost;
+    Game.battle.rewardBoostUsed = true;
+    Game.battle.rewardBoost = combat.rewardBoost || 0.20;
+    logBattle(`【${g.name}】燃去 ${hpCost} 点气血！本场经验、灵石、名望与掉落概率提高 ${Math.round(Game.battle.rewardBoost * 100)}%。`, 'player');
+    enemyTurn();
+    return;
+  }
   if (combat.kind === 'heal') {
     const heal = Math.max(1, Math.floor(s.maxHp * combat.healPct));
     s.hp = Math.min(s.maxHp, s.hp + heal);
@@ -1213,14 +1329,29 @@ function playerCastGongfa(id) {
     Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
     Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns);
     logBattle(`【${g.name}】燃去 ${hpCost} 点气血，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
+  } else if (combat.kind === 'blood_strike') {
+    const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
+    if (s.hp <= hpCost) {
+      s.mp += manaCost;
+      delete Game.battle.specialCd[cdKey];
+      logBattle(`气血不足，无法施展【${g.name}】。`, 'sys');
+      UI.updateBattle();
+      return;
+    }
+    s.hp -= hpCost;
+    const dmg = Math.max(1, Math.floor(s.atk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, false) + (s.pen || 0));
+    dealtDamage = dmg;
+    e.hp -= dmg;
+    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，血焰贯穿 ${e.name}，造成 ${dmg} 点伤害！`, 'player');
   } else {
     const dmg = Math.max(1, Math.floor(s.matk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, true) + (s.pen || 0));
+    dealtDamage = dmg;
     e.hp -= dmg;
     logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
     logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
   }
   checkBattleEnd();
-  if (!Game.battle.ended) petAssist();
+  if (!Game.battle.ended) petAssist(dealtDamage);
   if (!Game.battle.ended) enemyTurn();
 }
 
@@ -1750,16 +1881,17 @@ function applyPetIncomingDamage(s, dmg) {
   return dmg;
 }
 
-function petFollowUpOnPlayerAttack() {
+function petFollowUpOnPlayerAttack(ownerDamage) {
   const s = Game.state;
   const entry = getEquippedPet(s);
   const trait = getPetTrait(entry);
-  if (!entry || !trait || trait.id !== 'follow' || Game.battle.ended) return;
+  if (!entry || !trait || trait.id !== 'follow' || !ownerDamage || ownerDamage <= 0 || Game.battle.ended) return;
   const stage = getPetStage(entry);
   if (Math.random() >= Math.min(0.65, 0.20 + stage * 0.06)) return;
   const e = Game.battle.enemy;
-  const dmg = Math.max(1, Math.floor(s.atk * (0.45 + stage * 0.10)) - getEnemyDefense(e, false) + (s.pen || 0));
-  dmg = Math.max(1, Math.floor(dmg * (1 - getPlayerWeakenRate())));
+  const rawDamage = Math.max(1, Math.floor(s.atk * (0.45 + stage * 0.10)) - getEnemyDefense(e, false) + (s.pen || 0));
+  const weakenedDamage = Math.max(1, Math.floor(rawDamage * (1 - getPlayerWeakenRate())));
+  const dmg = Math.min(weakenedDamage, Math.max(1, Math.floor(ownerDamage * 0.5)));
   e.hp -= dmg;
   logBattle(`【${PETS[entry.id].name}·${trait.name}】随主人攻势追击，造成 ${dmg} 点伤害！`, 'player');
   checkBattleEnd();
@@ -1944,8 +2076,8 @@ function playerAttack() {
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
   checkBattleEnd();
-  if (!Game.battle.ended) petFollowUpOnPlayerAttack();
-  if (!Game.battle.ended) petAssist();
+  if (!Game.battle.ended) petFollowUpOnPlayerAttack(dmg);
+  if (!Game.battle.ended) petAssist(dmg);
   if (!Game.battle.ended) enemyTurn();
 }
 
@@ -2009,7 +2141,7 @@ function playerSkill() {
   logBattle(lg.skillText, 'player');
   logBattle(`【${lg.skill}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害。${extraText ? ' ' + extraText + '。' : ''}`, 'player');
   checkBattleEnd();
-  if (!Game.battle.ended) petAssist();
+  if (!Game.battle.ended) petAssist(dmg);
   if (!Game.battle.ended) enemyTurn();
 }
 
@@ -2292,6 +2424,7 @@ function grantBattleXp(s, enemyId, baseXp) {
 function checkBattleEnd() {
   const s = Game.state;
   const e = Game.battle.enemy;
+  const rewardMultiplier = 1 + (Game.battle.rewardBoost || 0);
 
   if (s.hp <= 0) {
     s.hp = 0;
@@ -2314,11 +2447,13 @@ function checkBattleEnd() {
     s.stats.winStreak++;
     s.stats.enemiesKilled++;
     incDailyTask('battle');
-    addXp(s, e.xp);
-    const stoneGain = e.stoneMin + Math.floor(Math.random() * (e.stoneMax - e.stoneMin + 1));
+    const xpGain = Math.floor(e.xp * rewardMultiplier);
+    addXp(s, xpGain);
+    const stoneBase = e.stoneMin + Math.floor(Math.random() * (e.stoneMax - e.stoneMin + 1));
+    const stoneGain = Math.floor(stoneBase * rewardMultiplier);
     s.stone += stoneGain;
-    if (e.fame) s.fame += e.fame;
-    logBattle(`你硬生生扛过了 ${Game.battle.turns} 重天雷，劫云随之散去！获得 ${e.xp} 修为、${stoneGain} 灵石。`, 'sys');
+    if (e.fame) s.fame += Math.floor(e.fame * rewardMultiplier);
+    logBattle(`你硬生生扛过了 ${Game.battle.turns} 重天雷，劫云随之散去！获得 ${xpGain} 修为、${stoneGain} 灵石。`, 'sys');
     playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();
@@ -2336,23 +2471,26 @@ function checkBattleEnd() {
     s.stats.enemiesKilled++;
     incDailyTask('battle');
     // 奖励（重复击杀同一敌人，经验递减）
-    const xpGain = grantBattleXp(s, e.id, e.xp);
+    const xpGain = Math.floor(grantBattleXp(s, e.id, e.xp) * rewardMultiplier);
     addXp(s, xpGain);
-    const stoneGain = e.stoneMin + Math.floor(Math.random() * (e.stoneMax - e.stoneMin + 1));
+    const stoneBase = e.stoneMin + Math.floor(Math.random() * (e.stoneMax - e.stoneMin + 1));
+    const stoneGain = Math.floor(stoneBase * rewardMultiplier);
     s.stone += stoneGain;
-    if (e.fame) s.fame += e.fame;
+    const fameGain = e.fame ? Math.floor(e.fame * rewardMultiplier) : 0;
+    if (fameGain) s.fame += fameGain;
     // 掉落
     let dropText = '';
     if (e.drops && e.drops.length) {
       e.drops.forEach(d => {
-        if (Math.random() < d.chance) {
+        if (Math.random() < Math.min(1, d.chance * rewardMultiplier)) {
           grantItem(s, d.id, 1);
           const item = ITEMS[d.id];
           if (item) dropText += `${item.name} `;
         }
       });
     }
-    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石。${dropText ? '掉落：' + dropText : ''}`, 'sys');
+    const rewardBoostText = Game.battle.rewardBoost ? ` 燃血夺宝生效：奖励提高${Math.round(Game.battle.rewardBoost * 100)}%。` : '';
+    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${rewardBoostText}`, 'sys');
     playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();
