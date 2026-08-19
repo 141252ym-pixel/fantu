@@ -20,6 +20,7 @@ const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
 const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
 const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
 const BOSS_DMG_MULT = 1.3;    // Boss 普通攻击伤害倍率（整体加强 Boss 伤害）
+const BOSS_HP_MULT = 1.3;     // Boss 血量倍率（整体加厚 Boss 血量）
 
 // 论道台同门名册：避免切磋时总是遇到同一两个固定对手。
 const DAO_PEER_NAMES = [
@@ -2268,6 +2269,11 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   }
   scaleEnemyForRealm(enemy, Game.state);
   scaleBossForPlayer(enemy, Game.state);
+  // Boss 血量整体加厚（天劫除外，天劫按固定百分比伤害结算）
+  if (enemy.boss && !enemy.untouchable) {
+    enemy.maxHp = Math.floor(enemy.maxHp * BOSS_HP_MULT);
+    enemy.hp = enemy.maxHp;
+  }
   // 普通怪(非 Boss)最低血量:对齐玩家总攻击,保证至少扛 5 刀,避免后期一招秒
   if (!enemy.boss && !enemy.untouchable) {
     const minHp = Math.floor(Game.state.atk * 5);
