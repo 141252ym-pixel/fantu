@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v33',
+    date: '2026-08-20',
+    title: '囤囤鼠成就 · 妙手神偷称号',
+    items: [
+      '囤囤鼠偷到Boss私藏神装时，解锁成就「鼠鼠立大功」并获得称号「妙手神偷」',
+      '称号展示于顶栏道号旁与修为面板，彰显你的神偷之名',
+    ],
+  },
+  {
     version: 'v32',
     date: '2026-08-20',
     title: '新神品灵宠 · 囤囤鼠',
@@ -416,6 +425,7 @@ const ACHIEVEMENTS = [
   { id: 'arena_tier',   name: '斗法扬名',   desc: '斗法段位达到金丹斗尊',       icon: '🏆' },
   { id: 'xinmo_win',    name: '斩却心魔',   desc: '首次斩灭心魔化身',           icon: '🖤' },
   { id: 'xinjing_100',  name: '心如止水',   desc: '心境达到 100',               icon: '🧘' },
+  { id: 'tuntun_theft', name: '鼠鼠立大功', desc: '囤囤鼠偷走Boss的私藏神装',   icon: '🐹', title: '妙手神偷' },
 ];
 
 // ========== 合成配方 ==========

@@ -1699,7 +1699,7 @@ const UI = {
     const s = Game.state;
     const realm = getRealmInfo();
 
-    this.els.topName.textContent = s.name;
+    this.els.topName.textContent = s.title ? `${s.name}「${s.title}」` : s.name;
     this.els.topRealm.textContent = realm.name;
 
     const hpPct = (s.hp / s.maxHp) * 100;
@@ -1965,13 +1965,14 @@ const UI = {
     this.els.achievementList.innerHTML = '';
     ACHIEVEMENTS.forEach(ach => {
       const done = s.achievements && s.achievements.includes(ach.id);
+      const titleSuffix = ach.title ? ` · 称号「${ach.title}」` : '';
       const div = document.createElement('div');
       div.className = 'ach-item' + (done ? ' done' : ' locked');
       div.innerHTML = `
         <div class="ach-icon">${ach.icon}</div>
         <div class="ach-info">
           <div class="ach-name">${ach.name}</div>
-          <div class="ach-desc">${ach.desc}</div>
+          <div class="ach-desc">${ach.desc}${titleSuffix}</div>
         </div>
       `;
       this.els.achievementList.appendChild(div);
@@ -2163,7 +2164,7 @@ UI.renderStatDetail = function() {
   const identity = sect ? `${sect.icon} ${sect.name}弟子` : '云游散修';
 
   this.els.statDetail.innerHTML = `
-    <div class="stat-intro"><div class="stat-intro-name">${s.name || '无名'}</div><div class="stat-intro-desc">${identity} · ${realm.name}修士</div></div>
+    <div class="stat-intro"><div class="stat-intro-name">${s.name || '无名'}${s.title ? `<span class="stat-title">「${s.title}」</span>` : ''}</div><div class="stat-intro-desc">${identity} · ${realm.name}修士</div></div>
     <div class="stat-line"><span class="label">境界</span><span class="value">${realm.name}</span></div>
     <div class="stat-line"><span class="label">修为</span><span class="value">${xp.cur}/${xp.max}</span></div>
     <div class="stat-line"><span class="label">气血</span><span class="value">${Math.floor(s.hp)}/${s.maxHp}</span></div>

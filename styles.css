@@ -691,6 +691,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 修为详情 */
 .stat-intro { margin: 4px 0 10px; padding: 9px 10px; border-left: 3px solid #c9a962; background: rgba(201, 169, 98, 0.10); }
 .stat-intro-name { color: #2d2a24; font-size: 17px; font-weight: 700; }
+.stat-intro-name .stat-title { margin-left: 6px; color: #d4a017; font-size: 13px; font-weight: 600; }
 .stat-intro-desc { margin-top: 3px; color: #7a6a4a; font-size: 12px; }
 .stat-detail .stat-line {
   display: flex;

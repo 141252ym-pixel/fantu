@@ -128,6 +128,8 @@ function newGame() {
     equipment: { weapon: null, armor: null, artifact: null, shoes: null },
     equipLevel: {},
     achievements: [],
+    titles: [],
+    title: null,
     stats: {
       battleWin: 0,
       battleLoss: 0,
@@ -180,13 +182,15 @@ function getReincarnationBonus(s) {
 
 // 死亡转世重修：保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）
 function reincarnate(s) {
-  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements };
+  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements, titles: s.titles, title: s.title };
   const reincarnation = (s.reincarnation || 0) + 1;
   newGame();
   const ns = Game.state;
   ns.name = keep.name;
   ns.gongfa = keep.gongfa;
   ns.achievements = keep.achievements;
+  ns.titles = keep.titles;
+  ns.title = keep.title;
   ns.reincarnation = reincarnation;
   realignRealm(ns); // 用炼气一层 + 转世加成重算属性
   goToNode('start');
@@ -1026,6 +1030,7 @@ function tuntunshuSteal(s, e, stoneGain) {
       const d = TUNTUNSHU_BOSS_LOOT[Math.floor(Math.random() * TUNTUNSHU_BOSS_LOOT.length)];
       grantItem(s, d, 1);
       parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d].name}！！`);
+      grantAchievement('tuntun_theft');
     }
   }
   return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
@@ -2056,6 +2061,15 @@ function grantAchievement(id) {
   const ach = ACHIEVEMENTS.find(a => a.id === id);
   if (ach) {
     UI.showToast(`成就达成：${ach.name}`);
+    // 成就附带称号：解锁并自动佩戴（首个称号）
+    if (ach.title) {
+      if (!s.titles) s.titles = [];
+      if (!s.titles.includes(ach.title)) {
+        s.titles.push(ach.title);
+        if (!s.title) s.title = ach.title;
+        UI.showToast(`获得称号「${ach.title}」`);
+      }
+    }
   }
   autoSave();
 }
