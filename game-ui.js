@@ -47,6 +47,8 @@ const UI = {
       gachaDesc: document.getElementById('gacha-desc'),
       gachaTenOverlay: document.getElementById('gacha-ten-overlay'),
       gachaTenList: document.getElementById('gacha-ten-list'),
+      gachaHundredOverlay: document.getElementById('gacha-hundred-overlay'),
+      gachaHundredList: document.getElementById('gacha-hundred-list'),
       loginOverlay: document.getElementById('login-overlay'),
       loginName: document.getElementById('login-name'),
       loginContinue: document.getElementById('login-continue'),
@@ -1105,6 +1107,17 @@ const UI = {
     });
     el.appendChild(tenBtn);
 
+    // 百连（八折）
+    const hundredBtn = document.createElement('button');
+    hundredBtn.className = 'ink-btn';
+    hundredBtn.textContent = `百连抽（${Math.floor(GACHA_COST * 100 * 0.8)}灵石·八折）`;
+    hundredBtn.addEventListener('click', () => {
+      playClickSound();
+      const rs = gachaDrawHundred();
+      if (rs) { this.showGachaHundred(rs); this.renderGacha(); }
+    });
+    el.appendChild(hundredBtn);
+
     // 图鉴
     const codexBtn = document.createElement('button');
     codexBtn.className = 'ink-btn';
@@ -1149,6 +1162,41 @@ const UI = {
 
   closeGachaTen() {
     this.els.gachaTenOverlay.classList.add('hidden');
+  },
+
+  showGachaHundred(results) {
+    const list = this.els.gachaHundredList;
+    list.innerHTML = '';
+    // 稀有度统计（按池子顺序展示）
+    const rareCount = {};
+    results.forEach(r => { rareCount[r.rarity] = (rareCount[r.rarity] || 0) + 1; });
+    const summary = document.createElement('div');
+    summary.className = 'gacha-hundred-summary';
+    summary.innerHTML = GACHA_POOL.map(t => {
+      const n = rareCount[t.rarity] || 0;
+      return n > 0 ? `<span style="color:${t.color}">${t.rarity}×${n}</span>` : '';
+    }).filter(Boolean).join(' ');
+    list.appendChild(summary);
+    // 同 id 物品合并数量，按稀有度升序（高稀有度在前）
+    const rareOrder = GACHA_POOL.map(t => t.rarity);
+    const agg = {};
+    results.forEach(r => {
+      const key = r.item.id;
+      if (!agg[key]) agg[key] = { item: r.item, count: 0, color: r.color, rarity: r.rarity };
+      agg[key].count += r.count;
+    });
+    Object.values(agg).sort((a, b) => rareOrder.indexOf(a.rarity) - rareOrder.indexOf(b.rarity)).forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'gacha-ten-item';
+      div.style.color = e.color;
+      div.textContent = `${e.item.icon}${e.item.name} ×${e.count}`;
+      list.appendChild(div);
+    });
+    this.els.gachaHundredOverlay.classList.remove('hidden');
+  },
+
+  closeGachaHundred() {
+    this.els.gachaHundredOverlay.classList.add('hidden');
   },
 
   // ========== 战斗 ==========

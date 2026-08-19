@@ -607,6 +607,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   text-align: center;
   font-weight: 600;
 }
+.gacha-hundred-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed #5c4a2d;
+}
 
 /* ========== 侧边面板 ========== */
 .panel-mask {

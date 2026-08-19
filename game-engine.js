@@ -1765,6 +1765,26 @@ function gachaDrawTen() {
   return results;
 }
 
+// 百连抽（八折）
+function gachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(GACHA_COST * 100 * 0.8);
+  if (s.stone < cost) {
+    UI.showToast(`灵石不足（百连需 ${cost}）`);
+    return null;
+  }
+  s.stone -= cost;
+  const results = [];
+  for (let i = 0; i < 100; i++) {
+    results.push(rollGachaOnce(s));
+  }
+  playGachaSound();
+  autoSave();
+  UI.updateStats();
+  UI.updateBag();
+  return results;
+}
+
 // 合成物品
 function craftItem(recipeId) {
   const s = Game.state;
