@@ -1113,6 +1113,7 @@ const UI = {
     hundredBtn.textContent = `百连抽（${Math.floor(GACHA_COST * 100 * 0.8)}灵石·八折）`;
     hundredBtn.addEventListener('click', () => {
       playClickSound();
+      if (!window.confirm(`百连抽将消耗 ${Math.floor(GACHA_COST * 100 * 0.8)} 灵石（八折），确定继续吗？`)) return;
       const rs = gachaDrawHundred();
       if (rs) { this.showGachaHundred(rs); this.renderGacha(); }
     });
