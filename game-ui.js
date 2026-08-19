@@ -144,21 +144,15 @@ const UI = {
       }).join('');
     }
     document.getElementById('announce-overlay').classList.remove('hidden');
-    try { localStorage.setItem('fantu_update_seen', UPDATE_LOG[0].version); } catch (e) {}
   },
 
   closeAnnounce() {
     document.getElementById('announce-overlay').classList.add('hidden');
   },
 
-  // 有未读更新时进入游戏后自动弹一次
+  // 每次上线自动弹出公告
   maybeShowAnnounce() {
-    try {
-      const latest = UPDATE_LOG && UPDATE_LOG[0] ? UPDATE_LOG[0].version : null;
-      if (latest && localStorage.getItem('fantu_update_seen') !== latest) {
-        this.openAnnounce();
-      }
-    } catch (e) {}
+    try { this.openAnnounce(); } catch (e) {}
   },
 
   // ========== 场景渲染 ==========
