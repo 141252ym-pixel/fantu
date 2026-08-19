@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v26',
+    date: '2026-08-19',
+    title: '功法图鉴',
+    items: [
+      '修为面板新增「📖 功法图鉴」，一键查看全部功法',
+      '按品阶（黄/玄/地/天/仙/神级）分组展示，标注被动/主动、宗门专属与习得状态',
+    ],
+  },
+  {
     version: 'v25',
     date: '2026-08-19',
     title: '藏宝阁图鉴',
@@ -277,13 +286,13 @@ const GACHA_POOL = [
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
     'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue',
-    { id: 'jiuzhuan_pill', count: 2 },
+    { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
     'g_zhuxianzhui', 'g_shenxingxue',
-    { id: 'jiuzhuan_pill', count: 3 },
+    { id: 'jiuzhuan_pill', count: 3 }, { id: 'jiuzhuanling_pill', count: 3 },
   ]},
   { rarity: '神品', weight: 0.05, color: '#ffd54f', items: [
     'g_hundunzhong', 'g_qiankunding', 'g_fuxiqin', 'g_shennongding',

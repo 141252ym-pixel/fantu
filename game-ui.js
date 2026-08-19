@@ -186,6 +186,45 @@ const UI = {
     document.getElementById('codex-overlay').classList.add('hidden');
   },
 
+  // ========== 功法图鉴 ==========
+  openGongfaCodex() {
+    const list = document.getElementById('gongfa-codex-list');
+    if (!list || !GONGFA) return;
+    const grades = ['黄级', '玄级', '地级', '天级', '仙级', '神级'];
+    const gradeColor = { '黄级': '#9aa0a6', '玄级': '#4caf50', '地级': '#4a90d9', '天级': '#9b59b6', '仙级': '#e6a23c', '神级': '#e0473c' };
+    const learned = Game.state.gongfa || [];
+    const gongfaArr = Object.values(GONGFA);
+    list.innerHTML = grades.map(grade => {
+      const items = gongfaArr.filter(g => g.grade === grade);
+      if (!items.length) return '';
+      const rows = items.map(g => {
+        const has = learned.includes(g.id);
+        const sectTag = (g.combat && g.sect && SECTS[g.sect]) ? ` · ${SECTS[g.sect].icon}${SECTS[g.sect].name}专属` : '';
+        return `
+          <div class="codex-row" style="${has ? '' : 'opacity:.5;'}">
+            <span class="codex-icon">${g.icon}</span>
+            <span class="codex-name" style="color:${g.color}">${g.name}${has ? ' ✓' : ''}</span>
+            <span class="codex-desc">${g.desc}${sectTag}</span>
+          </div>
+        `;
+      }).join('');
+      return `
+        <div class="codex-tier">
+          <div class="codex-tier-head">
+            <span style="color:${gradeColor[grade]}">${grade}</span>
+            <span class="codex-weight">共 ${items.length} 本</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+    document.getElementById('gongfa-codex-overlay').classList.remove('hidden');
+  },
+
+  closeGongfaCodex() {
+    document.getElementById('gongfa-codex-overlay').classList.add('hidden');
+  },
+
   // 每次上线自动弹出公告
   maybeShowAnnounce() {
     try { this.openAnnounce(); } catch (e) {}
@@ -1816,10 +1855,10 @@ UI.renderStatDetail = function() {
   `;
 
   const lg = LINGGEN[s.linggen];
-  let gongfaHtml = '';
+  let gongfaHtml = '<div style="margin-top:12px;text-align:right"><button class="codex-open-btn" onclick="UI.openGongfaCodex()">📖 功法图鉴</button></div>';
   const gongfaList = s.gongfa || [];
   if (gongfaList.length > 0) {
-    gongfaHtml = '<div class="pane-title" style="margin-top:14px">已学功法</div>';
+    gongfaHtml += '<div class="pane-title" style="margin-top:14px">已学功法</div>';
     for (const gid of gongfaList) {
       const g = GONGFA[gid];
       if (!g) continue;
@@ -1827,7 +1866,7 @@ UI.renderStatDetail = function() {
       gongfaHtml += `<div class="gongfa-item" style="border-left:3px solid ${sealed ? '#888' : g.color};${sealed ? 'opacity:.55' : ''}"><span style="font-weight:600">${g.icon} ${g.name}</span> <span style="color:#7a6a4a;font-size:11px">${g.grade}${sealed ? ' · 已封禁' : ''}</span><div style="color:#5c3a1a;font-size:11px;margin-top:2px">${g.desc}${sealed ? '（需重返所属宗门方可使用）' : ''}</div></div>`;
     }
   } else {
-    gongfaHtml = '<div class="pane-title" style="margin-top:14px">已学功法</div><div style="color:#7a6a4a;font-size:12px">尚未习得功法。云游寻缘或外出探索，或有奇遇。</div>';
+    gongfaHtml += '<div class="pane-title" style="margin-top:14px">已学功法</div><div style="color:#7a6a4a;font-size:12px">尚未习得功法。云游寻缘或外出探索，或有奇遇。</div>';
   }
   this.els.linggenDetail.innerHTML = `
     <div class="lg-name" style="color:${lg.color}">${lg.name}</div>
