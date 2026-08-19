@@ -60,8 +60,15 @@ const UI = {
     this.updateStats();
     updateSoundIcon();
     updateBgmIcon();
-    // BGM 首次用户交互后自动播放（浏览器自动播放策略要求先有用户手势）
-    document.addEventListener('pointerdown', () => { if (_bgmEnabled) startBgm(); }, { once: true });
+    // BGM 首次用户交互后自动播放（浏览器自动播放策略要求先有用户手势）。
+    // 每次交互时若该播放却没在播放则重试，避免首次手势时音频尚未就绪、play() 被拒后永远没声音。
+    const tryStartBgm = () => {
+      if (!_bgmEnabled) return;
+      const audio = getBgmAudio();
+      if (audio && audio.paused) startBgm();
+    };
+    document.addEventListener('pointerdown', tryStartBgm);
+    document.addEventListener('keydown', tryStartBgm);
   },
 
   // ========== 登录界面 ==========
@@ -1882,8 +1889,16 @@ function startBgm() {
   if (!audio) return;
   audio.volume = 0.4;
   audio.loop = true;
+  audio.muted = false;
   const p = audio.play();
-  if (p && typeof p.catch === 'function') p.catch(() => {});
+  if (p && typeof p.catch === 'function') {
+    p.catch(() => {
+      // 音频尚未就绪导致 play 被拒时，等可播放后再试一次
+      audio.addEventListener('canplay', () => {
+        if (_bgmEnabled) { const q = audio.play(); if (q && typeof q.catch === 'function') q.catch(() => {}); }
+      }, { once: true });
+    });
+  }
 }
 
 // 音乐开关
