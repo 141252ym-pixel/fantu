@@ -203,7 +203,7 @@ const UI = {
         return `
           <div class="codex-row" style="${has ? '' : 'opacity:.5;'}">
             <span class="codex-icon">${g.icon}</span>
-            <span class="codex-name" style="color:${g.color}">${g.name}${has ? ' ✓' : ''}</span>
+            <span class="codex-name" style="color:${g.color}">${g.name}${g.combat ? '<span class="codex-tag codex-tag-active">主动</span>' : '<span class="codex-tag codex-tag-passive">被动</span>'}${has ? ' ✓' : ''}</span>
             <span class="codex-desc">${g.desc}${sectTag}</span>
           </div>
         `;

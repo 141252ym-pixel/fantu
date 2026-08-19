@@ -465,6 +465,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: background .15s;
 }
 .codex-open-btn:hover { background: rgba(139, 107, 61, 0.4); }
+.codex-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  vertical-align: 1px;
+  border: 1px solid;
+}
+.codex-tag-passive { color: #9cc3e6; border-color: #4a6a90; }
+.codex-tag-active { color: #f0b06a; border-color: #b0713a; }
 
 /* ========== 登录/取名界面 ========== */
 .login-overlay {
