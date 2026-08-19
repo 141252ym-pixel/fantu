@@ -29,6 +29,9 @@ const UI = {
       battleMpFill: document.getElementById('battle-mp-fill'),
       battleMpVal: document.getElementById('battle-mp-val'),
       battleStatus: document.getElementById('battle-status'),
+      battlePlayerStats: document.getElementById('battle-player-stats'),
+      battleEnemyStats: document.getElementById('battle-enemy-stats'),
+      battleRecommend: document.getElementById('battle-recommend'),
       battleLog: document.getElementById('battle-log'),
       battleActions: document.getElementById('battle-actions'),
       sidePanel: document.getElementById('side-panel'),
@@ -1622,6 +1625,20 @@ const UI = {
     const pmpPct = s.maxMp > 0 ? Math.max(0, (s.mp / s.maxMp) * 100) : 0;
     this.els.battleMpFill.style.width = pmpPct + '%';
     this.els.battleMpVal.textContent = `${Math.max(0, Math.round(s.mp))}/${Math.round(s.maxMp)}`;
+
+    // 攻防属性（物攻/法攻/物抗/法抗）
+    this.els.battlePlayerStats.innerHTML = `物攻 <b>${Math.round(s.atk)}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b>`;
+    this.els.battleEnemyStats.innerHTML = `物攻 <b>${Math.round(e.atk)}</b> · 法攻 <b>${Math.round(e.matk)}</b> · 物抗 <b>${Math.round(e.def)}</b> · 法抗 <b>${Math.round(e.mdef)}</b>`;
+    // Boss 挑战推荐（天劫按百分比结算，不给攻防建议）
+    if (e.boss && !e.untouchable) {
+      const recAtk = Math.max(e.def, e.mdef);
+      const recDef = Math.floor(Math.max(e.atk, e.matk) * 0.6);
+      const recHp = Math.floor(Math.max(e.atk, e.matk) * 3);
+      this.els.battleRecommend.innerHTML = `推荐：攻击 ≥ <b>${recAtk}</b> ｜ 防御 ≥ <b>${recDef}</b> ｜ 气血 ≥ <b>${recHp}</b>`;
+      this.els.battleRecommend.style.display = '';
+    } else {
+      this.els.battleRecommend.style.display = 'none';
+    }
 
     const statuses = [];
     if (e.burnTurns > 0) statuses.push(`敌·灼烧 ${e.burnTurns}回合`);

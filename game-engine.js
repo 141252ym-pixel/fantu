@@ -2310,8 +2310,8 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   };
 
   logBattle(`遭遇了 ${enemy.name}！`, 'sys');
-  // 战斗彩蛋：开场独白（仅普通小怪）
-  if (!enemy.boss && !enemy.untouchable) {
+  // 战斗彩蛋：开场独白（普通小怪与 Boss，天劫除外）
+  if (!enemy.untouchable) {
     const introEgg = rollEasterEgg(EASTER_EGG_INTRO, 0.20);
     if (introEgg) logBattle(introEgg, 'enemy');
   }
@@ -2384,8 +2384,8 @@ function playerAttack() {
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
-  // 战斗彩蛋：出手独白（仅普通小怪）
-  if (!e.boss && !e.untouchable) {
+  // 战斗彩蛋：出手独白（普通小怪与 Boss，天劫除外）
+  if (!e.untouchable) {
     const atkEgg = rollEasterEgg(EASTER_EGG_PLAYER_ATK, 0.15);
     if (atkEgg) logBattle(atkEgg, 'player');
   }
@@ -2694,8 +2694,8 @@ function enemyTurn() {
       dmg = tryPetDodge(s, dmg);
       s.hp -= dmg;
       if (dmg > 0) logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
-      // 战斗彩蛋：敌人独白（仅普通小怪）
-      if (!e.boss && !e.untouchable) {
+      // 战斗彩蛋：敌人独白（普通小怪与 Boss，天劫除外）
+      if (!e.untouchable) {
         const enemyEgg = rollEasterEgg(EASTER_EGG_ENEMY_ATK, 0.15);
         if (enemyEgg) logBattle(enemyEgg, 'enemy');
       }
