@@ -13,7 +13,7 @@ let _nodeDynamicText = null;
 const MAX_PILLS_PER_BATTLE = 5;
 
 // 玩家攻击力系数（整体削弱，避免打 boss 过快）
-const PLAYER_ATK_SCALE = 0.8;
+const PLAYER_ATK_SCALE = 0.6;
 
 // Boss 动态平衡参数（无限境界后生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
 const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
@@ -143,9 +143,9 @@ function restartGame() {
   UI.showToast('已重新开始（手动存档已保留）');
 }
 
-// 转世永久加成：每次转世全属性 +10%（乘法叠加）
+// 转世永久加成：每次转世全属性 +5%（乘法叠加）
 function getReincarnationBonus(s) {
-  return 1 + 0.1 * (s.reincarnation || 0);
+  return 1 + 0.05 * (s.reincarnation || 0);
 }
 
 // 死亡转世重修：保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）
@@ -247,9 +247,9 @@ function getRealm(idx) {
   const name = tier === 0 ? honor : `${honor}${tier + 1}重天`;
   return {
     name,
-    max: Math.round(1750000 * Math.pow(1.30, n)),
-    atk: Math.round(15000 * Math.pow(1.18, n)),
-    def: Math.round(2560 * Math.pow(1.17, n)),
+    max: Math.round(1750000 * Math.pow(1.24, n)),
+    atk: Math.round(15000 * Math.pow(1.10, n)),
+    def: Math.round(2560 * Math.pow(1.10, n)),
   };
 }
 
@@ -2048,6 +2048,11 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   }
   scaleEnemyForRealm(enemy, Game.state);
   scaleBossForPlayer(enemy, Game.state);
+  // 普通怪(非 Boss)最低血量:对齐玩家总攻击,保证至少扛 5 刀,避免后期一招秒
+  if (!enemy.boss && !enemy.untouchable) {
+    const minHp = Math.floor(Game.state.atk * 5);
+    if (enemy.maxHp < minHp) { enemy.maxHp = minHp; enemy.hp = minHp; }
+  }
   migrateMana(Game.state);
   Game.state.mp = Game.state.maxMp;
 
