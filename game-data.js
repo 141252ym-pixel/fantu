@@ -2624,7 +2624,7 @@ const STORY_NODES = {
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
-  'FANTU10W': { stone: 100000 },
+  'Q7K2MX9T': { stone: 100000 },
   'JZYHQQS4': { stone: 1000000 },
   'SOMETHINGFORNOTHING': { tribulationBlessing: true },
 };
