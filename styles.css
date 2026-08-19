@@ -351,6 +351,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gacha-desc { font-size: 13px; color: #d4c08a; }
 .gacha-card .ink-btn { width: 100%; }
 
+/* 批量喂养数量输入弹窗 */
+.count-box { display: flex; align-items: center; gap: 10px; width: 100%; }
+.count-btn { flex: 0 0 48px; width: 48px !important; font-size: 20px; }
+.count-input {
+  flex: 1; width: 100%;
+  background: #1a120a; border: 1px solid #8b6b3d; border-radius: 6px;
+  color: #f0e4c2; font-size: 20px; font-weight: 700; text-align: center;
+  padding: 8px 6px;
+}
+.count-input:focus { outline: none; border-color: #c9a962; }
+.count-max { font-size: 12px; color: #a08c5a; }
+
 /* ========== 登录/取名界面 ========== */
 .login-overlay {
   position: fixed;

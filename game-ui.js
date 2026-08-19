@@ -773,7 +773,7 @@ const UI = {
         <div class="pet-card">
           <div class="pet-icon">${pet.icon}</div>
           <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${starLabel}${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
-          <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）${star > 1 ? ` · 升星加成 +${(star - 1) * 10}%` : ''}</div>
+          <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）${star > 1 ? ` · 升星加成 +${(star - 1) * 5}%` : ''}</div>
           <div class="pet-desc">${pet.desc}</div>
           <div class="pet-stats">固定值 + 主人属性百分比<br>物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')}<br>物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
           <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害（单次不超过主人本次伤害50%）</div>
@@ -810,11 +810,47 @@ const UI = {
     if (have <= 0) { this.showToast('没有该喂养道具'); return; }
     const name = itemId === 'lingshou_dan' ? '灵兽丹' : '兽粮';
     const per = itemId === 'lingshou_dan' ? 3 : 1;
-    const input = prompt(`当前拥有${name}×${have}，每颗提升 ${per} 级。要喂多少颗？`, have);
-    if (input === null) return;
-    const n = parseInt(input, 10);
-    if (!n || n < 1) { this.showToast('数量无效'); return; }
-    if (feedPetByItem(id, itemId, n)) { this.renderPetPanel(); this.updateStats(); }
+    this._count = { petId: id, itemId, max: have, name, per };
+    document.getElementById('count-title').textContent = `喂${name}`;
+    document.getElementById('count-desc').textContent = `拥有 ${name}×${have}，每颗提升 ${per} 级`;
+    document.getElementById('count-max').textContent = `最多可喂 ${have} 颗（共提升 ${have * per} 级）`;
+    const input = document.getElementById('count-input');
+    input.max = have;
+    input.value = have;
+    document.getElementById('count-overlay').classList.remove('hidden');
+    input.focus();
+  },
+
+  countClamp() {
+    const c = this._count;
+    if (!c) return;
+    const input = document.getElementById('count-input');
+    let n = parseInt(input.value, 10);
+    if (!n || n < 1) n = 1;
+    if (n > c.max) n = c.max;
+    input.value = n;
+  },
+
+  countStep(delta) {
+    const input = document.getElementById('count-input');
+    input.value = (parseInt(input.value, 10) || 1) + delta;
+    this.countClamp();
+  },
+
+  countConfirm() {
+    const c = this._count;
+    if (!c) return;
+    const input = document.getElementById('count-input');
+    let n = parseInt(input.value, 10);
+    if (!n || n < 1) n = 1;
+    if (n > c.max) n = c.max;
+    this.countCancel();
+    if (feedPetByItem(c.petId, c.itemId, n)) { this.renderPetPanel(); this.updateStats(); }
+  },
+
+  countCancel() {
+    document.getElementById('count-overlay').classList.add('hidden');
+    this._count = null;
   },
 
   starUpPetFromPanel(id) {

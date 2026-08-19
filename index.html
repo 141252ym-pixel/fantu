@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=12" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -150,6 +150,22 @@
       </div>
     </div>
 
+    <!-- 批量喂养数量输入弹窗 -->
+    <div id="count-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card count-card">
+        <div id="count-title" class="gacha-name">批量喂养</div>
+        <div id="count-desc" class="gacha-desc">—</div>
+        <div class="count-box">
+          <button class="ink-btn count-btn" onclick="UI.countStep(-1)">−</button>
+          <input id="count-input" class="count-input" type="number" min="1" value="1" inputmode="numeric" oninput="UI.countClamp()" />
+          <button class="ink-btn count-btn" onclick="UI.countStep(1)">＋</button>
+        </div>
+        <div id="count-max" class="count-max">—</div>
+        <button class="ink-btn" onclick="UI.countConfirm()">确定</button>
+        <button class="ink-btn danger" onclick="UI.countCancel()">取消</button>
+      </div>
+    </div>
+
     <!-- 侧边面板 -->
     <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
     <aside id="side-panel" class="side-panel">
@@ -257,8 +273,8 @@
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
   <script src="game-data.js?v=11"></script>
-  <script src="game-engine.js?v=11"></script>
-  <script src="game-ui.js?v=11"></script>
+  <script src="game-engine.js?v=12"></script>
+  <script src="game-ui.js?v=12"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
