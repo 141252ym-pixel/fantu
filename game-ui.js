@@ -829,6 +829,18 @@ const UI = {
     });
     el.appendChild(tenBtn);
 
+    // 百连（八折）
+    const hundredBtn = document.createElement('button');
+    hundredBtn.className = 'ink-btn';
+    hundredBtn.textContent = `🐾 百连抽灵宠（${Math.floor(PET_GACHA_COST * 100 * 0.8)}灵石·八折）`;
+    hundredBtn.addEventListener('click', () => {
+      playClickSound();
+      if (!window.confirm(`灵宠百连抽将消耗 ${Math.floor(PET_GACHA_COST * 100 * 0.8)} 灵石（八折），确定继续吗？`)) return;
+      const res = petGachaDrawHundred();
+      if (res) { this.showPetGachaHundred(res); this.renderTame(); }
+    });
+    el.appendChild(hundredBtn);
+
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
     backBtn.textContent = '返回';
@@ -880,6 +892,52 @@ const UI = {
     tip.textContent = msg;
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
+  },
+
+  // 灵宠百连结果弹窗（复用藏宝阁百连）
+  showPetGachaHundred(res) {
+    const list = this.els.gachaHundredList;
+    list.innerHTML = '';
+    // 稀有度统计
+    const rareCount = {};
+    res.list.forEach(r => { rareCount[r.rarity] = (rareCount[r.rarity] || 0) + 1; });
+    const summary = document.createElement('div');
+    summary.className = 'gacha-hundred-summary';
+    summary.innerHTML = PET_GACHA_POOL.map(t => {
+      const n = rareCount[t.rarity] || 0;
+      return n > 0 ? `<span style="color:${t.color}">${t.rarity}×${n}</span>` : '';
+    }).filter(Boolean).join(' ');
+    list.appendChild(summary);
+    // 同 id 合并数量，按稀有度升序（高稀有度在前）
+    const rareOrder = PET_GACHA_POOL.map(t => t.rarity);
+    const agg = {};
+    res.list.forEach(r => {
+      const key = r.type === 'pet' ? 'pet:' + r.pet.id : 'item:' + r.item.id;
+      if (!agg[key]) {
+        agg[key] = {
+          type: r.type,
+          icon: r.type === 'pet' ? r.pet.icon : r.item.icon,
+          name: r.type === 'pet' ? r.pet.name : r.item.name,
+          count: 0, color: r.color, rarity: r.rarity,
+        };
+      }
+      agg[key].count++;
+    });
+    Object.values(agg).sort((a, b) => rareOrder.indexOf(a.rarity) - rareOrder.indexOf(b.rarity)).forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'gacha-ten-item';
+      div.style.color = e.color;
+      div.textContent = `${e.icon}${e.name} ×${e.count}`;
+      list.appendChild(div);
+    });
+    if (res.refund) {
+      const tip = document.createElement('div');
+      tip.className = 'gacha-ten-item';
+      tip.style.color = '#e6d3a0';
+      tip.textContent = `重复或自动放生灵宠转 ${res.refund} 灵石`;
+      list.appendChild(tip);
+    }
+    this.els.gachaHundredOverlay.classList.remove('hidden');
   },
 
   // ========== 侧边面板·灵宠 ==========

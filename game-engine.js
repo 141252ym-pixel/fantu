@@ -1075,6 +1075,33 @@ function petGachaDrawTen() {
   return { list, refund };
 }
 
+// 百连抽灵宠（八折）
+function petGachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(PET_GACHA_COST * 100 * 0.8);
+  if (s.stone < cost) { UI.showToast(`灵石不足（百连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  let refund = 0;
+  for (let i = 0; i < 100; i++) {
+    const r = rollPetOnce(s);
+    if (r.type === 'item') {
+      grantItem(s, r.item.id, 1);
+    } else {
+      const res = addPetToBag(s, r.pet.id);
+      if (res.duplicate || res.released) {
+        refund += res.refund;
+        r.refund = res.refund;
+        r.released = !!res.released;
+      }
+    }
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list, refund };
+}
+
 // 出战某只灵宠
 function equipPet(petId) {
   const s = Game.state;
