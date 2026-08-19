@@ -372,7 +372,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 .announce-item {
   border: 1px solid #8b6b3d;
@@ -380,10 +380,41 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 12px 14px;
   background: #1a120a;
 }
+.announce-item summary { list-style: none; cursor: pointer; }
+.announce-item summary::-webkit-details-marker { display: none; }
+.announce-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.announce-head .announce-title { flex: 1 1 auto; }
+.announce-head::after { content: '展开 ▾'; color: #a08c5a; font-size: 11px; flex: 0 0 auto; }
+.announce-item[open] .announce-head::after { content: '收起 ▴'; }
 .announce-title { color: #f0e4c2; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
-.announce-date { color: #a08c5a; font-size: 11px; margin: 2px 0 8px; }
-.announce-item ul { margin: 0; padding-left: 18px; }
+.announce-date { color: #a08c5a; font-size: 11px; }
+.announce-item ul { margin: 10px 0 0; padding-left: 18px; }
 .announce-item li { color: #d4c08a; font-size: 13px; line-height: 1.6; margin: 3px 0; }
+
+/* 玩家交流群二维码区块（公告弹窗底部固定） */
+.announce-qun {
+  border: 1px solid #8b6b3d;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #1a120a;
+  text-align: center;
+}
+.announce-qun-title { color: #f0e4c2; font-size: 15px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+.announce-qun-desc { color: #d4c08a; font-size: 13px; line-height: 1.7; }
+.announce-qun-img {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 10px auto 0;
+  border-radius: 6px;
+  border: 1px solid #8b6b3d;
+  background: #fff;
+}
 
 /* ========== 登录/取名界面 ========== */
 .login-overlay {

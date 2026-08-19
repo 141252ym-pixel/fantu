@@ -121,12 +121,15 @@ const UI = {
   openAnnounce() {
     const list = document.getElementById('announce-list');
     if (list && Array.isArray(UPDATE_LOG)) {
-      list.innerHTML = UPDATE_LOG.map(u => `
-        <div class="announce-item">
-          <div class="announce-title">${u.title}</div>
-          <div class="announce-date">${u.date} · ${u.version}</div>
+      // 只默认展开最新一条，更早的公告折叠成标题行，点击标题可展开/收起
+      list.innerHTML = UPDATE_LOG.map((u, i) => `
+        <details class="announce-item" ${i === 0 ? 'open' : ''}>
+          <summary class="announce-head">
+            <span class="announce-title">${u.title}</span>
+            <span class="announce-date">${u.date} · ${u.version}</span>
+          </summary>
           <ul>${(u.items || []).map(t => `<li>${t}</li>`).join('')}</ul>
-        </div>
+        </details>
       `).join('');
     }
     document.getElementById('announce-overlay').classList.remove('hidden');

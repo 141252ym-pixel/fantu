@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=18" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -172,6 +172,11 @@
       <div class="gacha-card announce-card">
         <div class="gacha-name">📢 更新公告</div>
         <div id="announce-list" class="announce-list"></div>
+        <div class="announce-qun">
+          <div class="announce-qun-title">📱 道友交流群</div>
+          <div class="announce-qun-desc">仙路漫漫，何不结伴同行？<br>遇 bug 或有高见，扫码入群共商大道。</div>
+          <img class="announce-qun-img" src="qun-qr.jpg" alt="玩家交流群二维码">
+        </div>
         <button class="ink-btn" onclick="UI.closeAnnounce()">知道了</button>
       </div>
     </div>
@@ -284,7 +289,7 @@
 
   <script src="game-data.js?v=16"></script>
   <script src="game-engine.js?v=16"></script>
-  <script src="game-ui.js?v=17"></script>
+  <script src="game-ui.js?v=18"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
