@@ -43,6 +43,9 @@ function continueGame() {
   if (!saved) return;
   Game.state = saved;
   if (!Game.state.equipLevel) Game.state.equipLevel = {};
+  migrateEquipment(Game.state);
+  migrateMana(Game.state);
+  migrateGacha(Game.state);
   if (!Game.state.tribulations) Game.state.tribulations = {};
   migratePets(Game.state);
   migrateGongfa(Game.state);
@@ -64,6 +67,8 @@ function newGame() {
     xp: 0,
     maxHp: 100,
     hp: 100,
+    maxMp: 44,
+    mp: 44,
     atk: 8,
     def: 2,
     matk: 8,
@@ -73,7 +78,7 @@ function newGame() {
     fame: 0,
     dao: 0,
     bag: { huiqi_pill: 2 },
-    equipment: { weapon: null, armor: null },
+    equipment: { weapon: null, armor: null, artifact: null },
     equipLevel: {},
     achievements: [],
     stats: {
@@ -89,6 +94,7 @@ function newGame() {
     daily: { date: '', tasks: {}, claimed: {} },
     pet: null,
     pets: [],
+    petAutoRelease: {},
     gongfa: [],
     mijing: { floor: 0, best: 0, active: false },
     cave: { level: 1, plots: [] },
@@ -208,14 +214,6 @@ function getPlayerId() {
 function rollLinggen(s) {
   const keys = Object.keys(LINGGEN);
   s.linggen = keys[Math.floor(Math.random() * keys.length)];
-  // 根据灵根微调初始属性
-  const lg = s.linggen;
-  if (lg === 'metal')  { s.atk += 2; }
-  if (lg === 'wood')   { s.maxHp += 20; s.hp += 20; }
-  if (lg === 'water')  { s.def += 2; }
-  if (lg === 'fire')   { s.atk += 3; }
-  if (lg === 'thunder'){ s.atk += 2; s.dao += 2; }
-  if (lg === 'sword')  { s.atk += 2; s.def += 1; }
 }
 
 // ========== 境界 ==========
@@ -280,12 +278,49 @@ const TRIBULATION_GATES = [
   { gateIdx: 25, key: 'feisheng', name: '飞升' },
 ];
 
+function getTribulationGateForIndex(idx) {
+  const fixed = TRIBULATION_GATES.find(g => g.gateIdx === idx);
+  if (fixed) return fixed;
+  // 飞升后，每一个仙境小境界的突破都需渡劫。
+  if (idx >= 26) {
+    const next = getRealm(idx + 1);
+    return { gateIdx: idx, key: `immortal_${idx}`, name: `${next.name}` };
+  }
+  return null;
+}
+
+function getCurrentTribulationGate(s) {
+  const gate = getTribulationGateForIndex(getRealmIndex(s));
+  if (!gate || (s.tribulations && s.tribulations[gate.key])) return null;
+  return gate;
+}
+
+function isTribulationReady(s, gate = getCurrentTribulationGate(s)) {
+  return !!gate && s.xp >= getRealm(gate.gateIdx).max - 1;
+}
+
+function getTribulationBattleConfig(gate) {
+  return {
+    turns: 5 + Math.min(5, Math.floor(gate.gateIdx / 6)),
+    tribDmg: 0.10,
+  };
+}
+
+function getTribulationReturnNode(s) {
+  return getRealmIndex(s) < 14 ? 'qingyun_gate' : 'inner_gate';
+}
+
 // 修复旧存档：根据当前境界补齐已渡过的天劫 flag（防止高境界玩家因 flag 缺失被错误卡回）
 function backfillTribulations(s) {
   if (!s.tribulations) s.tribulations = {};
   const idx = getRealmIndex(s);
   for (const g of TRIBULATION_GATES) {
     if (idx >= g.gateIdx + 1) s.tribulations[g.key] = true;
+  }
+  // 版本更新前已处于仙境的玩家，视为已渡过历史仙劫，避免上线后倒退。
+  for (let i = 26; i < idx; i++) {
+    const g = getTribulationGateForIndex(i);
+    if (g) s.tribulations[g.key] = true;
   }
   // 旧存档兼容：已达成飞升成就的，补飞升 flag，避免被错误卡回化神大圆满
   if (s.achievements && s.achievements.includes('trib_feisheng')) {
@@ -296,10 +331,13 @@ function backfillTribulations(s) {
 // 未渡劫则修为被卡在大圆满，无法跨越大境界
 function clampByTribulation(s) {
   if (!s.tribulations) s.tribulations = {};
-  for (const g of TRIBULATION_GATES) {
-    if (!s.tribulations[g.key] && s.xp >= getRealm(g.gateIdx).max) {
+  const maxIdx = getRealmIndex(s);
+  for (let i = 0; i <= maxIdx; i++) {
+    const g = getTribulationGateForIndex(i);
+    if (g && !s.tribulations[g.key] && s.xp >= getRealm(g.gateIdx).max) {
       s.xp = getRealm(g.gateIdx).max - 1;
       UI.showToast(`境界桎梏：需渡过${g.name}天劫方可晋升`);
+      return;
     }
   }
 }
@@ -344,6 +382,8 @@ function breakthrough(s, oldIdx, newIdx) {
     s.mdef = r.def;
   }
   s.hp = s.maxHp;
+  s.maxMp = getMaxMp(s);
+  s.mp = s.maxMp;
   UI.showToast(`突破！${newRealm.name}`);
   playBreakthroughSound();
   if (newIdx >= 10) grantAchievement('realm_zhuji');
@@ -374,6 +414,100 @@ function realignRealm(s) {
   s.matkBase = r.atk;
   s.mdefBase = r.def;
   if (s.hp > s.maxHp) s.hp = s.maxHp;
+  s.maxMp = getMaxMp(s);
+  if (typeof s.mp !== 'number') s.mp = s.maxMp;
+  if (s.mp > s.maxMp) s.mp = s.maxMp;
+}
+
+function startUnifiedTribulation() {
+  const s = Game.state;
+  const gate = getCurrentTribulationGate(s);
+  if (!isTribulationReady(s, gate)) {
+    UI.showToast('修为尚未圆满，暂不可引动天劫');
+    return;
+  }
+  s.pendingTribulation = { key: gate.key, gateIdx: gate.gateIdx };
+  if (s.tribulationBlessing) {
+    UI.showToast('天道庇佑，无需渡劫！');
+    goToNode('tribulation_blessed');
+  } else {
+    goToNode('tribulation_battle');
+  }
+}
+
+function completePendingTribulation(s) {
+  const pending = s.pendingTribulation;
+  const gate = pending && getTribulationGateForIndex(pending.gateIdx);
+  if (!gate || gate.key !== pending.key || !isTribulationReady(s, gate)) return false;
+  passTribulation(s, gate.key, gate.gateIdx);
+  s.pendingTribulation = null;
+  grantAchievement('survive_tribulation');
+  const achievements = { jindan: 'trib_jindan', yuanying: 'trib_yuanying', huashen: 'trib_huashen', feisheng: 'trib_feisheng' };
+  if (achievements[gate.key]) grantAchievement(achievements[gate.key]);
+  return true;
+}
+
+// 新装备使用明确 slot；旧存档仍可由旧 effect 推断槽位。
+function getItemSlot(item) {
+  if (!item) return null;
+  if (item.slot) return item.slot;
+  if (item.type === 'armor' || (item.effect && (item.effect.startsWith('def') || item.effect.startsWith('mdef')))) return 'armor';
+  if (item.type === 'artifact' || item.special) return 'artifact';
+  return item.type === 'weapon' ? 'weapon' : null;
+}
+
+function migrateEquipment(s) {
+  if (!s.bag || typeof s.bag !== 'object') s.bag = {};
+  if (!s.equipment || typeof s.equipment !== 'object') s.equipment = {};
+  for (const slot of ['weapon', 'armor', 'artifact']) {
+    if (s.equipment[slot] == null) s.equipment[slot] = null;
+  }
+  // 混沌钟曾作为武器装备，版本更新后迁入独立法宝栏。
+  for (const oldSlot of ['weapon', 'armor']) {
+    const id = s.equipment[oldSlot];
+    const targetSlot = getItemSlot(ITEMS[id]);
+    if (id && targetSlot && targetSlot !== oldSlot) {
+      if (!s.equipment[targetSlot]) s.equipment[targetSlot] = id;
+      else s.bag[id] = (s.bag[id] || 0) + 1;
+      s.equipment[oldSlot] = null;
+    }
+  }
+}
+
+function getMaxMp(s) {
+  const r = getRealmInfo(s);
+  return Math.max(40, Math.floor(40 + r.atk * 0.5));
+}
+
+function migrateMana(s) {
+  const maxMp = getMaxMp(s);
+  if (typeof s.maxMp !== 'number' || s.maxMp <= 0) s.maxMp = maxMp;
+  else s.maxMp = maxMp;
+  if (typeof s.mp !== 'number' || s.mp < 0) s.mp = s.maxMp;
+  if (s.mp > s.maxMp) s.mp = s.maxMp;
+}
+
+function migrateGacha(s) {
+  // 仙品仍是 100 抽保底；累计获得 3 件仙品后，开启持续 100 抽的神品保底窗口。
+  if (typeof s.gachaSinceXian !== 'number' || s.gachaSinceXian < 0) s.gachaSinceXian = 0;
+  s.gachaSinceXian = Math.min(99, Math.floor(s.gachaSinceXian));
+  if (typeof s.gachaXianCount !== 'number' || s.gachaXianCount < 0) s.gachaXianCount = 0;
+  if (typeof s.gachaShenPityRemaining !== 'number' || s.gachaShenPityRemaining < 0) {
+    // 兼容旧版本已积累三件仙品、但尚未来得及触发神品的存档。
+    s.gachaShenPityRemaining = s.gachaXianCount >= 3 ? GACHA_PITY : 0;
+  }
+  s.gachaShenPityRemaining = Math.min(GACHA_PITY, Math.floor(s.gachaShenPityRemaining));
+  s.gachaXianCount = Math.min(2, Math.floor(s.gachaXianCount));
+}
+
+function getManaCost(s, pct) {
+  return Math.max(6, Math.ceil((s.maxMp || getMaxMp(s)) * pct));
+}
+
+function restoreBattleMana(s) {
+  const gain = Math.max(1, Math.floor(s.maxMp * 0.12));
+  s.mp = Math.min(s.maxMp, s.mp + gain);
+  return gain;
 }
 
 // 读取装备槽中某前缀属性的加成（含强化等级，每级 +2）
@@ -387,19 +521,37 @@ function getEquipBonus(s, slot, prefix) {
   return base + lv * 2;
 }
 
+function getAllEquipBonus(s, prefix) {
+  return ['weapon', 'armor', 'artifact'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
+}
+
 // ========== 灵宠 ==========
-// 迁移旧存档：旧版 s.pet 是 {id, level} 对象，新版 s.pet 是出战灵宠 id，s.pets 是背包数组
+// 迁移旧存档：现在每只灵宠均有唯一 uid，避免神品重复时互相覆盖。
 function migratePets(s) {
   if (!Array.isArray(s.pets)) s.pets = [];
+  const oldEquipped = s.pet;
   if (s.pet && typeof s.pet === 'object') {
     const old = s.pet;
-    if (old.id && !s.pets.some(p => p.id === old.id)) {
+    if (old.id && !s.pets.some(p => p.id === old.id && (p.level || 1) === (old.level || 1))) {
       s.pets.push({ id: old.id, level: old.level || 1 });
     }
-    s.pet = old.id;
   }
-  // 背包里有灵宠但没有出战 → 自动出战第一只
-  if (!s.pet && s.pets.length > 0) s.pet = s.pets[0].id;
+  const used = new Set();
+  s.pets = s.pets.filter(p => p && PETS[p.id]).map((p, index) => {
+    let uid = p.uid || `pet_${p.id}_${index}_${Date.now().toString(36)}`;
+    while (used.has(uid)) uid += '_1';
+    used.add(uid);
+    const level = Math.max(1, p.level || 1);
+    // 旧档若已有独立技能等级，完整保留；没有时按已有等级补齐进阶对应的技能等级。
+    return { ...p, uid, level, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0) };
+  });
+  if (typeof oldEquipped === 'string' && s.pets.some(p => p.uid === oldEquipped)) s.pet = oldEquipped;
+  else {
+    const equipped = s.pets.find(p => p.id === (typeof oldEquipped === 'object' ? oldEquipped.id : oldEquipped));
+    s.pet = equipped ? equipped.uid : null;
+  }
+  if (!s.pet && s.pets.length > 0) s.pet = s.pets[0].uid;
+  if (!s.petAutoRelease || typeof s.petAutoRelease !== 'object') s.petAutoRelease = {};
 }
 
 // 迁移旧存档：确保 s.gongfa 是已学功法数组
@@ -669,29 +821,73 @@ function applyXinmoChoice(delta) {
 function getEquippedPet(s) {
   if (!s) s = Game.state;
   if (!s.pet) return null;
-  return (s.pets || []).find(p => p.id === s.pet) || null;
+  return (s.pets || []).find(p => p.uid === s.pet) || null;
 }
 
-// 抽到的宠物入背包；同名重复则转灵石补偿，避免背包膨胀
+function getPetStage(entry) { return Math.floor((entry.level || 1) / 10); }
+function getPetSkillRank(entry) { return Math.max(getPetStage(entry), entry.skillLevel || 0); }
+function getPetQualityGrowth(pet) { return PET_QUALITY_GROWTH[pet.quality] || PET_QUALITY_GROWTH['废品']; }
+function getPetTrait(entry) { return entry && entry.trait ? DIVINE_PET_TRAITS[entry.trait.id] : null; }
+
+function rollDivineTrait(petId) {
+  const weights = petId === 'shenlong'
+    ? [['follow', 55], ['shield', 20], ['mana', 15], ['resist', 10]]
+    : [['shield', 35], ['mana', 35], ['resist', 20], ['follow', 10]];
+  let roll = Math.random() * 100;
+  for (const [id, weight] of weights) { roll -= weight; if (roll <= 0) return { id }; }
+  return { id: weights[0][0] };
+}
+
+function getPetStatBonus(s, entry, stat) {
+  const pet = PETS[entry.id];
+  if (!pet) return 0;
+  const lv = entry.level || 1;
+  const stage = getPetStage(entry);
+  const fixed = (pet.base[stat] || 0) + (pet.growth[stat] || 0) * (lv - 1) * (1 + stage * 0.45);
+  const conf = getPetQualityGrowth(pet);
+  const owner = stat === 'atk' ? (s.atkBase || s.atk) : stat === 'matk' ? (s.matkBase != null ? s.matkBase : (s.atkBase || s.atk)) : stat === 'def' ? (s.defBase || s.def) : stat === 'mdef' ? (s.mdefBase != null ? s.mdefBase : (s.defBase || s.def)) : (s.atkBase || s.atk) * 0.25;
+  let affinity = 1;
+  if (pet.affinity === 'attack') affinity = ['atk', 'matk', 'pen'].includes(stat) ? 1.35 : 0.78;
+  if (pet.affinity === 'guard') affinity = ['def', 'mdef'].includes(stat) ? 1.35 : 0.78;
+  const percent = owner * conf.pct * (1 + stage * 0.20) * affinity;
+  return Math.floor(fixed + percent);
+}
+
+function getPetSkillChance(entry) {
+  const pet = PETS[entry.id];
+  return Math.min(0.75, pet.skillChance * getPetQualityGrowth(pet).skillChance * (1 + getPetSkillRank(entry) * 0.12));
+}
+function getPetSkillMult(entry) {
+  const pet = PETS[entry.id];
+  return pet.skillMult * getPetQualityGrowth(pet).skillPower * (1 + getPetSkillRank(entry) * 0.18);
+}
+
+// 抽到的宠物入背包；神品允许重复，每只神品都随机拥有不同天赋。
 function addPetToBag(s, petId) {
   if (!Array.isArray(s.pets)) s.pets = [];
-  if (s.pets.some(p => p.id === petId)) {
-    const refund = PET_REFUND[PETS[petId].quality] || 0;
+  const pet = PETS[petId];
+  if (!pet) return { duplicate: false, refund: 0 };
+  const refund = PET_REFUND[pet.quality] || 0;
+  if (pet.quality !== '神品' && s.petAutoRelease && s.petAutoRelease[pet.quality]) {
+    s.stone += refund;
+    return { released: true, refund };
+  }
+  if (pet.quality !== '神品' && s.pets.some(p => p.id === petId)) {
     s.stone += refund;
     return { duplicate: true, refund };
   }
-  s.pets.push({ id: petId, level: 1 });
-  if (!s.pet) s.pet = petId; // 第一只自动出战
-  return { duplicate: false, refund: 0 };
+  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1 };
+  if (pet.quality === '神品') entry.trait = rollDivineTrait(petId);
+  entry.skillLevel = 0;
+  s.pets.push(entry);
+  if (!s.pet) s.pet = entry.uid;
+  return { duplicate: false, refund: 0, entry };
 }
 
 function getPetBonus(s, stat) {
   const entry = getEquippedPet(s);
   if (!entry) return 0;
-  const pet = PETS[entry.id];
-  if (!pet) return 0;
-  const lv = entry.level || 1;
-  return Math.floor(pet.base[stat] + pet.growth[stat] * (lv - 1));
+  return getPetStatBonus(s, entry, stat);
 }
 
 // 灵宠抽奖：按权重随机，可能抽到宠物或喂养道具（神品保底仅作用于宠物）
@@ -728,7 +924,10 @@ function petGachaDraw() {
     r.granted = true;
   } else {
     const res = addPetToBag(s, r.pet.id);
-    if (res.duplicate) r.refund = res.refund;
+    if (res.duplicate || res.released) {
+      r.refund = res.refund;
+      r.released = !!res.released;
+    }
   }
   autoSave();
   UI.updateStats();
@@ -749,11 +948,14 @@ function petGachaDrawTen() {
       grantItem(s, r.item.id, 1);
     } else {
       const res = addPetToBag(s, r.pet.id);
-      if (res.duplicate) refund += res.refund;
+      if (res.duplicate || res.released) {
+        refund += res.refund;
+        r.refund = res.refund;
+        r.released = !!res.released;
+      }
     }
     list.push(r);
   }
-  s.stone += refund;
   autoSave();
   UI.updateStats();
   return { list, refund };
@@ -762,9 +964,10 @@ function petGachaDrawTen() {
 // 出战某只灵宠
 function equipPet(petId) {
   const s = Game.state;
-  if (!s.pets.some(p => p.id === petId)) { UI.showToast('你没有这只灵宠'); return false; }
+  const entry = s.pets.find(p => p.uid === petId);
+  if (!entry) { UI.showToast('你没有这只灵宠'); return false; }
   s.pet = petId;
-  UI.showToast(`${PETS[petId].name} 已出战！`);
+  UI.showToast(`${PETS[entry.id].name} 已出战！`);
   autoSave();
   UI.updateStats();
   return true;
@@ -775,15 +978,18 @@ function feedPet(petId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
   if (!petId) { UI.showToast('你还没有灵宠'); return false; }
-  const entry = s.pets.find(p => p.id === petId);
+  const entry = s.pets.find(p => p.uid === petId);
   if (!entry) return false;
-  const pet = PETS[petId];
+  const pet = PETS[entry.id];
   const lv = entry.level || 1;
+  const beforeStage = getPetStage(entry);
   const cost = lv * 100;
   if (s.stone < cost) { UI.showToast(`灵石不足（需${cost}）`); return false; }
   s.stone -= cost;
   entry.level = lv + 1;
-  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！`);
+  const advanced = getPetStage(entry) > beforeStage;
+  if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
+  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
   autoSave();
   UI.updateStats();
   return true;
@@ -794,14 +1000,17 @@ function feedPetByItem(petId, itemId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
   if (!petId) { UI.showToast('你还没有灵宠'); return false; }
-  const entry = s.pets.find(p => p.id === petId);
+  const entry = s.pets.find(p => p.uid === petId);
   if (!entry) return false;
   if (!hasItem(itemId)) { UI.showToast('没有该喂养道具'); return false; }
-  const pet = PETS[petId];
+  const pet = PETS[entry.id];
   const gain = itemId === 'lingshou_dan' ? 3 : 1;
+  const beforeStage = getPetStage(entry);
   removeItemFromState(s, itemId, 1);
   entry.level = (entry.level || 1) + gain;
-  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！`);
+  const advanced = getPetStage(entry) > beforeStage;
+  if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
+  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
   autoSave();
   UI.updateStats();
   return true;
@@ -811,14 +1020,14 @@ function feedPetByItem(petId, itemId) {
 function releasePet(petId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
-  const idx = s.pets.findIndex(p => p.id === petId);
+  const idx = s.pets.findIndex(p => p.uid === petId);
   if (idx < 0) return false;
-  const pet = PETS[petId];
+  const pet = PETS[s.pets[idx].id];
   const refund = PET_REFUND[pet.quality] || 0;
   s.pets.splice(idx, 1);
   s.stone += refund;
   if (s.pet === petId) {
-    s.pet = s.pets.length > 0 ? s.pets[0].id : null;
+    s.pet = s.pets.length > 0 ? s.pets[0].uid : null;
   }
   UI.showToast(`放生了 ${pet.name}，获得 ${refund} 灵石`);
   autoSave();
@@ -833,10 +1042,9 @@ function petAssist() {
   if (!entry) return;
   const pet = PETS[entry.id];
   if (!pet || Game.battle.ended) return;
-  if (Math.random() < pet.skillChance) {
+  if (Math.random() < getPetSkillChance(entry)) {
     const e = Game.battle.enemy;
-    const lv = entry.level || 1;
-    const dmg = Math.max(1, Math.floor(s.atk * pet.skillMult) + lv * 4 - e.def + (s.pen || 0));
+    const dmg = Math.max(1, Math.floor(s.atk * getPetSkillMult(entry)) + (entry.level || 1) * 4 - getEnemyDefense(e, false) + (s.pen || 0));
     e.hp -= dmg;
     logBattle(`【${pet.name}】吐出${pet.skill}，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
     checkBattleEnd();
@@ -846,7 +1054,7 @@ function petAssist() {
 // 计算五维属性（含装备与灵宠）：物攻/法攻/物抗/法抗/穿透
 function getTotalAtk(s) {
   let atk = s.atkBase || s.atk;
-  atk += getEquipBonus(s, 'weapon', 'atk');
+  atk += getAllEquipBonus(s, 'atk');
   atk += getPetBonus(s, 'atk');
   atk += getGongfaBonus(s, 'atk');
   atk += getSectBonus(s, 'atk');
@@ -855,7 +1063,7 @@ function getTotalAtk(s) {
 }
 function getTotalMatk(s) {
   let matk = (s.matkBase != null) ? s.matkBase : (s.atkBase || s.atk);
-  matk += getEquipBonus(s, 'weapon', 'matk');
+  matk += getAllEquipBonus(s, 'matk');
   matk += getPetBonus(s, 'matk');
   matk += getGongfaBonus(s, 'matk');
   matk += getSectBonus(s, 'matk');
@@ -864,7 +1072,7 @@ function getTotalMatk(s) {
 }
 function getTotalDef(s) {
   let def = s.defBase || s.def;
-  def += getEquipBonus(s, 'armor', 'def');
+  def += getAllEquipBonus(s, 'def');
   def += getPetBonus(s, 'def');
   def += getGongfaBonus(s, 'def');
   def += getSectBonus(s, 'def');
@@ -873,7 +1081,7 @@ function getTotalDef(s) {
 }
 function getTotalMdef(s) {
   let mdef = (s.mdefBase != null) ? s.mdefBase : (s.defBase || s.def);
-  mdef += getEquipBonus(s, 'armor', 'mdef');
+  mdef += getAllEquipBonus(s, 'mdef');
   mdef += getPetBonus(s, 'mdef');
   mdef += getGongfaBonus(s, 'mdef');
   mdef += getSectBonus(s, 'mdef');
@@ -882,8 +1090,7 @@ function getTotalMdef(s) {
 }
 function getTotalPen(s) {
   let pen = s.pen || 0;
-  pen += getEquipBonus(s, 'weapon', 'pen');
-  pen += getEquipBonus(s, 'armor', 'pen');
+  pen += getAllEquipBonus(s, 'pen');
   pen += getPetBonus(s, 'pen');
   pen += getGongfaBonus(s, 'pen');
   pen += getSectBonus(s, 'pen');
@@ -935,11 +1142,18 @@ function playerCastGongfa(id) {
     UI.updateBattle();
     return;
   }
+  const manaCost = getManaCost(s, g.combat.manaPct || 0.25);
+  if (s.mp < manaCost) {
+    logBattle(`灵力不足，施展【${g.name}】需 ${manaCost} 点灵力。`, 'sys');
+    UI.updateBattle();
+    return;
+  }
   const mult = g.combat.mult;
-  const dmg = Math.max(1, Math.floor(s.matk * mult) - e.mdef + (s.pen || 0));
+  const dmg = Math.max(1, Math.floor(s.matk * mult) - getEnemyDefense(e, true) + (s.pen || 0));
+  s.mp -= manaCost;
   e.hp -= dmg;
   logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
-  logBattle(`【${g.name}】对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
+  logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
   Game.battle.specialCd = Game.battle.specialCd || {};
   Game.battle.specialCd[cdKey] = g.combat.cd;
   checkBattleEnd();
@@ -1041,23 +1255,16 @@ function useItem(id) {
   const item = ITEMS[id];
   if (!item) return false;
   // 已装备的武器/防具可卸下，此时不在背包里，跳过 hasItem 检查
-  const isEquipped = item.type === 'weapon' && (s.equipment.weapon === id || s.equipment.armor === id);
+  const slot = getItemSlot(item);
+  const isEquipped = !!slot && s.equipment[slot] === id;
   if (!hasItem(id) && !isEquipped) return false;
 
   // 喂养灵宠道具：兽粮 +1 级，灵兽丹 +3 级
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
     if (!s.pet) { UI.showToast('你还没有出战灵宠，先去灵兽谷抽一只吧'); return false; }
-    const entry = s.pets.find(p => p.id === s.pet);
-    if (!entry) { UI.showToast('你还没有出战灵宠'); return false; }
-    const pet = PETS[s.pet];
-    const gain = item.effect === 'pet_food3' ? 3 : 1;
-    removeItemFromState(s, id, 1);
-    entry.level = (entry.level || 1) + gain;
-    UI.showToast(`${pet.name} 提升至 ${entry.level} 级！`);
-    autoSave();
-    UI.updateStats();
-    UI.updateBag();
-    return true;
+    const result = feedPetByItem(s.pet, id);
+    if (result) UI.updateBag();
+    return result;
   }
 
   if (item.type === 'pill') {
@@ -1065,6 +1272,10 @@ function useItem(id) {
       const heal = Math.max(1, Math.floor(s.maxHp * item.healPct));
       s.hp = Math.min(s.maxHp, s.hp + heal);
       UI.showToast(`服用${item.name}，回复${heal}气血`);
+    } else if (item.manaPct) {
+      const mana = Math.max(1, Math.floor(s.maxMp * item.manaPct));
+      s.mp = Math.min(s.maxMp, s.mp + mana);
+      UI.showToast(`服用${item.name}，回复${mana}灵力`);
     } else if (item.effect === 'xp50') {
       addXp(s, 50);
       UI.showToast(`服用${item.name}，获得50修为`);
@@ -1074,20 +1285,19 @@ function useItem(id) {
     }
     removeItemFromState(s, id, 1);
     incDailyTask('pill');
-  } else if (item.type === 'weapon') {
+  } else if (slot) {
     // 装备/卸下
-    const key = item.effect && (item.effect.startsWith('def') || item.effect.startsWith('mdef')) ? 'armor' : 'weapon';
-    if (s.equipment[key] === id) {
+    if (s.equipment[slot] === id) {
       // 卸下：装备放回背包
-      s.equipment[key] = null;
+      s.equipment[slot] = null;
       grantItem(s, id, 1);
       UI.showToast(`卸下${item.name}`);
     } else {
       // 装备（旧的放回背包）
-      if (s.equipment[key]) {
-        grantItem(s, s.equipment[key], 1);
+      if (s.equipment[slot]) {
+        grantItem(s, s.equipment[slot], 1);
       }
-      s.equipment[key] = id;
+      s.equipment[slot] = id;
       removeItemFromState(s, id, 1);
       UI.showToast(`装备${item.name}`);
     }
@@ -1127,7 +1337,7 @@ function sellItem(id) {
   const item = ITEMS[id];
   if (!item) return false;
   if (!hasItem(id)) return false;
-  if (s.equipment.weapon === id || s.equipment.armor === id) {
+  if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
     UI.showToast('请先卸下装备');
     return false;
   }
@@ -1145,16 +1355,16 @@ function sellItem(id) {
   return true;
 }
 
-// 抽卡（藏宝阁）：扣除灵石，按稀有度权重抽一件装备
-// 单次抽卡核心（不含扣灵石/存档/UI），更新保底计数并返回结果
+// 抽卡（藏宝阁）：100 抽必出仙品；每获得 3 件仙品后，下一抽必出神品。
 function rollGachaOnce(s) {
   s.gachaCount = (s.gachaCount || 0) + 1;
-  if (s.gachaSinceXian == null) s.gachaSinceXian = 0;
-  // 仙品档在池子最后
-  const xianTier = GACHA_POOL[GACHA_POOL.length - 1];
+  migrateGacha(s);
+  const xianTier = GACHA_POOL.find(t => t.rarity === '仙品');
+  const shenTier = GACHA_POOL.find(t => t.rarity === '神品');
   let tier;
-  if (s.gachaSinceXian >= GACHA_PITY - 1) {
-    // 保底：第 GACHA_PITY 抽强制出仙品
+  if (s.gachaShenPityRemaining === 1 && shenTier) {
+    tier = shenTier;
+  } else if (s.gachaSinceXian >= GACHA_PITY - 1 && xianTier) {
     tier = xianTier;
   } else {
     let roll = Math.random() * 100;
@@ -1164,10 +1374,22 @@ function rollGachaOnce(s) {
       roll -= t.weight;
     }
   }
-  if (tier === xianTier) {
+  if (tier === shenTier) {
+    s.gachaXianCount = 0;
     s.gachaSinceXian = 0;
+    s.gachaShenPityRemaining = 0;
+  } else if (tier === xianTier) {
+    s.gachaXianCount++;
+    s.gachaSinceXian = 0;
+    if (s.gachaXianCount >= 3) {
+      s.gachaXianCount = 0;
+      s.gachaShenPityRemaining = GACHA_PITY;
+    } else if (s.gachaShenPityRemaining > 0) {
+      s.gachaShenPityRemaining--;
+    }
   } else {
     s.gachaSinceXian++;
+    if (s.gachaShenPityRemaining > 0) s.gachaShenPityRemaining--;
   }
   // 该档内随机一项（装备为字符串，丹药为 {id,count} 可给多个）
   const entry = tier.items[Math.floor(Math.random() * tier.items.length)];
@@ -1278,8 +1500,9 @@ function strengthenItem(id) {
   const s = Game.state;
   const item = ITEMS[id];
   if (!item) return false;
-  if (item.type !== 'weapon') { UI.showToast('该物品无法强化'); return false; }
-  const isEquipped = s.equipment.weapon === id || s.equipment.armor === id;
+  const slot = getItemSlot(item);
+  if (!slot || slot === 'artifact') { UI.showToast('该物品无法强化'); return false; }
+  const isEquipped = s.equipment[slot] === id;
   if (!isEquipped) { UI.showToast('请先装备再强化'); return false; }
 
   const lv = (s.equipLevel && s.equipLevel[id]) || 0;
@@ -1387,6 +1610,87 @@ function pickMijingEnemy(floor) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function applyDivinePetBattleStart(s) {
+  const entry = getEquippedPet(s);
+  const trait = getPetTrait(entry);
+  if (!trait) return;
+  const stage = getPetStage(entry);
+  if (trait.id === 'shield') {
+    const shield = Math.max(1, Math.floor(s.maxHp * (0.08 + stage * 0.04)));
+    Game.battle.petShield = shield;
+    logBattle(`【${PETS[entry.id].name}·${trait.name}】为你展开 ${shield} 点护盾。`, 'player');
+  } else if (trait.id === 'mana') {
+    const gain = Math.max(1, Math.floor(s.maxMp * (0.08 + stage * 0.04)));
+    s.mp = Math.min(s.maxMp, s.mp + gain);
+    logBattle(`【${PETS[entry.id].name}·${trait.name}】助你回复 ${gain} 点灵力。`, 'player');
+  }
+}
+
+function applyPetIncomingDamage(s, dmg) {
+  const entry = getEquippedPet(s);
+  const trait = getPetTrait(entry);
+  if (trait && trait.id === 'resist') {
+    const rate = Math.min(0.35, 0.10 + getPetStage(entry) * 0.04);
+    dmg = Math.max(1, Math.floor(dmg * (1 - rate)));
+    logBattle(`【${PETS[entry.id].name}·${trait.name}】替你化去 ${Math.round(rate * 100)}% 伤害。`, 'player');
+  }
+  if (Game.battle.petShield > 0) {
+    const absorb = Math.min(dmg, Game.battle.petShield);
+    Game.battle.petShield -= absorb;
+    dmg -= absorb;
+    logBattle(`灵宠护盾吸收了 ${absorb} 点伤害${Game.battle.petShield ? `（剩余${Game.battle.petShield}）` : '（已破碎）'}。`, 'player');
+  }
+  return dmg;
+}
+
+function petFollowUpOnPlayerAttack() {
+  const s = Game.state;
+  const entry = getEquippedPet(s);
+  const trait = getPetTrait(entry);
+  if (!entry || !trait || trait.id !== 'follow' || Game.battle.ended) return;
+  const stage = getPetStage(entry);
+  if (Math.random() >= Math.min(0.65, 0.20 + stage * 0.06)) return;
+  const e = Game.battle.enemy;
+  const dmg = Math.max(1, Math.floor(s.atk * (0.45 + stage * 0.10)) - getEnemyDefense(e, false) + (s.pen || 0));
+  e.hp -= dmg;
+  logBattle(`【${PETS[entry.id].name}·${trait.name}】随主人攻势追击，造成 ${dmg} 点伤害！`, 'player');
+  checkBattleEnd();
+}
+
+// 普通敌人按所在区域与玩家境界温和对齐：新手区止于筑基、中期止于元婴、高阶止于化神。
+// 这样玩家回头刷图仍能遇到同境妖物，同时不会反客为主压过玩家。
+const ENEMY_REALM_BANDS = {
+  wolf: 'novice', wolf_alpha: 'novice', bandit: 'novice', bandit_chief: 'novice', snake_demon: 'novice', low_monk: 'novice',
+  stone_monkey: 'mid', blood_cultist: 'mid', bifuluan: 'mid',
+  qiongqi: 'high', taotie: 'high', nine_tails: 'high', yinglong: 'high',
+};
+const ENEMY_BAND_CONFIG = {
+  novice: { min: 0, max: 13, hp: 0.20, atk: 0.35, def: 0.18 },
+  mid:    { min: 14, max: 21, hp: 0.35, atk: 0.60, def: 0.25 },
+  high:   { min: 18, max: 25, hp: 0.55, atk: 0.85, def: 0.45 },
+};
+const ENEMY_RANK = {
+  wolf_alpha: 1.35, bandit_chief: 1.55, bifuluan: 1.40,
+  qiongqi: 1.00, taotie: 1.15, nine_tails: 1.30, yinglong: 1.50,
+};
+
+function scaleEnemyForRealm(enemy, s) {
+  const band = ENEMY_REALM_BANDS[enemy.id];
+  const conf = ENEMY_BAND_CONFIG[band];
+  if (!conf) return;
+  const idx = Math.max(conf.min, Math.min(conf.max, getRealmIndex(s)));
+  const realm = getRealm(idx);
+  const rank = ENEMY_RANK[enemy.id] || 1;
+  const baseHp = Math.floor(realm.max * 0.6 + 50);
+  enemy.maxHp = Math.max(1, Math.floor(baseHp * conf.hp * rank));
+  enemy.hp = enemy.maxHp;
+  enemy.atk = Math.max(1, Math.floor(realm.atk * conf.atk * rank));
+  enemy.def = Math.max(0, Math.floor(realm.def * conf.def * rank));
+  enemy.matk = Math.max(1, Math.floor(realm.atk * conf.atk * rank));
+  enemy.mdef = Math.max(0, Math.floor(realm.def * conf.def * rank));
+  enemy.realmName = realm.name;
+}
+
 // Boss 动态平衡：无限境界后按玩家总属性对齐，保证不被秒、能破防（仅 boss 且非天劫）
 function scaleBossForPlayer(enemy, s) {
   if (!enemy.boss || enemy.untouchable) return;
@@ -1429,7 +1733,19 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
     tribDmg: enemyData.tribDmg || 0.15,
     power: enemyData.power,
   };
+  if (enemyId === 'lei_jie_unified') {
+    const pending = Game.state.pendingTribulation;
+    const gate = pending && getTribulationGateForIndex(pending.gateIdx);
+    if (gate) {
+      const conf = getTribulationBattleConfig(gate);
+      enemy.name = `${getRealm(gate.gateIdx).name}·${gate.name}天劫`;
+      enemy.tribDmg = conf.tribDmg;
+    }
+  }
+  scaleEnemyForRealm(enemy, Game.state);
   scaleBossForPlayer(enemy, Game.state);
+  migrateMana(Game.state);
+  Game.state.mp = Game.state.maxMp;
 
   Game.battle = {
     enemy: enemy,
@@ -1448,22 +1764,29 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   };
 
   logBattle(`遭遇了 ${enemy.name}！`, 'sys');
+  applyDivinePetBattleStart(Game.state);
 }
 
 function logBattle(text, type = 'sys') {
   Game.battle.log.push({ text, type });
 }
 
+function getEnemyDefense(enemy, magic) {
+  const base = magic ? enemy.mdef : enemy.def;
+  return Math.max(0, base - (enemy.armorBreak || 0));
+}
+
 function playerAttack() {
   if (Game.battle.ended || Game.battle.turn !== 'player') return;
   const s = Game.state;
   const e = Game.battle.enemy;
-  const dmg = Math.max(1, s.atk - e.def + (s.pen || 0) + Math.floor(Math.random() * 5));
+  const dmg = Math.max(1, s.atk - getEnemyDefense(e, false) + (s.pen || 0) + Math.floor(Math.random() * 5));
   e.hp -= dmg;
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
   checkBattleEnd();
+  if (!Game.battle.ended) petFollowUpOnPlayerAttack();
   if (!Game.battle.ended) petAssist();
   if (!Game.battle.ended) enemyTurn();
 }
@@ -1473,13 +1796,59 @@ function playerSkill() {
   const s = Game.state;
   const e = Game.battle.enemy;
   const lg = LINGGEN[s.linggen];
-  // 灵技伤害 = 攻击力 * 1.5 ~ 2
-  const mult = 1.5 + Math.random() * 0.5;
-  const dmg = Math.max(1, Math.floor(s.matk * mult) - e.mdef + (s.pen || 0));
+  const manaCost = getManaCost(s, lg.manaPct || 0.2);
+  if (s.mp < manaCost) {
+    logBattle(`灵力不足，施展【${lg.skill}】需 ${manaCost} 点灵力。`, 'sys');
+    UI.updateBattle();
+    return;
+  }
+  s.mp -= manaCost;
+  let dmg = 0;
+  let extraText = '';
+  const magicDef = () => getEnemyDefense(e, true);
+  if (s.linggen === 'fire') {
+    dmg = Math.max(1, Math.floor(s.matk * 2.05) - magicDef() + (s.pen || 0));
+    e.burnTurns = 2;
+    e.burnDamage = Math.max(1, Math.floor(s.matk * 0.28));
+    extraText = `烈焰附体（每回合 ${e.burnDamage} 点，持续2回合）`;
+  } else if (s.linggen === 'wood') {
+    dmg = Math.max(1, Math.floor(s.matk * 1.15) - magicDef() + (s.pen || 0));
+    const heal = Math.max(1, Math.floor(s.maxHp * 0.12));
+    s.hp = Math.min(s.maxHp, s.hp + heal);
+    const seal = Math.random() < 0.45;
+    if (seal) e.rootedTurns = 1;
+    extraText = `回复 ${heal} 气血${seal ? '，藤蔓封住敌方下次攻击' : ''}`;
+  } else if (s.linggen === 'water') {
+    dmg = Math.max(1, Math.floor(s.matk * 1.1) - magicDef() + (s.pen || 0));
+    const heal = Math.max(1, Math.floor(s.maxHp * 0.10));
+    s.hp = Math.min(s.maxHp, s.hp + heal);
+    Game.battle.waterGuard = 0.45;
+    extraText = `回复 ${heal} 气血，水幕可减免下一击45%伤害`;
+  } else if (s.linggen === 'thunder') {
+    const crit = Math.random() < 0.32;
+    const mult = crit ? 2.8 : 1.7;
+    dmg = Math.max(1, Math.floor(s.matk * mult) - magicDef() + (s.pen || 0));
+    if (Math.random() < 0.28) { e.stunned = true; extraText = '敌人陷入麻痹'; }
+    if (crit) extraText = (extraText ? `${extraText}，` : '') + '雷霆暴击';
+  } else if (s.linggen === 'sword') {
+    const bonusPen = Math.max(8, Math.floor(s.atk * 0.12));
+    dmg = Math.max(1, Math.floor(s.matk * 1.35) - magicDef() + (s.pen || 0) + bonusPen);
+    if (Math.random() < 0.42) {
+      const follow = Math.max(1, Math.floor(s.matk * 0.75) - magicDef() + (s.pen || 0) + bonusPen);
+      e.hp -= follow;
+      extraText = `剑气追击 ${follow} 点伤害`;
+    }
+  } else { // metal
+    dmg = Math.max(1, Math.floor(s.matk * 1.4) - magicDef() + (s.pen || 0));
+    e.armorBreak = Math.max(e.armorBreak || 0, Math.max(3, Math.floor(e.def * 0.30)));
+    e.armorBreakTurns = 2;
+    Game.battle.metalReflect = 0.35;
+    extraText = `敌方防御降低 ${e.armorBreak}，并反震下一击35%伤害`;
+  }
   e.hp -= dmg;
   playBattleHitSound();
   logBattle(lg.skillText, 'player');
-  logBattle(`【${lg.skill}】对 ${e.name} 造成 ${dmg} 点伤害！`, 'player');
+  logBattle(`【${lg.skill}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dmg} 点伤害。${extraText ? ' ' + extraText + '。' : ''}`, 'player');
   checkBattleEnd();
   if (!Game.battle.ended) petAssist();
   if (!Game.battle.ended) enemyTurn();
@@ -1502,8 +1871,8 @@ function playerUsePill(id) {
   if (Game.battle.ended || Game.battle.turn !== 'player') return;
   const s = Game.state;
   const item = ITEMS[id];
-  if (!item || !item.healPct) {
-    logBattle('此物并非回血丹药。', 'sys');
+  if (!item || (!item.healPct && !item.manaPct)) {
+    logBattle('此物并非恢复丹药。', 'sys');
     return;
   }
   if (!hasItem(id)) {
@@ -1517,20 +1886,28 @@ function playerUsePill(id) {
     UI.updateBattle();
     return;
   }
-  // 修为越高，服药越容易被敌人打断；打断后药被消耗但效果落空
-  const interruptChance = Math.min(0.35, 0.05 + getRealmIndex(s) * 0.015);
   removeItemFromState(s, id, 1);
   Game.battle.pillUsed = (Game.battle.pillUsed || 0) + 1;
-  if (Math.random() < interruptChance) {
-    logBattle(`你正欲服下${item.name}，${Game.battle.enemy.name} 却看准破绽猛攻而来！丹药被打落在地，白白损失。`, 'enemy');
+  // 首次服药有 20% 概率被打断：丹药照常消耗，并立即承受一次敌方回合；下一次服药必定成功。
+  if (!Game.battle.pillNextGuaranteed && Math.random() < 0.20) {
+    Game.battle.pillNextGuaranteed = true;
     Game.battle.selectingPill = false;
-    UI.updateBattle();
+    logBattle(`你正要服下${item.name}，${Game.battle.enemy.name} 抓住破绽将丹药打落！丹药已消耗；下一次服药将必定成功。`, 'enemy');
+    enemyTurn();
     return;
   }
-  const heal = Math.max(1, Math.floor(s.maxHp * item.healPct));
-  s.hp = Math.min(s.maxHp, s.hp + heal);
-  logBattle(`你探手取出一枚${item.name}，仰头吞下。一股温润的药力在体内化开，伤势顿时好转。`, 'player');
-  logBattle(`恢复了 ${heal} 点气血。`, 'player');
+  Game.battle.pillNextGuaranteed = false;
+  if (item.healPct) {
+    const heal = Math.max(1, Math.floor(s.maxHp * item.healPct));
+    s.hp = Math.min(s.maxHp, s.hp + heal);
+    logBattle(`你探手取出一枚${item.name}，仰头吞下。一股温润的药力在体内化开，伤势顿时好转。`, 'player');
+    logBattle(`恢复了 ${heal} 点气血。`, 'player');
+  } else {
+    const mana = Math.max(1, Math.floor(s.maxMp * item.manaPct));
+    s.mp = Math.min(s.maxMp, s.mp + mana);
+    logBattle(`你服下${item.name}，丹田灵气迅速回涌。`, 'player');
+    logBattle(`恢复了 ${mana} 点灵力。`, 'player');
+  }
   Game.battle.selectingPill = false;
   UI.updateBattle();
 }
@@ -1538,12 +1915,22 @@ function playerUsePill(id) {
 function playerFlee() {
   if (Game.battle.ended || Game.battle.turn !== 'player') return;
   const e = Game.battle.enemy;
-  if (e.boss) {
-    logBattle(`${e.name} 气息如山岳般压来，将你退路完全封死，根本无从逃遁！`, 'sys');
-    enemyTurn();
+  if (e.id === 'demon_lord' || e.untouchable) {
+    logBattle('这是你无法逃脱的宿命。', 'sys');
+    UI.updateBattle();
     return;
   }
-  const chance = 0.4 + Game.state.dao * 0.004;
+  if (e.id === 'dao_competitor' || e.id === 'dao_elder') {
+    logBattle('打个表演跑啥跑。', 'sys');
+    UI.updateBattle();
+    return;
+  }
+  const s = Game.state;
+  const playerPower = Math.max(1, s.atk + s.matk + s.def + s.mdef + s.maxHp * 0.015 + (s.pen || 0));
+  const enemyPower = Math.max(1, e.atk + e.matk + e.def + e.mdef + e.maxHp * 0.015 + (e.pen || 0));
+  const gap = enemyPower / playerPower;
+  // 敌人越强于玩家，越难摆脱；境界/属性碾压时仍保留最低 5% 生机。
+  const chance = Math.max(0.05, Math.min(0.80, 0.55 + s.dao * 0.002 - Math.max(0, gap - 1) * 0.16));
   if (Math.random() < chance) {
     logBattle('你虚晃一招，转身纵身掠出，几个起落便甩开了敌人。', 'sys');
     Game.battle.ended = true;
@@ -1554,12 +1941,12 @@ function playerFlee() {
       UI.battleEnd(false, Game.battle.loseNext || Game.state.nodeId);
     }, 1000);
   } else {
-    logBattle('你刚要抽身，对方早已看破，反手一击逼得你不得不回防。', 'sys');
+    logBattle(`你刚要抽身，对方早已看破（逃脱概率${Math.round(chance * 100)}%），反手一击逼得你不得不回防。`, 'sys');
     enemyTurn();
   }
 }
 
-// 使用法宝特效（如混沌钟：控制敌人一回合，CD 10 回合）
+// 使用法宝特效：神品法宝拥有独立的主动能力与冷却。
 function playerUseSpecial(itemId) {
   if (Game.battle.ended || Game.battle.turn !== 'player') return;
   const item = ITEMS[itemId];
@@ -1574,9 +1961,22 @@ function playerUseSpecial(itemId) {
   if (item.special === 'stun') {
     e.stunned = true;
     logBattle(`你祭起${item.name}，一道宝光罩向 ${e.name}，将其定在原地！`, 'player');
+  } else if (item.special === 'heal_mana') {
+    const heal = Math.max(1, Math.floor(Game.state.maxHp * 0.30));
+    const mana = Math.max(1, Math.floor(Game.state.maxMp * 0.30));
+    Game.state.hp = Math.min(Game.state.maxHp, Game.state.hp + heal);
+    Game.state.mp = Math.min(Game.state.maxMp, Game.state.mp + mana);
+    logBattle(`你祭起${item.name}，鼎中灵光流转，回复 ${heal} 气血与 ${mana} 灵力！`, 'player');
+  } else if (item.special === 'weaken') {
+    e.rootedTurns = 1;
+    logBattle(`你拨动${item.name}，琴音缠绕 ${e.name} 的神魂，其下次攻击失效！`, 'player');
+  } else if (item.special === 'heal') {
+    const heal = Math.max(1, Math.floor(Game.state.maxHp * 0.50));
+    Game.state.hp = Math.min(Game.state.maxHp, Game.state.hp + heal);
+    logBattle(`你祭起${item.name}，药气回春，回复 ${heal} 气血！`, 'player');
   }
   Game.battle.specialCd = Game.battle.specialCd || {};
-  Game.battle.specialCd[itemId] = 10; // 冷却 10 回合
+  Game.battle.specialCd[itemId] = item.specialCd || 10;
   enemyTurn();
 }
 
@@ -1593,9 +1993,19 @@ function enemyTurn() {
   setTimeout(() => {
     const s = Game.state;
     const e = Game.battle.enemy;
+    if (e.burnTurns > 0) {
+      e.hp -= e.burnDamage || 1;
+      e.burnTurns--;
+      logBattle(`${e.name} 被烈焰灼烧，受到 ${e.burnDamage || 1} 点伤害！`, 'player');
+      checkBattleEnd();
+      if (Game.battle.ended) return;
+    }
     if (e.stunned) {
       e.stunned = false;
       logBattle(`${e.name} 被法宝定在原地，动弹不得！`, 'sys');
+    } else if (!e.untouchable && e.rootedTurns > 0) {
+      e.rootedTurns--;
+      logBattle(`${e.name} 被藤蔓封住经脉，下一次攻击完全落空！`, 'sys');
     } else if (e.untouchable) {
       // 天劫特殊：每次造成固定大伤害，但玩家可用防御硬扛
       let dmg = Math.max(5, Math.floor(s.maxHp * (e.tribDmg || 0.15)));
@@ -1604,6 +2014,12 @@ function enemyTurn() {
         Game.battle.defending = false;
         logBattle('你凝神守一，护体灵光硬撼天雷！', 'player');
       }
+      if (Game.battle.waterGuard) {
+        dmg = Math.floor(dmg * (1 - Game.battle.waterGuard));
+        Game.battle.waterGuard = 0;
+        logBattle('水幕流转，替你卸去了大半伤势！', 'player');
+      }
+      dmg = applyPetIncomingDamage(s, dmg);
       s.hp -= dmg;
       Game.battle.turnCount = (Game.battle.turnCount || 0) + 1;
       logBattle(`${e.name} 降下天威，你受到 ${dmg} 点伤害！`, 'enemy');
@@ -1637,12 +2053,27 @@ function enemyTurn() {
         const line = attackLines[e.id] || `${e.name} 发出一声怒吼，朝你猛扑过来！`;
         logBattle(line, 'enemy');
       }
+      if (Game.battle.waterGuard) {
+        dmg = Math.floor(dmg * (1 - Game.battle.waterGuard));
+        Game.battle.waterGuard = 0;
+        logBattle('水幕流转，替你卸去了大半伤势！', 'player');
+      }
+      dmg = applyPetIncomingDamage(s, dmg);
       s.hp -= dmg;
       logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
+      if (Game.battle.metalReflect) {
+        const reflect = Math.max(1, Math.floor(dmg * Game.battle.metalReflect));
+        e.hp -= reflect;
+        Game.battle.metalReflect = 0;
+        logBattle(`金灵反震，${e.name} 受到 ${reflect} 点反伤！`, 'player');
+      }
     }
     checkBattleEnd();
     if (!Game.battle.ended) {
+      if (e.armorBreakTurns > 0 && --e.armorBreakTurns === 0) e.armorBreak = 0;
       decrementSpecialCd();
+      const manaGain = restoreBattleMana(s);
+      logBattle(`灵气回流，恢复 ${manaGain} 点灵力。`, 'sys');
       Game.battle.turn = 'player';
       UI.updateBattle();
     }
@@ -1750,6 +2181,10 @@ function redeemCode(code) {
     if (!s.tribulations) s.tribulations = {};
     for (const g of TRIBULATION_GATES) s.tribulations[g.key] = true;
     parts.push('已渡全部天劫');
+  }
+  if (reward.tribulationBlessing) {
+    s.tribulationBlessing = true;
+    parts.push('获得天道庇佑（修为圆满后可免渡劫）');
   }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }
   if (reward.xp) { addXp(s, reward.xp); parts.push(`修为×${reward.xp}`); }

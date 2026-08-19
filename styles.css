@@ -88,6 +88,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: 4px;
 }
 .hp .bar-fill { background: linear-gradient(90deg, #c25a2a, #d88a4a); }
+.mp .bar-fill { background: linear-gradient(90deg, #337ab7, #67b7e1); }
 .xp .bar-fill { background: linear-gradient(90deg, #8a6ab8, #c9a962); }
 .enemy-hp-bar .bar-fill { background: linear-gradient(90deg, #7a2a2a, #c24343); }
 
@@ -250,6 +251,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   gap: 8px;
 }
 .enemy-hp-val { font-size: 12px; color: #d4c08a; font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+.battle-status { min-height: 18px; font-size: 12px; line-height: 1.5; color: #9ec9e8; padding: 5px 8px; background: rgba(255,255,255,0.06); border-radius: 4px; }
 .battle-log {
   flex: 1;
   max-height: 220px;
@@ -885,3 +887,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pet-desc { color: #8a7a58; font-size: 12px; margin-top: 6px; line-height: 1.5; }
 .pet-stats { color: #e6d3a0; font-size: 13px; margin-top: 8px; line-height: 1.7; }
 .pet-skill { color: #ffd54f; font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.pet-trait { color: #ffad66; font-size: 12px; margin-top: 6px; line-height: 1.5; }
+.pet-auto-release { margin: 10px 0; padding: 8px; border: 1px solid #4a3820; border-radius: 6px; color: #b09a6a; font-size: 12px; line-height: 1.8; }
+.pet-auto-release label { display: inline-block; margin-right: 9px; cursor: pointer; color: #d8c28d; }
+.pet-auto-release input { vertical-align: middle; margin-right: 3px; }

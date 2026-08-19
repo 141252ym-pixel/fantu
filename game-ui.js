@@ -9,6 +9,8 @@ const UI = {
       topRealm: document.getElementById('top-realm'),
       hpFill: document.getElementById('hp-fill'),
       hpVal: document.getElementById('hp-val'),
+      mpFill: document.getElementById('mp-fill'),
+      mpVal: document.getElementById('mp-val'),
       xpFill: document.getElementById('xp-fill'),
       xpVal: document.getElementById('xp-val'),
       resStone: document.getElementById('res-stone'),
@@ -21,6 +23,7 @@ const UI = {
       enemyName: document.getElementById('enemy-name'),
       enemyHpFill: document.getElementById('enemy-hp-fill'),
       enemyHpVal: document.getElementById('enemy-hp-val'),
+      battleStatus: document.getElementById('battle-status'),
       battleLog: document.getElementById('battle-log'),
       battleActions: document.getElementById('battle-actions'),
       sidePanel: document.getElementById('side-panel'),
@@ -389,6 +392,8 @@ const UI = {
   // ========== 竞技斗法 ==========
   startArenaBattle(node) {
     const s = Game.state;
+    migrateMana(s);
+    s.mp = s.maxMp;
     const origAtk = s.atk, origDef = s.def, origMatk = s.matk, origMdef = s.mdef, origPen = s.pen;
     s.atk = getTotalAtk(s);
     s.def = getTotalDef(s);
@@ -432,6 +437,8 @@ const UI = {
 
   startXinmoBattle(node) {
     const s = Game.state;
+    migrateMana(s);
+    s.mp = s.maxMp;
     const origAtk = s.atk, origDef = s.def, origMatk = s.matk, origMdef = s.mdef, origPen = s.pen;
     s.atk = getTotalAtk(s);
     s.def = getTotalDef(s);
@@ -589,13 +596,15 @@ const UI = {
     if (equipped) {
       const pet = PETS[equipped.id];
       const lv = equipped.level || 1;
-      const b = pet.base, g = pet.growth;
+      const stage = getPetStage(equipped);
+      const trait = getPetTrait(equipped);
       cur.innerHTML = `
         <div style="font-size:30px">${pet.icon}</div>
         <div style="color:${pet.qc};font-weight:bold;font-size:17px">出战中：${pet.name} <span style="color:#ccc;font-size:13px">· ${pet.quality}</span></div>
-        <div style="color:#aaa;font-size:12px">等级 ${lv} · ${pet.desc}</div>
-        <div style="color:#ddd;font-size:12px;margin-top:4px">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)} 物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
-        <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+        <div style="color:#aaa;font-size:12px">等级 ${lv} · ${stage}阶 · ${pet.desc}</div>
+        <div style="color:#ddd;font-size:12px;margin-top:4px">物攻+${getPetStatBonus(s, equipped, 'atk')} 法攻+${getPetStatBonus(s, equipped, 'matk')} 物抗+${getPetStatBonus(s, equipped, 'def')} 法抗+${getPetStatBonus(s, equipped, 'mdef')} 穿透+${getPetStatBonus(s, equipped, 'pen')}</div>
+        <div style="color:#ffd54f;font-size:12px;margin-top:4px">技能【${pet.skill}】：${Math.round(getPetSkillChance(equipped) * 100)}% 概率追加伤害（每10级进阶强化）</div>
+        ${trait ? `<div style="color:#ffad66;font-size:12px;margin-top:4px">神品天赋【${trait.name}】：${trait.desc}（仅进阶强化）</div>` : ''}
       `;
     } else {
       cur.innerHTML = '尚未拥有灵宠，抽一只助你征战吧！';
@@ -613,19 +622,19 @@ const UI = {
       s.pets.forEach(p => {
         const pet = PETS[p.id];
         const lv = p.level || 1;
-        const isEquipped = s.pet === p.id;
+        const isEquipped = s.pet === p.uid;
         const row = document.createElement('div');
         row.className = 'bag-item';
         row.innerHTML = `
           <div class="item-icon">${pet.icon}</div>
           <div class="item-info">
-            <div class="item-name" style="color:${pet.qc}">${pet.name} <span style="color:#7a6a4a;font-size:11px">${pet.quality} · ${lv}级${isEquipped ? ' · 出战中' : ''}</span></div>
+            <div class="item-name" style="color:${pet.qc}">${pet.name} <span style="color:#7a6a4a;font-size:11px">${pet.quality} · ${lv}级 · ${getPetStage(p)}阶${isEquipped ? ' · 出战中' : ''}</span></div>
             <div class="item-desc">${pet.desc}</div>
           </div>
           <div class="item-actions">
-            ${!isEquipped ? `<button class="item-use" data-act="equip" data-id="${p.id}">出战</button>` : ''}
-            <button class="item-str" data-act="feed" data-id="${p.id}">喂食</button>
-            <button class="item-sell" data-act="release" data-id="${p.id}">放生</button>
+            ${!isEquipped ? `<button class="item-use" data-act="equip" data-id="${p.uid}">出战</button>` : ''}
+            <button class="item-str" data-act="feed" data-id="${p.uid}">喂食</button>
+            <button class="item-sell" data-act="release" data-id="${p.uid}">放生</button>
           </div>
         `;
         el.appendChild(row);
@@ -691,7 +700,8 @@ const UI = {
       this.els.gachaName.style.color = r.color;
       const b = r.pet.base;
       let extra = '';
-      if (r.refund) extra = `<br>已拥有同名灵宠，转为 ${r.refund} 灵石`;
+      if (r.released) extra = `<br>已按自动放生设置转为 ${r.refund} 灵石`;
+      else if (r.refund) extra = `<br>已拥有同名灵宠，转为 ${r.refund} 灵石`;
       else extra = `<br>已放入灵宠背包`;
       this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
     }
@@ -714,7 +724,7 @@ const UI = {
     tip.className = 'gacha-ten-item';
     tip.style.color = '#e6d3a0';
     let msg = '全部奖励已放入背包';
-    if (res.refund) msg += `，重复灵宠转 ${res.refund} 灵石`;
+    if (res.refund) msg += `，重复或自动放生灵宠转 ${res.refund} 灵石`;
     tip.textContent = msg;
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
@@ -725,30 +735,30 @@ const UI = {
     const s = Game.state;
     const el = document.getElementById('pet-panel');
     if (!el) return;
-    if (!s.pets || s.pets.length === 0) {
-      el.innerHTML = '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
-      return;
-    }
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
-    s.pets.forEach(p => {
+    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
+    if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
+    (s.pets || []).forEach(p => {
       const pet = PETS[p.id];
       const lv = p.level || 1;
-      const b = pet.base, g = pet.growth;
-      const isEquipped = s.pet === p.id;
+      const stage = getPetStage(p);
+      const trait = getPetTrait(p);
+      const isEquipped = s.pet === p.uid;
       const feedCost = lv * 100;
       html += `
         <div class="pet-card">
           <div class="pet-icon">${pet.icon}</div>
           <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
-          <div class="pet-level">等级 ${lv}</div>
+          <div class="pet-level">等级 ${lv} · ${stage}阶（每10级进阶）</div>
           <div class="pet-desc">${pet.desc}</div>
-          <div class="pet-stats">物攻+${b.atk + g.atk * (lv - 1)} 法攻+${b.matk + g.matk * (lv - 1)}<br>物抗+${b.def + g.def * (lv - 1)} 法抗+${b.mdef + g.mdef * (lv - 1)} 穿透+${b.pen + g.pen * (lv - 1)}</div>
-          <div class="pet-skill">技能【${pet.skill}】：战斗中有 ${Math.round(pet.skillChance * 100)}% 概率追加伤害</div>
+          <div class="pet-stats">固定值 + 主人属性百分比<br>物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')}<br>物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
+          <div class="pet-skill">技能【${pet.skill}】：${Math.round(getPetSkillChance(p) * 100)}% 概率追加伤害</div>
+          ${trait ? `<div class="pet-trait">神品天赋【${trait.name}】：${trait.desc}（仅随进阶强化）</div>` : ''}
         </div>
         <div class="save-actions">
-          ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.id}')">出战</button>` : ''}
-          <button class="ink-btn" onclick="UI.feedPetFromPanel('${p.id}')">🍖 灵石喂养（${feedCost}）</button>
-          <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.id}')">放生</button>
+          ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
+          <button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 灵石喂养（${feedCost}）</button>
+          <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
         </div>
       `;
     });
@@ -767,6 +777,15 @@ const UI = {
     if (releasePet(id)) { this.renderPetPanel(); this.updateStats(); }
   },
 
+  togglePetAutoRelease(quality, enabled) {
+    const s = Game.state;
+    if (quality === '神品') return;
+    s.petAutoRelease = s.petAutoRelease || {};
+    s.petAutoRelease[quality] = !!enabled;
+    autoSave();
+    this.showToast(`${quality}灵宠自动放生已${enabled ? '开启' : '关闭'}`);
+  },
+
   // ========== 抽卡（藏宝阁） ==========
   renderGacha() {
     const s = Game.state;
@@ -777,7 +796,10 @@ const UI = {
     const pity = document.createElement('div');
     pity.className = 'gacha-pity';
     const sinceXian = s.gachaSinceXian || 0;
-    pity.textContent = `已抽 ${s.gachaCount || 0} 抽 · 距仙品保底 ${Math.max(0, GACHA_PITY - sinceXian)} 抽`;
+    const xianCount = s.gachaXianCount || 0;
+    const shenLeft = s.gachaShenPityRemaining || 0;
+    const shenText = shenLeft > 0 ? `神品保底窗口：剩余 ${shenLeft} 抽` : `再获 ${3 - xianCount} 件仙品开启神品保底`;
+    pity.textContent = `已抽 ${s.gachaCount || 0} 抽 · 距仙品保底 ${Math.max(0, GACHA_PITY - sinceXian)} 抽 · ${shenText}`;
     el.appendChild(pity);
 
     // 概率表
@@ -891,8 +913,12 @@ const UI = {
     const loseNext = node.loseNext;
 
     const mult = b.mult || 1.0;
+    const pendingGate = getCurrentTribulationGate(s) || getTribulationGateForIndex(s.pendingTribulation && s.pendingTribulation.gateIdx);
+    const dynamicTurns = b.dynamicTribulation && pendingGate
+      ? getTribulationBattleConfig(pendingGate).turns
+      : b.turns;
 
-    startBattle(b.enemy, mult, winCb, loseCb, winNext, loseNext, b.tribulation, b.turns);
+    startBattle(b.enemy, mult, winCb, loseCb, winNext, loseNext, b.tribulation, dynamicTurns);
 
     // 显示战斗面板
     this.els.battleOverlay.classList.remove('hidden');
@@ -906,10 +932,19 @@ const UI = {
     const e = Game.battle.enemy;
     const s = Game.state;
 
-    this.els.enemyName.textContent = e.name;
+    this.els.enemyName.textContent = e.realmName ? `${e.name} · ${e.realmName}` : e.name;
     const hpPct = Math.max(0, (e.hp / e.maxHp) * 100);
     this.els.enemyHpFill.style.width = hpPct + '%';
     this.els.enemyHpVal.textContent = `${Math.max(0, e.hp)}/${e.maxHp}`;
+
+    const statuses = [];
+    if (e.burnTurns > 0) statuses.push(`敌·灼烧 ${e.burnTurns}回合`);
+    if (e.stunned) statuses.push('敌·麻痹');
+    if (e.rootedTurns > 0) statuses.push('敌·封招（下次攻击无效）');
+    if (e.armorBreakTurns > 0) statuses.push(`敌·破甲 ${e.armorBreakTurns}回合`);
+    if (Game.battle.waterGuard) statuses.push('我·水幕护体');
+    if (Game.battle.metalReflect) statuses.push('我·金灵反震');
+    this.els.battleStatus.textContent = statuses.length ? `状态：${statuses.join(' ｜ ')}` : '状态：无';
 
     // 日志（用 DOM 文本节点注入，确保不会解析出 HTML/按钮文字）
     this.els.battleLog.innerHTML = '';
@@ -928,21 +963,22 @@ const UI = {
       if (Game.battle.selectingPill) {
         const pills = [];
         for (const id in s.bag) {
-          if (s.bag[id] > 0 && ITEMS[id] && ITEMS[id].type === 'pill' && ITEMS[id].healPct) {
-            pills.push({ id, name: ITEMS[id].name, icon: ITEMS[id].icon, healPct: ITEMS[id].healPct, count: s.bag[id] });
+          if (s.bag[id] > 0 && ITEMS[id] && ITEMS[id].type === 'pill' && (ITEMS[id].healPct || ITEMS[id].manaPct)) {
+            const item = ITEMS[id];
+            pills.push({ id, name: item.name, icon: item.icon, healPct: item.healPct, manaPct: item.manaPct, count: s.bag[id] });
           }
         }
         if (pills.length === 0) {
           const btn = document.createElement('button');
           btn.className = 'ink-btn disabled';
           btn.disabled = true;
-          btn.textContent = '没有回血丹药';
+          btn.textContent = '没有恢复丹药';
           this.els.battleActions.appendChild(btn);
         } else {
           pills.forEach(p => {
             const btn = document.createElement('button');
             btn.className = 'ink-btn';
-            btn.textContent = `${p.icon} ${p.name} ×${p.count}（回${Math.round(p.healPct * 100)}%）`;
+            btn.textContent = `${p.icon} ${p.name} ×${p.count}（回${Math.round((p.healPct || p.manaPct) * 100)}%${p.healPct ? '气血' : '灵力'}）`;
             btn.addEventListener('click', () => {
               playClickSound();
               playerUsePill(p.id);
@@ -964,9 +1000,10 @@ const UI = {
       }
 
       const lg = LINGGEN[s.linggen];
+      const skillManaCost = getManaCost(s, lg.manaPct || 0.2);
       const actions = [
         { label: '普通攻击', action: () => playerAttack() },
-        { label: lg.skill, action: () => playerSkill() },
+        { label: `${lg.skill}（${skillManaCost}灵力）`, action: () => playerSkill() },
         { label: '防御', action: () => playerDefend() },
         { label: '丹药（剩' + (MAX_PILLS_PER_BATTLE - (Game.battle.pillUsed || 0)) + '次）', action: () => playerOpenPill() },
         { label: '逃跑', action: () => playerFlee() },
@@ -983,7 +1020,7 @@ const UI = {
       });
 
       // 法宝按钮：装备了特效法宝（如混沌钟）才显示
-      const specialId = s.equipment && s.equipment.weapon;
+      const specialId = s.equipment && ['artifact', 'weapon'].map(slot => s.equipment[slot]).find(id => id && ITEMS[id] && ITEMS[id].special);
       if (specialId && ITEMS[specialId] && ITEMS[specialId].special) {
         const cd = (Game.battle.specialCd && Game.battle.specialCd[specialId]) || 0;
         const btn = document.createElement('button');
@@ -1006,7 +1043,8 @@ const UI = {
         const btn = document.createElement('button');
         btn.className = cd > 0 ? 'ink-btn disabled' : 'ink-btn';
         btn.disabled = cd > 0;
-        btn.textContent = cd > 0 ? `${g.icon} ${g.name}（冷却${cd}回合）` : `${g.icon} ${g.name}`;
+        const manaCost = getManaCost(s, g.combat.manaPct || 0.25);
+        btn.textContent = cd > 0 ? `${g.icon} ${g.name}（冷却${cd}回合）` : `${g.icon} ${g.name}（${manaCost}灵力）`;
         btn.addEventListener('click', () => {
           playClickSound();
           playerCastGongfa(gid);
@@ -1021,6 +1059,14 @@ const UI = {
   battleEnd(won, nextNodeId) {
     // 显示结果后自动跳转
     setTimeout(() => {
+      const s = Game.state;
+      if (s) {
+        const hpGain = Math.max(1, Math.floor(s.maxHp * 0.30));
+        const mpGain = Math.max(1, Math.floor(s.maxMp * 0.30));
+        s.hp = Math.min(s.maxHp, s.hp + hpGain);
+        s.mp = Math.min(s.maxMp, s.mp + mpGain);
+        this.showToast('战后调息：气血与灵力各回复30%');
+      }
       Game.battle = null;
       this.updateStats();
       checkAchievements();
@@ -1041,6 +1087,10 @@ const UI = {
     const hpPct = (s.hp / s.maxHp) * 100;
     this.els.hpFill.style.width = hpPct + '%';
     this.els.hpVal.textContent = `${Math.floor(s.hp)}/${s.maxHp}`;
+
+    const mpPct = (s.mp / s.maxMp) * 100;
+    this.els.mpFill.style.width = mpPct + '%';
+    this.els.mpVal.textContent = `${Math.floor(s.mp)}/${s.maxMp}`;
 
     const xpInfo = getXpToNext(s);
     const xpPct = Math.min(100, (xpInfo.cur / xpInfo.max) * 100);
@@ -1165,7 +1215,7 @@ const UI = {
     if (!s) return;
     let items = [];
     // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
-    for (const slot of ['weapon', 'armor']) {
+    for (const slot of ['weapon', 'armor', 'artifact']) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
         const it = ITEMS[eqId];
@@ -1190,7 +1240,7 @@ const UI = {
     items.forEach(item => {
       const equipped = item._equipped === true;
       const lv = (s.equipLevel && s.equipLevel[item.id]) || 0;
-      const usable = item.type === 'weapon' || item.type === 'pill'
+      const usable = !!getItemSlot(item) || item.type === 'pill'
         || !!((item.type === 'material' || item.type === 'misc') && item.effect);
 
       const div = document.createElement('div');
@@ -1214,7 +1264,7 @@ const UI = {
 
       const useBtn = document.createElement('button');
       useBtn.className = 'item-use';
-      if (item.type === 'weapon') {
+      if (getItemSlot(item)) {
         useBtn.textContent = equipped ? '卸下' : '装备';
       } else if (usable) {
         useBtn.textContent = '使用';
@@ -1233,7 +1283,7 @@ const UI = {
       actions.appendChild(useBtn);
 
       // 强化按钮（仅装备中的武器/防具）
-      if (equipped && item.type === 'weapon') {
+      if (equipped && getItemSlot(item) !== 'artifact') {
         const strBtn = document.createElement('button');
         strBtn.className = 'item-str';
         strBtn.textContent = lv > 0 ? `强化 +${lv}` : '强化';
@@ -1343,6 +1393,9 @@ const UI = {
     }
     Game.state = data;
     if (!Game.state.equipLevel) Game.state.equipLevel = {};
+    migrateEquipment(Game.state);
+    migrateMana(Game.state);
+    migrateGacha(Game.state);
     if (!Game.state.tribulations) Game.state.tribulations = {};
     migratePets(Game.state);
     migrateGongfa(Game.state);
@@ -1411,6 +1464,9 @@ const UI = {
     delete data.playerId; // 编号是设备级的，导入时不覆盖本机编号
     Game.state = data;
     if (!Game.state.equipLevel) Game.state.equipLevel = {};
+    migrateEquipment(Game.state);
+    migrateMana(Game.state);
+    migrateGacha(Game.state);
     if (!Game.state.tribulations) Game.state.tribulations = {};
     migratePets(Game.state);
     migrateGongfa(Game.state);
@@ -1469,6 +1525,7 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">境界</span><span class="value">${realm.name}</span></div>
     <div class="stat-line"><span class="label">修为</span><span class="value">${xp.cur}/${xp.max}</span></div>
     <div class="stat-line"><span class="label">气血</span><span class="value">${Math.floor(s.hp)}/${s.maxHp}</span></div>
+    <div class="stat-line"><span class="label">灵力</span><span class="value">${Math.floor(s.mp)}/${s.maxMp}</span></div>
     <div class="stat-line"><span class="label">物攻</span><span class="value">${totalAtk}</span></div>
     <div class="stat-line"><span class="label">法攻</span><span class="value">${totalMatk}</span></div>
     <div class="stat-line"><span class="label">物抗</span><span class="value">${totalDef}</span></div>

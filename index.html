@@ -60,6 +60,13 @@
         </div>
       </div>
       <div class="stat-row">
+        <div class="stat-bar mp">
+          <div class="stat-label">灵力</div>
+          <div class="bar"><div class="bar-fill" id="mp-fill"></div></div>
+          <div class="stat-val" id="mp-val">0/0</div>
+        </div>
+      </div>
+      <div class="stat-row">
         <div class="stat-bar xp">
           <div class="stat-label">修为</div>
           <div class="bar"><div class="bar-fill" id="xp-fill"></div></div>
@@ -105,6 +112,7 @@
               <div class="enemy-hp-val" id="enemy-hp-val">0/0</div>
             </div>
           </div>
+          <div id="battle-status" class="battle-status">状态：无</div>
         </div>
         <div id="battle-log" class="battle-log"></div>
         <div id="battle-actions" class="battle-actions"></div>
@@ -159,6 +167,8 @@
           <button class="cat-btn active" data-cat="all" onclick="UI.updateBag('all')">全部</button>
           <button class="cat-btn" data-cat="pill" onclick="UI.updateBag('pill')">丹药</button>
           <button class="cat-btn" data-cat="weapon" onclick="UI.updateBag('weapon')">法器</button>
+          <button class="cat-btn" data-cat="armor" onclick="UI.updateBag('armor')">防具</button>
+          <button class="cat-btn" data-cat="artifact" onclick="UI.updateBag('artifact')">法宝</button>
           <button class="cat-btn" data-cat="material" onclick="UI.updateBag('material')">材料</button>
           <button class="cat-btn" data-cat="misc" onclick="UI.updateBag('misc')">杂物</button>
         </div>
