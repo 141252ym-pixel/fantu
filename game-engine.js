@@ -990,6 +990,48 @@ function getPetSkillMult(entry) {
   const pet = PETS[entry.id];
   return pet.skillMult * getPetQualityGrowth(pet).skillPower * (1 + getPetSkillRank(entry) * 0.18);
 }
+// 囤囤鼠闪避率：基础 + 每阶 + 满好感加成，封顶
+function getTuntunshuDodgeRate(entry) {
+  const favor = entry.favor || 0;
+  return Math.min(TUNTUNSHU_DODGE_CAP, TUNTUNSHU_DODGE_BASE + getPetStage(entry) * TUNTUNSHU_DODGE_PER_STAGE + (favor / PET_FAVOR_MAX) * TUNTUNSHU_DODGE_FAVOR_MAX);
+}
+// 囤囤鼠带主人闪避：成功返回 0（免伤），否则返回原伤害
+function tryPetDodge(s, dmg) {
+  const entry = getEquippedPet(s);
+  if (!entry || entry.id !== 'tuntunshu' || dmg <= 0) return dmg;
+  if (Math.random() < getTuntunshuDodgeRate(entry)) {
+    logBattle(`【囤囤鼠】眼疾手快，叼着你的衣角一个翻滚，堪堪躲开了这一击！`, 'player');
+    return 0;
+  }
+  return dmg;
+}
+// 囤囤鼠战后偷取：偷灵石、偷材料、极低概率偷 Boss 掉落，返回额外日志文本
+function tuntunshuSteal(s, e, stoneGain) {
+  const entry = getEquippedPet(s);
+  if (!entry || entry.id !== 'tuntunshu') return '';
+  const parts = [];
+  if (stoneGain > 0 && Math.random() < TUNTUNSHU_STEAL_CHANCE) {
+    const steal = Math.max(1, Math.floor(stoneGain * TUNTUNSHU_STEAL_STONE_PCT));
+    s.stone += steal;
+    parts.push(`顺手牵羊偷了 ${steal} 灵石`);
+  }
+  if (e.drops && e.drops.length) {
+    const materialDrops = e.drops.filter(d => ITEMS[d.id] && ITEMS[d.id].type === 'material');
+    if (materialDrops.length && Math.random() < TUNTUNSHU_STEAL_CHANCE) {
+      const d = materialDrops[Math.floor(Math.random() * materialDrops.length)];
+      grantItem(s, d.id, 1);
+      parts.push(`偷来一份${ITEMS[d.id].name}`);
+    }
+    if (e.boss && Math.random() < TUNTUNSHU_BOSS_STEAL_CHANCE) {
+      const equipDrops = e.drops.filter(d => ITEMS[d.id] && ['weapon', 'armor', 'artifact'].includes(ITEMS[d.id].type));
+      const pool = equipDrops.length ? equipDrops : e.drops;
+      const d = pool[Math.floor(Math.random() * pool.length)];
+      grantItem(s, d.id, 1);
+      parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d.id].name}！！`);
+    }
+  }
+  return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
+}
 
 // 送灵宠零食/装饰：投其所好 ×2、送错 ×0.5，叠加好感进度，进度满升 1 级
 function feedPetTreat(s, petId, itemId) {
@@ -1340,6 +1382,7 @@ function petAssist(ownerDamage) {
   if (!entry || !ownerDamage || ownerDamage <= 0) return;
   const pet = PETS[entry.id];
   if (!pet || Game.battle.ended) return;
+  if (pet.id === 'tuntunshu') return; // 囤囤鼠不追加伤害，靠闪避+偷取
   if (Math.random() < getPetSkillChance(entry)) {
     const e = Game.battle.enemy;
     const rawDamage = Math.max(1, Math.floor(s.atk * getPetSkillMult(entry)) + (entry.level || 1) * 4 - getEnemyDefense(e, false) + (s.pen || 0));
@@ -2635,8 +2678,9 @@ function enemyTurn() {
         logBattle(`丹霞灵壁展开，将来袭之力卸去大半，并反震 ${e.name} ${reflect} 点伤害！`, 'player');
       }
       dmg = applyPetIncomingDamage(s, dmg);
+      dmg = tryPetDodge(s, dmg);
       s.hp -= dmg;
-      logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
+      if (dmg > 0) logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
       // 战斗彩蛋：敌人独白（仅普通小怪）
       if (!e.boss && !e.untouchable) {
         const enemyEgg = rollEasterEgg(EASTER_EGG_ENEMY_ATK, 0.15);
@@ -2753,8 +2797,9 @@ function checkBattleEnd() {
         }
       });
     }
+    const stealText = tuntunshuSteal(s, e, stoneGain);
     const rewardBoostText = Game.battle.rewardBoost ? ` 燃血夺宝生效：奖励提高${Math.round(Game.battle.rewardBoost * 100)}%。` : '';
-    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${rewardBoostText}`, 'sys');
+    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${rewardBoostText}${stealText ? ' ' + stealText : ''}`, 'sys');
     playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();

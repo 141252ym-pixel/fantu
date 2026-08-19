@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v32',
+    date: '2026-08-20',
+    title: '新神品灵宠 · 囤囤鼠',
+    items: [
+      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料，极低概率(0.01%)偷走Boss掉落',
+      '囤囤鼠专注闪避与搜刮，靠「囤粮」慢慢变富，不参与普通技能追击',
+    ],
+  },
+  {
     version: 'v31',
     date: '2026-08-20',
     title: '灵宠好感度 · 零食转盘 · 独立界面',
@@ -516,6 +525,11 @@ const PETS = {
     growth: { atk: 9, matk: 10, def: 5, mdef: 6, pen: 3 },
     skill: '涅槃', skillChance: 0.25, skillMult: 2.2,
     desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。', likes: { food: 'fruit', decor: 'ribbon' } },
+  tuntunshu: { id: 'tuntunshu', name: '囤囤鼠', icon: '🐹', quality: '神品', qc: '#e0473c', affinity: 'guard',
+    base: { atk: 20, matk: 20, def: 18, mdef: 16, pen: 8 },
+    growth: { atk: 6, matk: 6, def: 6, mdef: 5, pen: 2 },
+    skill: '囤粮遁', skillChance: 0.20, skillMult: 1.0,
+    desc: '神品灵兽，天生敛财囤粮。战斗中能叼着主人躲开攻击，战后顺手牵羊偷灵石材料，极低概率连Boss的掉落都能顺走。', likes: { food: 'fruit', decor: 'gem' } },
 };
 
 // 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）
@@ -528,13 +542,21 @@ const PET_GACHA_POOL = [
   { rarity: '中品',   weight: 8.5, color: '#4a90d9', items: ['huoya', 'baiyuan'] },
   { rarity: '上品',   weight: 4,   color: '#9b59b6', items: ['baihu', 'jinpeng'] },
   { rarity: '极品',   weight: 1.2, color: '#e6a23c', items: ['qinglong', 'huofeng'] },
-  { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang'] },
+  { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang', 'tuntunshu'] },
   { rarity: '兽粮',   weight: 17,  color: '#d4a76a', items: ['shouliang'], type: 'item' },
   { rarity: '灵兽丹', weight: 8.8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
 ];
 // 灵宠好感度：送零食/装饰品投其所好叠加好感，好感提升灵宠放技能概率
 const PET_FAVOR_MAX = 20;             // 好感等级上限
 const PET_FAVOR_EXP_PER_LEVEL = 100;  // 每级所需好感进度（进度满 +1 级）
+// 囤囤鼠专属被动：闪避 + 战后偷取
+const TUNTUNSHU_DODGE_BASE = 0.06;        // 基础闪避率
+const TUNTUNSHU_DODGE_PER_STAGE = 0.02;   // 每阶 +2%
+const TUNTUNSHU_DODGE_FAVOR_MAX = 0.10;   // 满好感额外 +10%
+const TUNTUNSHU_DODGE_CAP = 0.30;         // 闪避率封顶
+const TUNTUNSHU_STEAL_CHANCE = 0.40;      // 战后偷灵石/材料的概率
+const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
+const TUNTUNSHU_BOSS_STEAL_CHANCE = 0.0001; // 偷 Boss 掉落装备的概率（0.01%）
 // 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
 const PET_TREAT_COST = 100;
 const PET_TREAT_POOL = [

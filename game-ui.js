@@ -1080,7 +1080,9 @@ const UI = {
             <div class="pet-favor-sub">${fi.favor >= fi.max ? '好感已满，出手概率达上限' : `进度 ${fi.favorExp}/${fi.expPerLevel}`}</div>
           </div>
           <div class="pet-stats">物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')} 物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
-          <div class="pet-skill">技能【${pet.skill}】：${chance}% 概率追加伤害（好感越高出手越勤）</div>
+          ${pet.id === 'tuntunshu'
+            ? `<div class="pet-skill">技能【${pet.skill}】：闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 战后偷灵石/材料 · 0.01% 偷Boss掉落</div>`
+            : `<div class="pet-skill">技能【${pet.skill}】：${chance}% 概率追加伤害（好感越高出手越勤）</div>`}
           ${trait ? `<div class="pet-trait">神品天赋【${trait.name}】：${trait.desc}</div>` : ''}
         </div>
         <div class="save-actions">
