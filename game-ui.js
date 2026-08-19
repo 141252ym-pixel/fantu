@@ -95,11 +95,43 @@ const UI = {
     }
     this.els.loginOverlay.classList.add('hidden');
     startNewGame(name);
+    this.maybeShowAnnounce();
   },
 
   loginContinue() {
     this.els.loginOverlay.classList.add('hidden');
     continueGame();
+    this.maybeShowAnnounce();
+  },
+
+  // ========== 更新公告 ==========
+  openAnnounce() {
+    const list = document.getElementById('announce-list');
+    if (list && Array.isArray(UPDATE_LOG)) {
+      list.innerHTML = UPDATE_LOG.map(u => `
+        <div class="announce-item">
+          <div class="announce-title">${u.title}</div>
+          <div class="announce-date">${u.date} · ${u.version}</div>
+          <ul>${(u.items || []).map(t => `<li>${t}</li>`).join('')}</ul>
+        </div>
+      `).join('');
+    }
+    document.getElementById('announce-overlay').classList.remove('hidden');
+    try { localStorage.setItem('fantu_update_seen', UPDATE_LOG[0].version); } catch (e) {}
+  },
+
+  closeAnnounce() {
+    document.getElementById('announce-overlay').classList.add('hidden');
+  },
+
+  // 有未读更新时进入游戏后自动弹一次
+  maybeShowAnnounce() {
+    try {
+      const latest = UPDATE_LOG && UPDATE_LOG[0] ? UPDATE_LOG[0].version : null;
+      if (latest && localStorage.getItem('fantu_update_seen') !== latest) {
+        this.openAnnounce();
+      }
+    } catch (e) {}
   },
 
   // ========== 场景渲染 ==========

@@ -363,6 +363,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .count-input:focus { outline: none; border-color: #c9a962; }
 .count-max { font-size: 12px; color: #a08c5a; }
 
+/* 更新公告弹窗 */
+.announce-card { max-width: 420px; }
+.announce-list {
+  width: 100%;
+  text-align: left;
+  max-height: 62vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.announce-item {
+  border: 1px solid #8b6b3d;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #1a120a;
+}
+.announce-title { color: #f0e4c2; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+.announce-date { color: #a08c5a; font-size: 11px; margin: 2px 0 8px; }
+.announce-item ul { margin: 0; padding-left: 18px; }
+.announce-item li { color: #d4c08a; font-size: 13px; line-height: 1.6; margin: 3px 0; }
+
 /* ========== 登录/取名界面 ========== */
 .login-overlay {
   position: fixed;

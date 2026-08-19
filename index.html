@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -46,6 +46,7 @@
         </button>
         <button id="sound-toggle" class="icon-btn" onclick="toggleSound()" title="音效：开">🔊</button>
         <button id="bgm-toggle" class="icon-btn" onclick="toggleBgm()" title="音乐：开">🎵</button>
+        <button id="announce-btn" class="icon-btn" onclick="UI.openAnnounce()" title="更新公告">📢</button>
       </div>
     </header>
 
@@ -166,6 +167,15 @@
       </div>
     </div>
 
+    <!-- 更新公告弹窗 -->
+    <div id="announce-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card announce-card">
+        <div class="gacha-name">📢 更新公告</div>
+        <div id="announce-list" class="announce-list"></div>
+        <button class="ink-btn" onclick="UI.closeAnnounce()">知道了</button>
+      </div>
+    </div>
+
     <!-- 侧边面板 -->
     <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
     <aside id="side-panel" class="side-panel">
@@ -272,9 +282,9 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=11"></script>
+  <script src="game-data.js?v=13"></script>
   <script src="game-engine.js?v=12"></script>
-  <script src="game-ui.js?v=12"></script>
+  <script src="game-ui.js?v=13"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
