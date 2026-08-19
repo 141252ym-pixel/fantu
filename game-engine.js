@@ -1069,26 +1069,17 @@ function feedPetTreat(s, petId, itemId) {
   return { gained: gain, favor, favorExp, liked, leveledUp: up };
 }
 
-// 抽到的宠物入背包；重复的非神品也保留（用于升星），同名数量达到上限才转灵石；神品不受上限约束，每只都随机拥有不同天赋。
+// 抽到的宠物入背包；重复灵宠一律保留（供升星消耗），由玩家手动放生；神品每只随机拥有不同天赋。
 function addPetToBag(s, petId) {
   if (!Array.isArray(s.pets)) s.pets = [];
   const pet = PETS[petId];
-  if (!pet) return { duplicate: false, refund: 0 };
-  const refund = PET_REFUND[pet.quality] || 0;
-  if (pet.quality !== '神品' && s.petAutoRelease && s.petAutoRelease[pet.quality]) {
-    s.stone += refund;
-    return { released: true, refund };
-  }
-  if (pet.quality !== '神品' && s.pets.filter(p => p.id === petId).length >= PET_DUPE_LIMIT) {
-    s.stone += refund;
-    return { duplicate: true, refund };
-  }
+  if (!pet) return null;
   const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1, star: 1, favor: 0, favorExp: 0 };
   if (pet.quality === '神品') entry.trait = rollDivineTrait(petId);
   entry.skillLevel = 0;
   s.pets.push(entry);
   if (!s.pet) s.pet = entry.uid;
-  return { duplicate: false, refund: 0, entry };
+  return entry;
 }
 
 function getPetBonus(s, stat) {
@@ -1130,11 +1121,7 @@ function petGachaDraw() {
     grantItem(s, r.item.id, 1);
     r.granted = true;
   } else {
-    const res = addPetToBag(s, r.pet.id);
-    if (res.duplicate || res.released) {
-      r.refund = res.refund;
-      r.released = !!res.released;
-    }
+    addPetToBag(s, r.pet.id);
   }
   autoSave();
   UI.updateStats();
@@ -1148,24 +1135,18 @@ function petGachaDrawTen() {
   if (s.stone < cost) { UI.showToast(`灵石不足（十连需 ${cost}）`); return null; }
   s.stone -= cost;
   const list = [];
-  let refund = 0;
   for (let i = 0; i < 10; i++) {
     const r = rollPetOnce(s);
     if (r.type === 'item') {
       grantItem(s, r.item.id, 1);
     } else {
-      const res = addPetToBag(s, r.pet.id);
-      if (res.duplicate || res.released) {
-        refund += res.refund;
-        r.refund = res.refund;
-        r.released = !!res.released;
-      }
+      addPetToBag(s, r.pet.id);
     }
     list.push(r);
   }
   autoSave();
   UI.updateStats();
-  return { list, refund };
+  return { list };
 }
 
 // 百连抽灵宠（八折）
@@ -1175,24 +1156,18 @@ function petGachaDrawHundred() {
   if (s.stone < cost) { UI.showToast(`灵石不足（百连需 ${cost}）`); return null; }
   s.stone -= cost;
   const list = [];
-  let refund = 0;
   for (let i = 0; i < 100; i++) {
     const r = rollPetOnce(s);
     if (r.type === 'item') {
       grantItem(s, r.item.id, 1);
     } else {
-      const res = addPetToBag(s, r.pet.id);
-      if (res.duplicate || res.released) {
-        refund += res.refund;
-        r.refund = res.refund;
-        r.released = !!res.released;
-      }
+      addPetToBag(s, r.pet.id);
     }
     list.push(r);
   }
   autoSave();
   UI.updateStats();
-  return { list, refund };
+  return { list };
 }
 
 // 灵宠零食/装饰转盘：按权重随机，抽出道具入包
@@ -1360,19 +1335,25 @@ function starUpPet(petId) {
   if (!entry) return false;
   const pet = PETS[entry.id];
   const star = entry.star || 1;
+  const cost = PET_STAR_COST[pet.quality] || 100;
   // 找另外两只同名同星（且不是主宠自身）的宠物
   const others = s.pets.filter(p => p.id === entry.id && p.uid !== entry.uid && (p.star || 1) === star);
   if (others.length < 2) {
     UI.showToast(`升星需 3 只同名${star}星宠物，还差 ${2 - others.length} 只（当前同星 ${others.length} 只）`);
     return false;
   }
-  // 消耗 2 只素材
+  if (s.stone < cost) {
+    UI.showToast(`灵石不足（升星需 ${cost} 灵石）`);
+    return false;
+  }
+  // 消耗 2 只素材 + 灵石
   for (let i = 0; i < 2; i++) {
     const idx = s.pets.findIndex(p => p.uid === others[i].uid);
     if (idx >= 0) s.pets.splice(idx, 1);
   }
+  s.stone -= cost;
   entry.star = star + 1;
-  UI.showToast(`✨ ${pet.name} 升为 ${star + 1} 星！全属性 +5%（累计 +${star * 5}%）`);
+  UI.showToast(`✨ ${pet.name} 升为 ${star + 1} 星！全属性 +5%（累计 +${star * 5}%），消耗 ${cost} 灵石`);
   autoSave();
   UI.updateStats();
   return true;

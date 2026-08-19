@@ -892,10 +892,7 @@ const UI = {
       this.els.gachaName.textContent = r.pet.name;
       this.els.gachaName.style.color = r.color;
       const b = r.pet.base;
-      let extra = '';
-      if (r.released) extra = `<br>已按自动放生设置转为 ${r.refund} 灵石`;
-      else if (r.refund) extra = `<br>同名灵宠已达 ${PET_DUPE_LIMIT} 只上限，转为 ${r.refund} 灵石`;
-      else extra = `<br>已放入灵宠背包（重复灵宠可攒齐 3 只升星）`;
+      const extra = `<br>已放入灵宠背包（重复灵宠可攒齐 3 只升星）`;
       this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
     }
     this.els.gachaOverlay.classList.remove('hidden');
@@ -916,9 +913,7 @@ const UI = {
     const tip = document.createElement('div');
     tip.className = 'gacha-ten-item';
     tip.style.color = '#e6d3a0';
-    let msg = '全部奖励已放入背包';
-    if (res.refund) msg += `，自动放生或同名已满转 ${res.refund} 灵石`;
-    tip.textContent = msg;
+    tip.textContent = '全部奖励已放入背包';
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
   },
@@ -959,13 +954,6 @@ const UI = {
       div.textContent = `${e.icon}${e.name} ×${e.count}`;
       list.appendChild(div);
     });
-    if (res.refund) {
-      const tip = document.createElement('div');
-      tip.className = 'gacha-ten-item';
-      tip.style.color = '#e6d3a0';
-      tip.textContent = `自动放生或同名已满转 ${res.refund} 灵石`;
-      list.appendChild(tip);
-    }
     this.els.gachaHundredOverlay.classList.remove('hidden');
   },
 
@@ -1047,7 +1035,6 @@ const UI = {
     }).filter(p => filter === 'all' || (PETS[p.id] && PETS[p.id].quality === filter));
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
     html += `<div class="pet-filter"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>`;
-    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
     else if (pets.length === 0) html += `<div class="pet-empty">没有「${filter}」品质的灵宠。</div>`;
     pets.forEach(p => {
@@ -1088,7 +1075,7 @@ const UI = {
         <div class="save-actions">
           ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
           ${isMax ? `<button class="ink-btn disabled" disabled>🈵 已达上限</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 升1级（${feedCost}灵石）</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">💊 喂灵兽丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">🥩 喂兽粮</button>`}
-          <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">⭐ 升星</button>
+          <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">⭐ 升星（${PET_STAR_COST[pet.quality] || 100}灵石）</button>
           <button class="ink-btn" onclick="UI.togglePetGift('${p.uid}')">🎁 送礼物</button>
           <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
         </div>
