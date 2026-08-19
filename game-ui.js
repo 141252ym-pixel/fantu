@@ -196,17 +196,44 @@ const UI = {
     const gradeColor = { '黄级': '#9aa0a6', '玄级': '#4caf50', '地级': '#4a90d9', '天级': '#9b59b6', '仙级': '#e6a23c', '神级': '#e0473c' };
     const learned = Game.state.gongfa || [];
     const gongfaArr = Object.values(GONGFA);
-    list.innerHTML = grades.map(grade => {
-      const items = gongfaArr.filter(g => g.grade === grade);
-      if (!items.length) return '';
-      const rows = items.map(g => {
+
+    // 宗门绝学：按宗门分组展示各派独门战斗技能（含宗门加成）
+    const sectBlock = Object.values(SECTS).map(s => {
+      const skills = gongfaArr.filter(g => g.combat && g.sect === s.id);
+      if (!skills.length) return '';
+      const rows = skills.map(g => {
         const has = learned.includes(g.id);
-        const sectTag = (g.combat && g.sect && SECTS[g.sect]) ? ` · ${SECTS[g.sect].icon}${SECTS[g.sect].name}专属` : '';
         return `
           <div class="codex-row" style="${has ? '' : 'opacity:.5;'}">
             <span class="codex-icon">${g.icon}</span>
-            <span class="codex-name" style="color:${g.color}">${g.name}${g.combat ? '<span class="codex-tag codex-tag-active">主动</span>' : '<span class="codex-tag codex-tag-passive">被动</span>'}${has ? ' ✓' : ''}</span>
-            <span class="codex-desc">${g.desc}${sectTag}</span>
+            <span class="codex-name" style="color:${g.color}">${g.name}<span class="codex-tag codex-tag-active">主动</span>${has ? ' ✓' : ''}</span>
+            <span class="codex-desc">${g.desc}</span>
+          </div>
+        `;
+      }).join('');
+      return `
+        <div class="codex-tier">
+          <div class="codex-tier-head">
+            <span style="color:${s.color}">${s.icon} ${s.name}</span>
+            <span class="codex-weight">绝学 ${skills.length} 式</span>
+          </div>
+          <div class="codex-desc" style="margin-bottom:6px;">${s.desc}</div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+
+    // 功法全书：按品阶分组展示被动功法
+    const gradeBlock = grades.map(grade => {
+      const items = gongfaArr.filter(g => g.grade === grade && !g.combat);
+      if (!items.length) return '';
+      const rows = items.map(g => {
+        const has = learned.includes(g.id);
+        return `
+          <div class="codex-row" style="${has ? '' : 'opacity:.5;'}">
+            <span class="codex-icon">${g.icon}</span>
+            <span class="codex-name" style="color:${g.color}">${g.name}<span class="codex-tag codex-tag-passive">被动</span>${has ? ' ✓' : ''}</span>
+            <span class="codex-desc">${g.desc}</span>
           </div>
         `;
       }).join('');
@@ -220,6 +247,8 @@ const UI = {
         </div>
       `;
     }).join('');
+
+    list.innerHTML = sectBlock + gradeBlock;
     document.getElementById('gongfa-codex-overlay').classList.remove('hidden');
   },
 
