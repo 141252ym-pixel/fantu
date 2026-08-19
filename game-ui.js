@@ -1021,8 +1021,8 @@ const UI = {
     const s = Game.state;
     const el = document.getElementById('pet-overlay-body');
     if (!el) return;
-    const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食' };
-    const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠' };
+    const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食', nut: '坚果' };
+    const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠', toy: '玩具' };
     const QUALITY_COLOR = { '废品': '#7a7a7a', '凡品': '#c9c9c9', '良品': '#4caf50', '中品': '#4a90d9', '上品': '#9b59b6', '极品': '#e6a23c', '神品': '#e0473c' };
     const QUALITY_ORDER = ['神品', '极品', '上品', '中品', '良品', '凡品', '废品'];
     const filter = this._petFilter || 'all';
