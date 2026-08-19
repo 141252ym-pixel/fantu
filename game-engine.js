@@ -899,6 +899,11 @@ function getEquippedPet(s) {
 }
 
 function getPetStage(entry) { return Math.floor((entry.level || 1) / 10); }
+function getPetMaxLevel(entry) {
+  const pet = PETS[entry.id];
+  const base = (pet && PET_MAX_LEVEL[pet.quality]) || 50;
+  return base + ((entry.star || 1) - 1) * 10;
+}
 function getPetSkillRank(entry) { return Math.max(getPetStage(entry), entry.skillLevel || 0); }
 function getPetQualityGrowth(pet) { return PET_QUALITY_GROWTH[pet.quality] || PET_QUALITY_GROWTH['废品']; }
 function getPetTrait(entry) { return entry && entry.trait ? DIVINE_PET_TRAITS[entry.trait.id] : null; }
@@ -1057,8 +1062,10 @@ function feedPet(petId) {
   if (!entry) return false;
   const pet = PETS[entry.id];
   const lv = entry.level || 1;
+  const maxLv = getPetMaxLevel(entry);
+  if (lv >= maxLv) { UI.showToast(`${pet.name} 已达等级上限（${maxLv}级），升星可突破`); return false; }
   const beforeStage = getPetStage(entry);
-  const cost = lv * 100;
+  const cost = 100 + lv * 10;
   if (s.stone < cost) { UI.showToast(`灵石不足（需${cost}）`); return false; }
   s.stone -= cost;
   entry.level = lv + 1;
@@ -1070,7 +1077,7 @@ function feedPet(petId) {
   return true;
 }
 
-// 用喂养道具升级：兽粮 +1 级，灵兽丹 +3 级；count 可批量
+// 用喂养道具升级：兽粮 +1 级，灵兽丹 +2 级；count 可批量，受等级上限约束
 function feedPetByItem(petId, itemId, count) {
   const s = Game.state;
   if (!petId) petId = s.pet;
@@ -1080,11 +1087,18 @@ function feedPetByItem(petId, itemId, count) {
   const have = (s.bag && s.bag[itemId]) || 0;
   if (have <= 0) { UI.showToast('没有该喂养道具'); return false; }
   const pet = PETS[entry.id];
-  const gain = itemId === 'lingshou_dan' ? 3 : 1;
-  count = Math.max(1, Math.min(count || 1, have));
+  const lv = entry.level || 1;
+  const maxLv = getPetMaxLevel(entry);
+  if (lv >= maxLv) { UI.showToast(`${pet.name} 已达等级上限（${maxLv}级），升星可突破`); return false; }
+  const gain = itemId === 'lingshou_dan' ? 2 : 1;
+  const remain = maxLv - lv;
+  const maxCount = Math.floor(remain / gain);
+  if (maxCount <= 0) { UI.showToast(`${pet.name} 距上限仅剩 ${remain} 级，可用灵石或兽粮补满`); return false; }
+  count = Math.min(count || 1, have, maxCount);
+  if (count < 1) count = 1;
   const beforeStage = getPetStage(entry);
   removeItemFromState(s, itemId, count);
-  entry.level = (entry.level || 1) + gain * count;
+  entry.level = lv + gain * count;
   const advanced = getPetStage(entry) > beforeStage;
   if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
   UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
@@ -1502,7 +1516,7 @@ function useItem(id) {
   const isEquipped = !!slot && s.equipment[slot] === id;
   if (!hasItem(id) && !isEquipped) return false;
 
-  // 喂养灵宠道具：兽粮 +1 级，灵兽丹 +3 级
+  // 喂养灵宠道具：兽粮 +1 级，灵兽丹 +2 级
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
     if (!s.pet) { UI.showToast('你还没有出战灵宠，先去灵兽谷抽一只吧'); return false; }
     const result = feedPetByItem(s.pet, id);

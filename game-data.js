@@ -2,6 +2,17 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v14',
+    date: '2026-08-19',
+    title: '灵宠机制调整',
+    items: [
+      '灵石喂养降价：由「等级×100」改为「100 + 等级×10」，高级不再昂贵',
+      '灵兽丹效果由 +3 级下调为 +2 级，灵石喂养成为稳定升级手段',
+      '新增宠物等级上限：按品质分档（废品30~神品100级），升星每星 +10 级上限',
+      '到顶后灵宠无法继续喂食，需升星突破上限',
+    ],
+  },
+  {
     version: 'v12',
     date: '2026-08-19',
     title: '灵宠升星 · 批量喂丹',
@@ -108,7 +119,7 @@ const ITEMS = {
   dao_compass:  { id: 'dao_compass',  name: '问道罗盘',   type: 'misc',     icon: '🧭', desc: '感应机缘',       effect: 'dao10', sell: 100 },
   lianhua_meng: { id: 'lianhua_meng', name: '莲花盟令',   type: 'misc',     icon: '🌸', desc: '莲花盟信物',     effect: null,    sell: 50 },
   shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可提升出战灵宠1级', effect: 'pet_food1', sell: 40 },
-  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可提升出战灵宠3级', effect: 'pet_food3', sell: 200 },
+  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可提升出战灵宠2级', effect: 'pet_food3', sell: 200 },
 
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
@@ -379,6 +390,8 @@ const PET_GACHA_POOL = [
 // 品质档位（用于比较强弱）与重复抽到的灵石补偿
 const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };
 const PET_REFUND = { '废品': 10, '凡品': 30, '良品': 60, '中品': 120, '上品': 250, '极品': 600, '神品': 1500 };
+// 宠物等级上限（按品质分档），升星每 +1 星额外 +10 级上限
+const PET_MAX_LEVEL = { '废品': 30, '凡品': 40, '良品': 50, '中品': 60, '上品': 70, '极品': 80, '神品': 100 };
 // 双轨成长：固定属性照常随等级增长，百分比属性取决于主人基础属性；品质越高，系数与技能强度越高。
 const PET_QUALITY_GROWTH = {
   '废品': { pct: 0.003, skillChance: 0.70, skillPower: 0.72 },
