@@ -1035,10 +1035,22 @@ const UI = {
     if (!el) return;
     const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食' };
     const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠' };
+    const QUALITY_COLOR = { '废品': '#7a7a7a', '凡品': '#c9c9c9', '良品': '#4caf50', '中品': '#4a90d9', '上品': '#9b59b6', '极品': '#e6a23c', '神品': '#e0473c' };
+    const QUALITY_ORDER = ['神品', '极品', '上品', '中品', '良品', '凡品', '废品'];
+    const filter = this._petFilter || 'all';
+    const pets = (s.pets || []).slice().sort((a, b) => {
+      const qa = PET_QUALITY_RANK[(PETS[a.id] || {}).quality] || 0;
+      const qb = PET_QUALITY_RANK[(PETS[b.id] || {}).quality] || 0;
+      if (qb !== qa) return qb - qa;
+      if ((b.star || 1) !== (a.star || 1)) return (b.star || 1) - (a.star || 1);
+      return (b.level || 1) - (a.level || 1);
+    }).filter(p => filter === 'all' || (PETS[p.id] && PETS[p.id].quality === filter));
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
+    html += `<div class="pet-filter"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>`;
     html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
-    (s.pets || []).forEach(p => {
+    else if (pets.length === 0) html += `<div class="pet-empty">没有「${filter}」品质的灵宠。</div>`;
+    pets.forEach(p => {
       const pet = PETS[p.id];
       const lv = p.level || 1;
       const stage = getPetStage(p);
@@ -1091,6 +1103,11 @@ const UI = {
       }
     });
     el.innerHTML = html;
+  },
+
+  setPetFilter(q) {
+    this._petFilter = q;
+    this.renderPetOverlay();
   },
 
   togglePetGift(uid) {
