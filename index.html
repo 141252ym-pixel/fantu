@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -46,6 +46,7 @@
         </button>
         <button id="sound-toggle" class="icon-btn" onclick="toggleSound()" title="音效：开">🔊</button>
         <button id="bgm-toggle" class="icon-btn" onclick="toggleBgm()" title="音乐：开">🎵</button>
+        <button class="icon-btn" onclick="UI.openPetOverlay()" title="灵宠">🐾</button>
         <button id="announce-btn" class="icon-btn" onclick="UI.openAnnounce()" title="更新公告">📢</button>
       </div>
     </header>
@@ -203,6 +204,27 @@
       </div>
     </div>
 
+    <!-- 灵宠独立界面（全屏覆盖） -->
+    <div id="pet-overlay" class="pet-overlay hidden">
+      <div class="pet-overlay-head">
+        <div class="pet-overlay-title">🐾 灵宠</div>
+        <div class="pet-overlay-actions">
+          <button class="ink-btn" onclick="UI.openTreatGacha()">🎡 零食转盘</button>
+          <button class="ink-btn danger" onclick="UI.closePetOverlay()">关闭</button>
+        </div>
+      </div>
+      <div id="pet-overlay-body" class="pet-overlay-body"></div>
+    </div>
+
+    <!-- 灵宠零食/装饰转盘弹窗 -->
+    <div id="treat-gacha-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card treat-gacha-card">
+        <div class="gacha-name">🎡 灵宠零食装饰转盘</div>
+        <div id="treat-gacha-body"></div>
+        <button class="ink-btn" onclick="UI.closeTreatGacha()">关闭</button>
+      </div>
+    </div>
+
     <!-- 侧边面板 -->
     <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
     <aside id="side-panel" class="side-panel">
@@ -210,7 +232,6 @@
         <button class="side-tab active" data-tab="stats" onclick="UI.switchSideTab('stats')">修为</button>
         <button class="side-tab" data-tab="bag" onclick="UI.switchSideTab('bag')">储物袋</button>
         <button class="side-tab" data-tab="achievements" onclick="UI.switchSideTab('achievements')">成就</button>
-        <button class="side-tab" data-tab="pet" onclick="UI.switchSideTab('pet')">灵宠</button>
         <button class="side-tab" data-tab="daily" onclick="UI.switchSideTab('daily')">日常</button>
         <button class="side-tab" data-tab="redeem" onclick="UI.switchSideTab('redeem')">兑换</button>
         <button class="side-tab" data-tab="save" onclick="UI.switchSideTab('save')">存档</button>
@@ -242,11 +263,6 @@
       <div class="tab-pane" id="tab-achievements">
         <div class="pane-title">成就</div>
         <div id="achievement-list" class="achievement-list"></div>
-      </div>
-
-      <div class="tab-pane" id="tab-pet">
-        <div class="pane-title">灵宠</div>
-        <div id="pet-panel"></div>
       </div>
 
       <div class="tab-pane" id="tab-daily">
@@ -309,9 +325,9 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=32"></script>
-  <script src="game-engine.js?v=26"></script>
-  <script src="game-ui.js?v=27"></script>
+  <script src="game-data.js?v=33"></script>
+  <script src="game-engine.js?v=27"></script>
+  <script src="game-ui.js?v=28"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();

@@ -2,6 +2,16 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v31',
+    date: '2026-08-20',
+    title: '灵宠好感度 · 零食转盘 · 独立界面',
+    items: [
+      '灵宠新增好感度系统：送零食/装饰品投其所好，好感提升战斗放技能概率（0好感×0.5 → 满20级×1.5）',
+      '新增「灵宠零食/装饰」转盘，分凡品/精制/仙品三档，零食3口味+装饰3风格',
+      '灵宠界面改为顶栏🐾独立全屏界面，从侧边栏拆出，可送礼培养好感',
+    ],
+  },
+  {
     version: 'v30',
     date: '2026-08-20',
     title: '功法图鉴 · 宗门绝学总览',
@@ -227,6 +237,28 @@ const ITEMS = {
   shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可为出战灵宠增加40经验', effect: 'pet_food1', sell: 40 },
   lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可为出战灵宠增加200经验', effect: 'pet_food3', sell: 200 },
 
+  // ===== 灵宠零食（投其所好送对口味好感加倍） =====
+  rougan:      { id: 'rougan',      name: '肉干',     type: 'misc', icon: '🍖', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'meat',  sell: 20 },
+  xiangrou:    { id: 'xiangrou',    name: '香肉',     type: 'misc', icon: '🍗', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'meat',  sell: 60 },
+  longgan:     { id: 'longgan',     name: '龙肝凤髓', type: 'misc', icon: '🥩', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'meat',  sell: 200 },
+  yeguo:       { id: 'yeguo',       name: '野果',     type: 'misc', icon: '🍎', desc: '灵宠零食·果食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'fruit', sell: 20 },
+  lingguo:     { id: 'lingguo',     name: '灵果',     type: 'misc', icon: '🍑', desc: '灵宠零食·果食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'fruit', sell: 60 },
+  zhuguo:      { id: 'zhuguo',      name: '朱果',     type: 'misc', icon: '🍒', desc: '灵宠零食·果食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'fruit', sell: 200 },
+  nencao:      { id: 'nencao',      name: '嫩草',     type: 'misc', icon: '🌿', desc: '灵宠零食·草食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'grass', sell: 20 },
+  lingcao:     { id: 'lingcao',     name: '灵草',     type: 'misc', icon: '🌱', desc: '灵宠零食·草食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'grass', sell: 60 },
+  xianzhicao:  { id: 'xianzhicao',  name: '仙芝草',   type: 'misc', icon: '🍀', desc: '灵宠零食·草食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'grass', sell: 200 },
+
+  // ===== 灵宠装饰（投其所好送对风格好感加倍） =====
+  tongling:    { id: 'tongling',    name: '铜铃',     type: 'misc', icon: '🔔', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'bell',   sell: 25 },
+  yinling:     { id: 'yinling',     name: '银铃',     type: 'misc', icon: '🎐', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 16, cat: 'decor', style: 'bell',   sell: 75 },
+  xianyinling: { id: 'xianyinling', name: '仙音铃',   type: 'misc', icon: '🎼', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 36, cat: 'decor', style: 'bell',   sell: 250 },
+  cuchou:      { id: 'cuchou',      name: '粗绸',     type: 'misc', icon: '🎀', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'ribbon', sell: 25 },
+  jinduan:     { id: 'jinduan',     name: '锦缎',     type: 'misc', icon: '🎗️', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 16, cat: 'decor', style: 'ribbon', sell: 75 },
+  yunxiaduan:  { id: 'yunxiaduan',  name: '云霞缎',   type: 'misc', icon: '🧣', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 36, cat: 'decor', style: 'ribbon', sell: 250 },
+  muzhu:       { id: 'muzhu',       name: '木珠',     type: 'misc', icon: '📿', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'gem',    sell: 25 },
+  yuzhu:       { id: 'yuzhu',       name: '玉珠',     type: 'misc', icon: '💍', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 16, cat: 'decor', style: 'gem',    sell: 75 },
+  yemingzhu:   { id: 'yemingzhu',   name: '夜明珠',   type: 'misc', icon: '💠', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 36, cat: 'decor', style: 'gem',    sell: 250 },
+
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
   g_qingbu:    { id: 'g_qingbu',     name: '青布衣',    type: 'armor', slot: 'armor', icon: '🛡️', desc: '凡品·防御+10',  effect: 'def10',   sell: 30,   rarity: '凡品' },
@@ -412,78 +444,78 @@ const PETS = {
     base: { atk: 1, matk: 1, def: 0, mdef: 0, pen: 0 },
     growth: { atk: 1, matk: 1, def: 1, mdef: 0, pen: 0 },
     skill: '啮咬', skillChance: 0.10, skillMult: 1.1,
-    desc: '山林间最不起眼的小灵兽。' },
+    desc: '山林间最不起眼的小灵兽。', likes: { food: 'fruit', decor: 'bell' } },
   huitu: { id: 'huitu', name: '灰兔', icon: '🐰', quality: '废品', qc: '#7a7a7a',
     base: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
     growth: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
     skill: '蹬腿', skillChance: 0.10, skillMult: 1.1,
-    desc: '机警的小灰兔，速度飞快。' },
+    desc: '机警的小灰兔，速度飞快。', likes: { food: 'grass', decor: 'bell' } },
   // 凡品
   xiaobaihu: { id: 'xiaobaihu', name: '小白狐', icon: '🦊', quality: '凡品', qc: '#c9c9c9',
     base: { atk: 4, matk: 4, def: 2, mdef: 2, pen: 0 },
     growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
     skill: '狐火', skillChance: 0.18, skillMult: 1.3,
-    desc: '通体雪白的小狐狸，性情温顺，口吐狐火。' },
+    desc: '通体雪白的小狐狸，性情温顺，口吐狐火。', likes: { food: 'fruit', decor: 'ribbon' } },
   qingshe: { id: 'qingshe', name: '青蛇', icon: '🐍', quality: '凡品', qc: '#c9c9c9',
     base: { atk: 5, matk: 3, def: 2, mdef: 2, pen: 0 },
     growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
     skill: '毒牙', skillChance: 0.15, skillMult: 1.3,
-    desc: '通体青碧的灵蛇，毒牙锋利。' },
+    desc: '通体青碧的灵蛇，毒牙锋利。', likes: { food: 'meat', decor: 'gem' } },
   // 良品
   xuanwu: { id: 'xuanwu', name: '玄龟', icon: '🐢', quality: '良品', qc: '#4caf50',
     base: { atk: 3, matk: 3, def: 10, mdef: 7, pen: 0 },
     growth: { atk: 1, matk: 1, def: 4, mdef: 3, pen: 0 },
     skill: '玄龟冲撞', skillChance: 0.15, skillMult: 1.5,
-    desc: '背负玄甲的灵龟，防御无双，坚不可摧。' },
+    desc: '背负玄甲的灵龟，防御无双，坚不可摧。', likes: { food: 'grass', decor: 'gem' } },
   linglu: { id: 'linglu', name: '灵鹿', icon: '🦌', quality: '良品', qc: '#4caf50',
     base: { atk: 4, matk: 7, def: 4, mdef: 4, pen: 0 },
     growth: { atk: 2, matk: 3, def: 2, mdef: 2, pen: 0 },
     skill: '灵角', skillChance: 0.18, skillMult: 1.4,
-    desc: '头顶灵角的灵鹿，通体灵光。' },
+    desc: '头顶灵角的灵鹿，通体灵光。', likes: { food: 'grass', decor: 'ribbon' } },
   // 中品
   huoya: { id: 'huoya', name: '火鸦', icon: '🦅', quality: '中品', qc: '#4a90d9',
     base: { atk: 8, matk: 10, def: 4, mdef: 4, pen: 1 },
     growth: { atk: 3, matk: 4, def: 2, mdef: 2, pen: 0 },
     skill: '火羽', skillChance: 0.20, skillMult: 1.5,
-    desc: '浑身燃着赤焰的火鸦，鸣声如雷。' },
+    desc: '浑身燃着赤焰的火鸦，鸣声如雷。', likes: { food: 'meat', decor: 'bell' } },
   baiyuan: { id: 'baiyuan', name: '白猿', icon: '🐒', quality: '中品', qc: '#4a90d9',
     base: { atk: 10, matk: 6, def: 7, mdef: 5, pen: 1 },
     growth: { atk: 4, matk: 3, def: 3, mdef: 2, pen: 0 },
     skill: '猿啸', skillChance: 0.18, skillMult: 1.5,
-    desc: '通臂白猿，力大无穷。' },
+    desc: '通臂白猿，力大无穷。', likes: { food: 'fruit', decor: 'bell' } },
   // 上品
   baihu: { id: 'baihu', name: '白虎', icon: '🐯', quality: '上品', qc: '#9b59b6',
     base: { atk: 15, matk: 10, def: 8, mdef: 7, pen: 3 },
     growth: { atk: 5, matk: 4, def: 3, mdef: 3, pen: 1 },
     skill: '虎啸', skillChance: 0.20, skillMult: 1.6,
-    desc: '西方庚金白虎，主杀伐，威震山野。' },
+    desc: '西方庚金白虎，主杀伐，威震山野。', likes: { food: 'meat', decor: 'bell' } },
   jinpeng: { id: 'jinpeng', name: '金鹏', icon: '🦜', quality: '上品', qc: '#9b59b6',
     base: { atk: 13, matk: 15, def: 7, mdef: 8, pen: 3 },
     growth: { atk: 5, matk: 5, def: 3, mdef: 3, pen: 1 },
     skill: '金翅', skillChance: 0.20, skillMult: 1.6,
-    desc: '展翅千里的大鹏，金羽遮天。' },
+    desc: '展翅千里的大鹏，金羽遮天。', likes: { food: 'meat', decor: 'ribbon' } },
   // 极品
   qinglong: { id: 'qinglong', name: '青龙', icon: '🐉', quality: '极品', qc: '#e6a23c',
     base: { atk: 22, matk: 17, def: 11, mdef: 10, pen: 6 },
     growth: { atk: 7, matk: 6, def: 4, mdef: 4, pen: 2 },
     skill: '龙息', skillChance: 0.22, skillMult: 1.8,
-    desc: '东方苍龙，龙威浩荡，睥睨天下。' },
+    desc: '东方苍龙，龙威浩荡，睥睨天下。', likes: { food: 'meat', decor: 'gem' } },
   huofeng: { id: 'huofeng', name: '火凤', icon: '🦚', quality: '极品', qc: '#e6a23c',
     base: { atk: 18, matk: 24, def: 9, mdef: 11, pen: 6 },
     growth: { atk: 6, matk: 8, def: 3, mdef: 4, pen: 2 },
     skill: '凤炎', skillChance: 0.22, skillMult: 1.8,
-    desc: '浴火而生的火凤，烈焰滔天。' },
+    desc: '浴火而生的火凤，烈焰滔天。', likes: { food: 'fruit', decor: 'ribbon' } },
   // 神品（最高，龙与凤凰）
   shenlong: { id: 'shenlong', name: '神龙', icon: '🐲', quality: '神品', qc: '#e0473c', affinity: 'attack',
     base: { atk: 32, matk: 28, def: 16, mdef: 15, pen: 10 },
     growth: { atk: 10, matk: 9, def: 5, mdef: 5, pen: 3 },
     skill: '神龙吐息', skillChance: 0.25, skillMult: 2.2,
-    desc: '九天之上的神龙，俯瞰众生，威压万物。' },
+    desc: '九天之上的神龙，俯瞰众生，威压万物。', likes: { food: 'meat', decor: 'gem' } },
   fenghuang: { id: 'fenghuang', name: '凤凰', icon: '🦩', quality: '神品', qc: '#e0473c', affinity: 'guard',
     base: { atk: 28, matk: 32, def: 14, mdef: 17, pen: 10 },
     growth: { atk: 9, matk: 10, def: 5, mdef: 6, pen: 3 },
     skill: '涅槃', skillChance: 0.25, skillMult: 2.2,
-    desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。' },
+    desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。', likes: { food: 'fruit', decor: 'ribbon' } },
 };
 
 // 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）
@@ -499,6 +531,18 @@ const PET_GACHA_POOL = [
   { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang'] },
   { rarity: '兽粮',   weight: 17,  color: '#d4a76a', items: ['shouliang'], type: 'item' },
   { rarity: '灵兽丹', weight: 8.8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
+];
+// 灵宠好感度：送零食/装饰品投其所好叠加好感，好感提升灵宠放技能概率
+const PET_FAVOR_MAX = 20;             // 好感等级上限
+const PET_FAVOR_EXP_PER_LEVEL = 100;  // 每级所需好感进度（进度满 +1 级）
+// 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
+const PET_TREAT_COST = 100;
+const PET_TREAT_POOL = [
+  { rarity: '凡品', weight: 40, color: '#c9c9c9', items: ['rougan', 'yeguo', 'nencao', 'tongling', 'cuchou', 'muzhu'] },
+  { rarity: '精制', weight: 28, color: '#4a90d9', items: ['xiangrou', 'lingguo', 'lingcao', 'yinling', 'jinduan', 'yuzhu'] },
+  { rarity: '仙品', weight: 10, color: '#e0473c', items: ['longgan', 'zhuguo', 'xianzhicao', 'xianyinling', 'yunxiaduan', 'yemingzhu'] },
+  { rarity: '兽粮', weight: 14, color: '#d4a76a', items: ['shouliang'], type: 'item' },
+  { rarity: '灵兽丹', weight: 8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
 ];
 // 品质档位（用于比较强弱）与重复抽到的灵石补偿
 const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };

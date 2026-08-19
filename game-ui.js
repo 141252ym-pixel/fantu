@@ -1019,16 +1019,187 @@ const UI = {
     el.innerHTML = html;
   },
 
+  // ========== 灵宠独立界面（全屏覆盖） ==========
+  openPetOverlay() {
+    this.renderPetOverlay();
+    document.getElementById('pet-overlay').classList.remove('hidden');
+  },
+
+  closePetOverlay() {
+    document.getElementById('pet-overlay').classList.add('hidden');
+  },
+
+  renderPetOverlay() {
+    const s = Game.state;
+    const el = document.getElementById('pet-overlay-body');
+    if (!el) return;
+    const FOOD_NAME = { meat: '肉食', fruit: '果食', grass: '草食' };
+    const DECOR_NAME = { bell: '铃铛', ribbon: '绸带', gem: '宝珠' };
+    let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
+    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
+    if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
+    (s.pets || []).forEach(p => {
+      const pet = PETS[p.id];
+      const lv = p.level || 1;
+      const stage = getPetStage(p);
+      const trait = getPetTrait(p);
+      const isEquipped = s.pet === p.uid;
+      const star = p.star || 1;
+      const maxLv = getPetMaxLevel(p);
+      const isMax = lv >= maxLv;
+      const exp = p.exp || 0;
+      const expNeed = getPetExpToNext(lv);
+      const feedCost = isMax ? 0 : expNeed - exp;
+      const starLabel = star > 1 ? ` <span style="color:#ffd54f">★${star}星</span>` : '';
+      const fi = getPetFavorInfo(p);
+      const likes = pet.likes || {};
+      const chance = Math.round(getPetSkillChance(p) * 100);
+      html += `
+        <div class="pet-overlay-card">
+          <div class="pet-icon">${pet.icon}</div>
+          <div class="pet-name" style="color:${pet.qc}">${pet.name} <span style="color:#ccc">${pet.quality}</span>${starLabel}${isEquipped ? ' <span style="color:#ffd54f">·出战中</span>' : ''}</div>
+          <div class="pet-level">等级 ${lv}/${maxLv} · ${stage}阶${star > 1 ? ` · 升星加成 +${(star - 1) * 5}%` : ''}</div>
+          ${isMax ? `<div class="pet-exp" style="color:#ffd54f">已满级，升星可突破上限</div>` : `<div class="pet-exp-bar"><div class="pet-exp-fill" style="width:${Math.max(2, Math.round(exp / expNeed * 100))}%"></div></div><div class="pet-exp">经验 ${exp}/${expNeed}</div>`}
+          <div class="pet-desc">${pet.desc}</div>
+          <div class="pet-like">喜好：${FOOD_NAME[likes.food] || '—'} · ${DECOR_NAME[likes.decor] || '—'}（送对好感加倍）</div>
+          <div class="pet-favor">
+            <div class="pet-favor-head"><span>❤️ 好感</span><span>Lv.${fi.favor}/${fi.max}${fi.favor >= fi.max ? '（已满）' : ''}</span></div>
+            <div class="pet-favor-bar"><div class="pet-favor-fill" style="width:${fi.favor >= fi.max ? 100 : Math.max(2, fi.pct)}%"></div></div>
+            <div class="pet-favor-sub">${fi.favor >= fi.max ? '好感已满，出手概率达上限' : `进度 ${fi.favorExp}/${fi.expPerLevel}`}</div>
+          </div>
+          <div class="pet-stats">物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')} 物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
+          <div class="pet-skill">技能【${pet.skill}】：${chance}% 概率追加伤害（好感越高出手越勤）</div>
+          ${trait ? `<div class="pet-trait">神品天赋【${trait.name}】：${trait.desc}</div>` : ''}
+        </div>
+        <div class="save-actions">
+          ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
+          ${isMax ? `<button class="ink-btn disabled" disabled>🈵 已达上限</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">🍖 升1级（${feedCost}灵石）</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">💊 喂灵兽丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">🥩 喂兽粮</button>`}
+          <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">⭐ 升星</button>
+          <button class="ink-btn" onclick="UI.togglePetGift('${p.uid}')">🎁 送礼物</button>
+          <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
+        </div>
+      `;
+      if (this._giftPetId === p.uid) {
+        const treats = Object.values(ITEMS).filter(it => it.favor && (s.bag[it.id] || 0) > 0);
+        html += `<div class="treat-list">`;
+        if (!treats.length) html += `<div class="treat-empty">暂无零食/装饰，可去「🎡 零食转盘」抽取</div>`;
+        treats.forEach(it => {
+          const liked = (it.cat === 'food' && likes.food === it.taste) || (it.cat === 'decor' && likes.decor === it.style);
+          html += `<button class="treat-item${liked ? ' liked' : ''}" onclick="UI.giveTreat('${p.uid}', '${it.id}')"><span>${it.icon} ${it.name}×${s.bag[it.id]}</span><span class="treat-gain">${liked ? '❤️+' + Math.floor(it.favor * 2) : '+' + Math.floor(it.favor * 0.5)}</span></button>`;
+        });
+        html += `</div>`;
+      }
+    });
+    el.innerHTML = html;
+  },
+
+  togglePetGift(uid) {
+    this._giftPetId = (this._giftPetId === uid) ? null : uid;
+    this.renderPetOverlay();
+  },
+
+  giveTreat(uid, itemId) {
+    if (feedPetTreat(Game.state, uid, itemId)) { this.renderPetOverlay(); this.updateStats(); }
+  },
+
+  // ========== 灵宠零食/装饰转盘 ==========
+  openTreatGacha() {
+    this.renderTreatGacha();
+    document.getElementById('treat-gacha-overlay').classList.remove('hidden');
+  },
+
+  closeTreatGacha() {
+    document.getElementById('treat-gacha-overlay').classList.add('hidden');
+  },
+
+  renderTreatGacha() {
+    const s = Game.state;
+    const el = document.getElementById('treat-gacha-body');
+    if (!el) return;
+    let html = `<div class="gacha-pity">已抽 ${s.treatGachaCount || 0} 抽 · 零食/装饰放入储物袋·杂物，用于在灵宠界面送礼培养好感</div>`;
+    html += `<div class="gacha-info">${PET_TREAT_POOL.map(t => `<span class="gacha-rate" style="color:${t.color}">${t.rarity} ${t.weight}%</span>`).join('')}</div>`;
+    html += `<button class="ink-btn" onclick="UI.treatGachaOnce()">🎡 抽一次（${PET_TREAT_COST}灵石）</button>`;
+    html += `<button class="ink-btn" onclick="UI.treatGachaTen()">🎡 十连（${PET_TREAT_COST * 10}灵石）</button>`;
+    html += `<button class="ink-btn" onclick="UI.treatGachaHundred()">🎡 百连（${Math.floor(PET_TREAT_COST * 100 * 0.8)}灵石·八折）</button>`;
+    el.innerHTML = html;
+  },
+
+  treatGachaOnce() {
+    playClickSound();
+    const r = treatGachaDraw();
+    if (r) { this.showPetGachaResult(r); this.renderTreatGacha(); this.renderPetOverlay(); }
+  },
+
+  treatGachaTen() {
+    playClickSound();
+    const res = treatGachaDrawTen();
+    if (res) { this.showTreatGachaTen(res); this.renderTreatGacha(); this.renderPetOverlay(); }
+  },
+
+  treatGachaHundred() {
+    playClickSound();
+    if (!window.confirm(`零食百连将消耗 ${Math.floor(PET_TREAT_COST * 100 * 0.8)} 灵石（八折），确定继续吗？`)) return;
+    const res = treatGachaDrawHundred();
+    if (res) { this.showTreatGachaHundred(res); this.renderTreatGacha(); this.renderPetOverlay(); }
+  },
+
+  showTreatGachaTen(res) {
+    const list = this.els.gachaTenList;
+    list.innerHTML = '';
+    res.list.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'gacha-ten-item';
+      div.style.color = r.color;
+      div.textContent = `${r.item.icon}${r.item.name}`;
+      list.appendChild(div);
+    });
+    const tip = document.createElement('div');
+    tip.className = 'gacha-ten-item';
+    tip.style.color = '#e6d3a0';
+    tip.textContent = '全部奖励已放入储物袋';
+    list.appendChild(tip);
+    this.els.gachaTenOverlay.classList.remove('hidden');
+  },
+
+  showTreatGachaHundred(res) {
+    const list = this.els.gachaHundredList;
+    list.innerHTML = '';
+    const rareCount = {};
+    res.list.forEach(r => { rareCount[r.rarity] = (rareCount[r.rarity] || 0) + 1; });
+    const summary = document.createElement('div');
+    summary.className = 'gacha-hundred-summary';
+    summary.innerHTML = PET_TREAT_POOL.map(t => {
+      const n = rareCount[t.rarity] || 0;
+      return n > 0 ? `<span style="color:${t.color}">${t.rarity}×${n}</span>` : '';
+    }).filter(Boolean).join(' ');
+    list.appendChild(summary);
+    const rareOrder = PET_TREAT_POOL.map(t => t.rarity);
+    const agg = {};
+    res.list.forEach(r => {
+      const key = 'item:' + r.item.id;
+      if (!agg[key]) agg[key] = { icon: r.item.icon, name: r.item.name, count: 0, color: r.color, rarity: r.rarity };
+      agg[key].count++;
+    });
+    Object.values(agg).sort((a, b) => rareOrder.indexOf(a.rarity) - rareOrder.indexOf(b.rarity)).forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'gacha-ten-item';
+      div.style.color = e.color;
+      div.textContent = `${e.icon}${e.name} ×${e.count}`;
+      list.appendChild(div);
+    });
+    this.els.gachaHundredOverlay.classList.remove('hidden');
+  },
+
   equipPetFromPanel(id) {
-    if (equipPet(id)) { this.renderPetPanel(); this.updateStats(); }
+    if (equipPet(id)) { this.renderPetOverlay(); this.updateStats(); }
   },
 
   feedPetFromPanel(id) {
-    if (feedPet(id)) { this.renderPetPanel(); this.updateStats(); }
+    if (feedPet(id)) { this.renderPetOverlay(); this.updateStats(); }
   },
 
   releasePetFromPanel(id) {
-    if (releasePet(id)) { this.renderPetPanel(); this.updateStats(); }
+    if (releasePet(id)) { this.renderPetOverlay(); this.updateStats(); }
   },
 
   feedPetItemFromPanel(id, itemId) {
@@ -1082,7 +1253,7 @@ const UI = {
     if (!n || n < 1) n = 1;
     if (n > c.max) n = c.max;
     this.countCancel();
-    if (feedPetByItem(c.petId, c.itemId, n)) { this.renderPetPanel(); this.updateStats(); }
+    if (feedPetByItem(c.petId, c.itemId, n)) { this.renderPetOverlay(); this.updateStats(); }
   },
 
   countCancel() {
@@ -1091,7 +1262,7 @@ const UI = {
   },
 
   starUpPetFromPanel(id) {
-    if (starUpPet(id)) { this.renderPetPanel(); this.updateStats(); }
+    if (starUpPet(id)) { this.renderPetOverlay(); this.updateStats(); }
   },
 
   renderSectTransfer() {
@@ -1562,7 +1733,6 @@ const UI = {
     if (name === 'bag') this.updateBag('all');
     if (name === 'stats') this.renderStatDetail();
     if (name === 'achievements') this.updateAchievements();
-    if (name === 'pet') this.renderPetPanel();
     if (name === 'daily') this.renderDaily();
     if (name === 'save') this.updateSaveSlots();
   },

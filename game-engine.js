@@ -610,7 +610,7 @@ function migratePets(s) {
     used.add(uid);
     const level = Math.max(1, p.level || 1);
     // 旧档若已有独立技能等级，完整保留；没有时按已有等级补齐进阶对应的技能等级。
-    const entry = { ...p, uid, level, exp: p.exp || 0, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0) };
+    const entry = { ...p, uid, level, exp: p.exp || 0, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0), favor: p.favor || 0, favorExp: p.favorExp || 0 };
     // 老玩家福利：历史神品灵宠补发一次随机神品天赋；已有天赋绝不改动。
     if (PETS[entry.id].quality === '神品' && !getPetTrait(entry)) entry.trait = rollDivineTrait(entry.id);
     return entry;
@@ -967,13 +967,61 @@ function getPetStatBonus(s, entry, stat) {
   return Math.floor((fixed + percent) * starMult);
 }
 
+// 好感度 → 技能概率系数：0 级 0.5 → 满级 1.5（线性）
+function getPetFavorMult(entry) {
+  const favor = entry.favor || 0;
+  return 0.5 + (favor / PET_FAVOR_MAX) * 1.0;
+}
+// 好感度信息（等级/进度/百分比），供 UI 渲染
+function getPetFavorInfo(entry) {
+  return {
+    favor: entry.favor || 0,
+    favorExp: entry.favorExp || 0,
+    max: PET_FAVOR_MAX,
+    expPerLevel: PET_FAVOR_EXP_PER_LEVEL,
+    pct: Math.min(100, Math.round(((entry.favorExp || 0) / PET_FAVOR_EXP_PER_LEVEL) * 100)),
+  };
+}
 function getPetSkillChance(entry) {
   const pet = PETS[entry.id];
-  return Math.min(0.75, pet.skillChance * getPetQualityGrowth(pet).skillChance * (1 + getPetSkillRank(entry) * 0.12));
+  return Math.min(0.85, pet.skillChance * getPetQualityGrowth(pet).skillChance * (1 + getPetSkillRank(entry) * 0.12) * getPetFavorMult(entry));
 }
 function getPetSkillMult(entry) {
   const pet = PETS[entry.id];
   return pet.skillMult * getPetQualityGrowth(pet).skillPower * (1 + getPetSkillRank(entry) * 0.18);
+}
+
+// 送灵宠零食/装饰：投其所好 ×2、送错 ×0.5，叠加好感进度，进度满升 1 级
+function feedPetTreat(s, petId, itemId) {
+  const item = ITEMS[itemId];
+  if (!item || !item.favor) { UI.showToast('该物品不能送灵宠'); return null; }
+  const entry = s.pets.find(p => p.uid === petId);
+  if (!entry) { UI.showToast('找不到这只灵宠'); return null; }
+  if ((s.bag[itemId] || 0) <= 0) { UI.showToast('没有该礼物'); return null; }
+  const pet = PETS[entry.id];
+  const likes = pet.likes || {};
+  const liked = (item.cat === 'food' && likes.food === item.taste) || (item.cat === 'decor' && likes.decor === item.style);
+  const gain = liked ? Math.floor(item.favor * 2) : Math.floor(item.favor * 0.5);
+  const before = entry.favor || 0;
+  if (before >= PET_FAVOR_MAX) {
+    UI.showToast(`${pet.name} 好感已满（${PET_FAVOR_MAX}级），不能再提升`);
+    return { gained: 0, favor: before, favorExp: entry.favorExp || 0, liked, isMax: true };
+  }
+  s.bag[itemId] -= 1;
+  let favor = before;
+  let favorExp = (entry.favorExp || 0) + gain;
+  while (favorExp >= PET_FAVOR_EXP_PER_LEVEL && favor < PET_FAVOR_MAX) {
+    favorExp -= PET_FAVOR_EXP_PER_LEVEL;
+    favor++;
+  }
+  if (favor >= PET_FAVOR_MAX) favorExp = 0;
+  entry.favor = favor;
+  entry.favorExp = favorExp;
+  const up = favor - before;
+  const tag = liked ? '（投其所好）' : '（不感兴趣）';
+  UI.showToast(`${pet.name} 收到 ${item.name}，好感 +${gain}${tag}${up > 0 ? `，好感提升至 ${favor} 级！` : ''}`);
+  autoSave(); UI.updateStats();
+  return { gained: gain, favor, favorExp, liked, leveledUp: up };
 }
 
 // 抽到的宠物入背包；神品允许重复，每只神品都随机拥有不同天赋。
@@ -990,7 +1038,7 @@ function addPetToBag(s, petId) {
     s.stone += refund;
     return { duplicate: true, refund };
   }
-  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1, star: 1 };
+  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1, star: 1, favor: 0, favorExp: 0 };
   if (pet.quality === '神品') entry.trait = rollDivineTrait(petId);
   entry.skillLevel = 0;
   s.pets.push(entry);
@@ -1100,6 +1148,63 @@ function petGachaDrawHundred() {
   autoSave();
   UI.updateStats();
   return { list, refund };
+}
+
+// 灵宠零食/装饰转盘：按权重随机，抽出道具入包
+function rollTreatOnce(s) {
+  s.treatGachaCount = (s.treatGachaCount || 0) + 1;
+  let roll = Math.random() * 100;
+  let tier = PET_TREAT_POOL[0];
+  for (const t of PET_TREAT_POOL) {
+    if (roll < t.weight) { tier = t; break; }
+    roll -= t.weight;
+  }
+  const pickId = tier.items[Math.floor(Math.random() * tier.items.length)];
+  return { type: 'item', item: ITEMS[pickId], rarity: tier.rarity, color: tier.color };
+}
+
+function treatGachaDraw() {
+  const s = Game.state;
+  if (s.stone < PET_TREAT_COST) { UI.showToast(`灵石不足（需 ${PET_TREAT_COST}）`); return null; }
+  s.stone -= PET_TREAT_COST;
+  const r = rollTreatOnce(s);
+  grantItem(s, r.item.id, 1);
+  r.granted = true;
+  autoSave();
+  UI.updateStats();
+  return r;
+}
+
+function treatGachaDrawTen() {
+  const s = Game.state;
+  const cost = PET_TREAT_COST * 10;
+  if (s.stone < cost) { UI.showToast(`灵石不足（十连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 10; i++) {
+    const r = rollTreatOnce(s);
+    grantItem(s, r.item.id, 1);
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list };
+}
+
+function treatGachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(PET_TREAT_COST * 100 * 0.8);
+  if (s.stone < cost) { UI.showToast(`灵石不足（百连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 100; i++) {
+    const r = rollTreatOnce(s);
+    grantItem(s, r.item.id, 1);
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list };
 }
 
 // 出战某只灵宠

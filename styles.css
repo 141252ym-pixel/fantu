@@ -1063,3 +1063,98 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pet-auto-release { margin: 10px 0; padding: 8px; border: 1px solid #4a3820; border-radius: 6px; color: #b09a6a; font-size: 12px; line-height: 1.8; }
 .pet-auto-release label { display: inline-block; margin-right: 9px; cursor: pointer; color: #d8c28d; }
 .pet-auto-release input { vertical-align: middle; margin-right: 3px; }
+
+/* ========== 灵宠独立界面（全屏覆盖） ========== */
+.pet-overlay {
+  position: fixed;
+  inset: 0;
+  background: #1a120a;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.25s;
+}
+.pet-overlay.hidden { display: none; }
+.pet-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #8b6b3d;
+  background: #241a0f;
+  flex-shrink: 0;
+}
+.pet-overlay-title { font-size: 20px; font-weight: 700; color: #f0e4c2; letter-spacing: 2px; }
+.pet-overlay-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.pet-overlay-actions .ink-btn { width: auto; padding: 7px 16px; font-size: 13px; }
+.pet-overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 50px;
+}
+.pet-overlay-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #3a2c1a;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.pet-like { color: #d8c28d; font-size: 12px; margin-top: 6px; line-height: 1.6; }
+.pet-favor { margin-top: 8px; }
+.pet-favor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: #ff8fa3;
+  font-weight: 600;
+}
+.pet-favor-bar {
+  height: 10px;
+  background: #2a1f14;
+  border: 1px solid #6b4f2a;
+  border-radius: 5px;
+  margin: 5px 0 3px;
+  overflow: hidden;
+}
+.pet-favor-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b81, #ff9aa3);
+  transition: width 0.3s;
+}
+.pet-favor-sub { color: #b09a6a; font-size: 12px; }
+
+/* 送礼物列表 */
+.treat-list {
+  margin: 10px 0 2px;
+  padding: 10px;
+  border: 1px dashed #5c4a2d;
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  text-align: left;
+}
+.treat-empty { color: #8a7a58; font-size: 12px; width: 100%; text-align: center; padding: 6px 0; }
+.treat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(139, 107, 61, 0.22);
+  color: #e8d5a8;
+  border: 1px solid #8b6b3d;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.treat-item:hover { background: rgba(139, 107, 61, 0.42); }
+.treat-item.liked { border-color: #ff6b81; color: #ffb3bd; }
+.treat-gain { color: #c9a962; font-weight: 600; white-space: nowrap; }
+.treat-item.liked .treat-gain { color: #ff8fa3; }
+
+/* 零食转盘弹窗 */
+.treat-gacha-card { max-width: 340px; }
