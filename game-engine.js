@@ -2423,11 +2423,13 @@ function playerSkill() {
     if (seal) e.rootedTurns = 1;
     extraText = `回复 ${heal} 气血${seal ? '，藤蔓封住敌方下次攻击' : ''}`;
   } else if (s.linggen === 'water') {
-    dmg = Math.max(1, Math.floor(s.matk * 1.1) - magicDef() + (s.pen || 0));
-    const heal = Math.max(1, Math.floor(s.maxHp * 0.10));
+    dmg = Math.max(1, Math.floor(s.matk * 1.45) - magicDef() + (s.pen || 0));
+    const heal = Math.max(1, Math.floor(s.maxHp * 0.05));
     s.hp = Math.min(s.maxHp, s.hp + heal);
-    Game.battle.waterGuard = 0.45;
-    extraText = `回复 ${heal} 气血，水幕可减免下一击45%伤害`;
+    Game.battle.waterGuard = 0.25;
+    e.waterTurns = 2;
+    e.waterDamage = Math.max(1, Math.floor(s.matk * 0.22));
+    extraText = `回复 ${heal} 气血，水幕减免下一击25%伤害，寒水渗透（每回合 ${e.waterDamage} 点，持续2回合）`;
   } else if (s.linggen === 'thunder') {
     const crit = Math.random() < 0.32;
     const mult = crit ? 2.8 : 1.7;
@@ -2602,6 +2604,13 @@ function enemyTurn() {
       e.hp -= e.burnDamage || 1;
       e.burnTurns--;
       logBattle(`${e.name} 被烈焰灼烧，受到 ${e.burnDamage || 1} 点伤害！`, 'player');
+      checkBattleEnd();
+      if (Game.battle.ended) return;
+    }
+    if (e.waterTurns > 0) {
+      e.hp -= e.waterDamage || 1;
+      e.waterTurns--;
+      logBattle(`${e.name} 被寒水侵蚀，受到 ${e.waterDamage || 1} 点伤害！`, 'player');
       checkBattleEnd();
       if (Game.battle.ended) return;
     }
