@@ -53,6 +53,8 @@ const UI = {
       gachaHundredOverlay: document.getElementById('gacha-hundred-overlay'),
       gachaHundredList: document.getElementById('gacha-hundred-list'),
       gachaHundredTitle: document.getElementById('gacha-hundred-title'),
+      batchSellConfirmOverlay: document.getElementById('batch-sell-confirm-overlay'),
+      batchSellConfirmDesc: document.getElementById('batch-sell-confirm-desc'),
       bossLootOverlay: document.getElementById('boss-loot-overlay'),
       bossLootIcon: document.getElementById('boss-loot-icon'),
       bossLootName: document.getElementById('boss-loot-name'),
@@ -1645,6 +1647,31 @@ const UI = {
     this.els.gachaHundredOverlay.classList.add('hidden');
   },
 
+  openBatchSellConfirm(item, count, cat) {
+    if (!item || count <= 0) return;
+    const gain = item.sell * count;
+    this.pendingBatchSell = { itemId: item.id, cat };
+    this.els.batchSellConfirmDesc.textContent = `确定出售 ${item.name}×${count}，获得 ${gain} 灵石？`;
+    this.els.batchSellConfirmOverlay.classList.remove('hidden');
+  },
+
+  cancelBatchSellConfirm() {
+    this.pendingBatchSell = null;
+    this.els.batchSellConfirmOverlay.classList.add('hidden');
+  },
+
+  confirmBatchSell() {
+    const pending = this.pendingBatchSell;
+    this.cancelBatchSellConfirm();
+    if (!pending) return;
+    playClickSound();
+    if (sellItemBatch(pending.itemId)) {
+      this.updateBag(pending.cat);
+      this.updateStats();
+      this.renderStatDetail();
+    }
+  },
+
   showBossLootCelebration(item, bossName) {
     if (!item || !this.els.bossLootOverlay) return;
     const blessings = [
@@ -2165,14 +2192,8 @@ const UI = {
                 sellAllBtn.className = 'item-sell';
                 sellAllBtn.textContent = `全部出售×${item.count}`;
                 sellAllBtn.addEventListener('click', () => {
-                    const gain = item.sell * item.count;
-                    if (!confirm(`确定出售${item.name}×${item.count}，获得${gain}灵石？`)) return;
                     playClickSound();
-                    if (sellItemBatch(item.id)) {
-                        UI.updateBag(cat);
-                        UI.updateStats();
-                        UI.renderStatDetail();
-                    }
+                    this.openBatchSellConfirm(item, item.count, cat);
                 });
                 actions.appendChild(sellAllBtn);
             }

@@ -191,6 +191,18 @@
       </div>
     </div>
 
+    <!-- 批量出售确认弹窗（避免 WebView 原生确认框显示为“关闭网页”） -->
+    <div id="batch-sell-confirm-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card">
+        <div class="gacha-name">确认全部出售</div>
+        <div id="batch-sell-confirm-desc" class="gacha-desc">—</div>
+        <div class="count-box">
+          <button class="ink-btn" onclick="UI.cancelBatchSellConfirm()">取消</button>
+          <button class="ink-btn danger" onclick="UI.confirmBatchSell()">确认出售</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 更新公告弹窗 -->
     <div id="announce-overlay" class="gacha-overlay hidden">
       <div class="gacha-card announce-card">
