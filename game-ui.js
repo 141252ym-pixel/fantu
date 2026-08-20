@@ -2472,8 +2472,8 @@ UI.renderStatDetail = function() {
 
 // ========== 装备备战页面 ==========
 const LOADOUT_SLOT_NAMES = {
-  weapon: '武器', armor: '防具', artifact: '法宝', shoes: '鞋履',
-  extra1: '通用槽 · 壹', extra2: '通用槽 · 贰',
+  weapon: '装备槽 · 壹', armor: '装备槽 · 贰', artifact: '装备槽 · 叁', shoes: '装备槽 · 肆',
+  extra1: '装备槽 · 伍', extra2: '装备槽 · 陆',
 };
 let _loadoutPickSlot = null;
 

@@ -527,12 +527,11 @@ function getItemSlot(item) {
   return item.type === 'weapon' ? 'weapon' : null;
 }
 
-// 判断某件装备能否装入指定槽位：固定槽只装对应 slot，通用槽装任意可装备物
+// 判断某件装备能否装入指定槽位：6 个槽全通用，装任意可装备物（不重复由 equipToSlot 保证）
 function canEquipToSlot(item, slot) {
   if (!item) return false;
-  if (FIXED_SLOTS.includes(slot)) return getItemSlot(item) === slot;
-  if (EXTRA_SLOTS.includes(slot)) return !!getItemSlot(item);
-  return false;
+  if (!EQUIP_SLOTS.includes(slot)) return false;
+  return !!getItemSlot(item);
 }
 
 // 卸下指定槽位的装备回背包（空槽返回 false）
@@ -687,10 +686,8 @@ function restoreBattleMana(s) {
   return gain;
 }
 
-// ===== 装备槽位：4 固定槽 + 2 通用槽（备战页），同一装备在 6 槽中不能重复 =====
-const FIXED_SLOTS = ['weapon', 'armor', 'artifact', 'shoes'];
-const EXTRA_SLOTS = ['extra1', 'extra2'];
-const EQUIP_SLOTS = FIXED_SLOTS.concat(EXTRA_SLOTS);
+// ===== 装备槽位：6 个通用槽（备战页），同一装备在 6 槽中不能重复 =====
+const EQUIP_SLOTS = ['weapon', 'armor', 'artifact', 'shoes', 'extra1', 'extra2'];
 
 // 装备强化只成长 effect 中的固定基础属性；百分比、减伤、额外回合等特殊词条恒定不变。
 const EQUIP_MAX_LEVEL = 100;
@@ -2045,14 +2042,11 @@ function useItem(id) {
       grantItem(s, id, 1);
       UI.showToast(`卸下${item.name}`);
     } else {
-      // 确定目标槽位：饰品映射到第一个空的通用槽
-      let targetSlot = slot;
-      if (slot === 'trinket') {
-        targetSlot = EXTRA_SLOTS.find(sl => !s.equipment[sl]);
-        if (!targetSlot) {
-          UI.showToast('饰品槽已满，请先在备战页卸下');
-          return false;
-        }
+      // 确定目标槽位：6 槽全通用，装到第一个空槽
+      const targetSlot = EQUIP_SLOTS.find(sl => !s.equipment[sl]);
+      if (!targetSlot) {
+        UI.showToast('装备槽已满，请先在备战页卸下');
+        return false;
       }
       // 不重复：该装备已在其他槽（双保险）
       if (EQUIP_SLOTS.some(sl => s.equipment[sl] === id)) {
@@ -2292,7 +2286,7 @@ function strengthenItem(id) {
   if (!item) return false;
   const slot = getItemSlot(item);
   if (!slot || slot === 'artifact') { UI.showToast('该物品无法强化'); return false; }
-  const isEquipped = s.equipment[slot] === id;
+  const isEquipped = EQUIP_SLOTS.some(sl => s.equipment[sl] === id);
   if (!isEquipped) { UI.showToast('请先装备再强化'); return false; }
 
   const lv = (s.equipLevel && s.equipLevel[id]) || 0;
@@ -2329,7 +2323,7 @@ function dismantleStrengthenedItem(id) {
   const level = (s.equipLevel && s.equipLevel[id]) || 0;
   const refundInfo = getEquipDismantleRefund(item, level);
   if (!item || !slot || refundInfo.total <= 0 || !hasItem(id)) return { ok: false, msg: '该装备无法分解' };
-  if (s.equipment && s.equipment[slot] === id) return { ok: false, msg: '请先卸下装备再分解' };
+  if (s.equipment && EQUIP_SLOTS.some(sl => s.equipment[sl] === id)) return { ok: false, msg: '请先卸下装备再分解' };
   const refund = refundInfo.total;
   removeItemFromState(s, id, 1);
   delete s.equipLevel[id];
