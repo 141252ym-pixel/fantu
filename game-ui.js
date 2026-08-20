@@ -1871,14 +1871,16 @@ const UI = {
         this.els.battleActions.appendChild(btn);
       });
 
-      // 法宝按钮：装备了特效法宝（如混沌钟）才显示
-      const specialId = s.equipment && ['artifact', 'weapon'].map(slot => s.equipment[slot]).find(id => id && ITEMS[id] && ITEMS[id].special);
-      if (specialId && ITEMS[specialId] && ITEMS[specialId].special) {
+      // 法宝按钮：装备了特效法宝（如乾坤鼎）才显示；6 槽全通用，逐件遍历
+      for (const slot of EQUIP_SLOTS) {
+        const specialId = s.equipment && s.equipment[slot];
+        const specialItem = specialId && ITEMS[specialId];
+        if (!specialItem || !specialItem.special) continue;
         const cd = (Game.battle.specialCd && Game.battle.specialCd[specialId]) || 0;
         const btn = document.createElement('button');
         btn.className = cd > 0 ? 'ink-btn disabled' : 'ink-btn';
         btn.disabled = cd > 0;
-        btn.textContent = cd > 0 ? `法宝·${ITEMS[specialId].name}（冷却${cd}回合）` : `法宝·${ITEMS[specialId].name}`;
+        btn.textContent = cd > 0 ? `法宝·${specialItem.name}（冷却${cd}回合）` : `法宝·${specialItem.name}`;
         btn.addEventListener('click', () => {
           playClickSound();
           playerUseSpecial(specialId);
