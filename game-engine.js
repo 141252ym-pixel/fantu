@@ -183,10 +183,21 @@ function getReincarnationBonus(s) {
   return 1 + 0.05 * (s.reincarnation || 0);
 }
 
-// 死亡转世重修：保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）
+// 死亡转世重修：默认保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）。
+// 测试码启用天命护持后，死亡不清档、不降修为，但仍累积同等的转世永久增幅。
 function reincarnate(s) {
-  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements, titles: s.titles, title: s.title };
   const reincarnation = (s.reincarnation || 0) + 1;
+  if (s.deathNoReincarnation) {
+    s.reincarnation = reincarnation;
+    realignRealm(s);
+    s.hp = s.maxHp;
+    s.mp = s.maxMp;
+    goToNode(s.innerGate ? 'inner_gate' : 'start');
+    autoSave();
+    UI.showToast(`天命护持生效！第 ${reincarnation} 世增幅已叠加，修为与实力完整保留。`);
+    return;
+  }
+  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements, titles: s.titles, title: s.title };
   newGame();
   const ns = Game.state;
   ns.name = keep.name;
@@ -198,7 +209,7 @@ function reincarnate(s) {
   realignRealm(ns); // 用炼气一层 + 转世加成重算属性
   goToNode('start');
   autoSave();
-  UI.showToast(`转世重修成功！第 ${reincarnation} 世，全属性 +${reincarnation * 10}%`);
+  UI.showToast(`转世重修成功！第 ${reincarnation} 世，全属性 +${reincarnation * 5}%`);
 }
 
 // ========== 存档 ==========
@@ -3171,6 +3182,10 @@ function redeemCode(code) {
   if (reward.tribulationBlessing) {
     s.tribulationBlessing = true;
     parts.push('获得天道庇佑（修为圆满后可免渡劫）');
+  }
+  if (reward.deathNoReincarnation) {
+    s.deathNoReincarnation = true;
+    parts.push('获得天命护持（死亡不降修为，仍获转世增幅）');
   }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }
   if (reward.xp) {

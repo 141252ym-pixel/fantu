@@ -2196,7 +2196,7 @@ const STORY_NODES = {
     title: '陨落',
     text: '魔尊的力量远超你的想象。你终究没能撑到最后……\n\n修仙一途，本就是逆天而行。败了，便是身死道消。\n\n然而道心不灭，一缕真灵不散——转世重修，来世再战！',
     choices: [
-      { label: '转世重修', action: () => { reincarnate(Game.state); } },
+      { label: s => s.deathNoReincarnation ? '天命护持（修为不损）' : '转世重修', action: () => { reincarnate(Game.state); } },
       { label: '读取存档', action: () => { UI.openSidePanel('save'); } },
     ],
   },
@@ -2826,6 +2826,7 @@ const REDEEM_CODES = {
   'SOMETHINGFORNOTHING': { tribulationBlessing: true },
   // 策划测试码：可重复使用，便于快速验证数值与流程。
   '63924817': { stone: 500000, xp: 500000, skipTribulations: true, repeatable: true },
+  '47285319': { deathNoReincarnation: true },
   '80571346': { items: [
     { id: 'tun_tushenjian', count: 1 },
     { id: 'tun_canglongqiang', count: 1 },

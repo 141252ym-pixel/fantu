@@ -391,13 +391,14 @@ const UI = {
     choices.forEach((c, idx) => {
       const btn = document.createElement('button');
       btn.className = 'ink-btn';
-      btn.textContent = c.label;
+      btn.textContent = typeof c.label === 'function' ? c.label(s) : c.label;
 
       // 检查需求
       if (c.req && !c.req(Game.state)) {
         btn.classList.add('disabled');
         btn.disabled = true;
-        btn.textContent = c.label + ' （条件不足）';
+        const label = typeof c.label === 'function' ? c.label(s) : c.label;
+        btn.textContent = label + ' （条件不足）';
       }
 
       btn.addEventListener('click', () => {
