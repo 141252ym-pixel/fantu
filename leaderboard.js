@@ -348,6 +348,8 @@ const LB = {
   // ---------- 启动 ----------
   init() {
     if (!this.configured()) return;
+    // 打开游戏即推送一次：让从不点开榜单的玩家也能上榜（onSave 内部自带去重 + 节流）
+    this.onSave();
     // 补传上次离线时攒下的成绩
     this.flushPending();
     window.addEventListener('online', () => this.flushPending());
