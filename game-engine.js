@@ -1845,7 +1845,7 @@ function playerCastGongfa(id) {
     logBattle(`【${g.name}】消耗 ${manaCost} 灵力，回复 ${heal} 点气血！`, 'player');
   } else if (combat.kind === 'buff') {
     Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
-    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns);
+    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns + 1);
     logBattle(`【${g.name}】消耗 ${manaCost} 灵力，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
   } else if (combat.kind === 'guard') {
     Game.battle.danxiaGuard = { reduce: combat.guard, reflect: combat.reflect || 1 };
@@ -1861,7 +1861,7 @@ function playerCastGongfa(id) {
     }
     s.hp -= hpCost;
     Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
-    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns);
+    Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns + 1);
     logBattle(`【${g.name}】燃去 ${hpCost} 点气血，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
   } else if (combat.kind === 'blood_strike') {
     const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
@@ -2816,52 +2816,55 @@ function playerSkill() {
     return;
   }
   s.mp -= manaCost;
+  const atkBoost = 1 + (Game.battle.attackBoost || 0);
+  const matk = s.matk * atkBoost;
+  const atk = s.atk * atkBoost;
   let dmg = 0;
   let extraText = '';
   const magicDef = () => getEnemyDefense(e, true);
   if (s.linggen === 'fire') {
-    dmg = Math.max(1, Math.floor(s.matk * 2.05) - magicDef() + (s.pen || 0));
+    dmg = Math.max(1, Math.floor(matk * 2.05) - magicDef() + (s.pen || 0));
     if (isFinalBoss(e)) extraText = `${e.name}免疫灼烧`;
     else {
       e.burnTurns = 2;
-      e.burnDamage = Math.max(1, Math.floor(s.matk * 0.28));
+      e.burnDamage = Math.max(1, Math.floor(matk * 0.28));
       extraText = `烈焰附体（每回合 ${e.burnDamage} 点，持续2回合）`;
     }
   } else if (s.linggen === 'wood') {
-    dmg = Math.max(1, Math.floor(s.matk * 1.15) - magicDef() + (s.pen || 0));
+    dmg = Math.max(1, Math.floor(matk * 1.15) - magicDef() + (s.pen || 0));
     const heal = Math.max(1, Math.floor(s.maxHp * 0.12));
     s.hp = Math.min(s.maxHp, s.hp + heal);
     const seal = !isFinalBoss(e) && Math.random() < 0.45;
     if (seal) e.rootedTurns = 1;
     extraText = `回复 ${heal} 气血${seal ? '，藤蔓封住敌方下次攻击' : ''}`;
   } else if (s.linggen === 'water') {
-    dmg = Math.max(1, Math.floor(s.matk * 1.45) - magicDef() + (s.pen || 0));
+    dmg = Math.max(1, Math.floor(matk * 1.45) - magicDef() + (s.pen || 0));
     const heal = Math.max(1, Math.floor(s.maxHp * 0.02));
     s.hp = Math.min(s.maxHp, s.hp + heal);
     Game.battle.waterGuard = 0.25;
     if (isFinalBoss(e)) extraText = `回复 ${heal} 气血，水幕减免下一击25%伤害（${e.name}免疫寒水侵蚀）`;
     else {
       e.waterTurns = 2;
-      e.waterDamage = Math.max(1, Math.floor(s.matk * 0.22));
+      e.waterDamage = Math.max(1, Math.floor(matk * 0.22));
       extraText = `回复 ${heal} 气血，水幕减免下一击25%伤害，寒水渗透（每回合 ${e.waterDamage} 点，持续2回合）`;
     }
   } else if (s.linggen === 'thunder') {
     const crit = Math.random() < 0.32;
     const mult = crit ? 2.8 : 1.7;
-    dmg = Math.max(1, Math.floor(s.matk * mult) - magicDef() + (s.pen || 0));
+    dmg = Math.max(1, Math.floor(matk * mult) - magicDef() + (s.pen || 0));
     if (!isFinalBoss(e) && Math.random() < 0.28) { e.stunned = true; extraText = '敌人陷入麻痹'; }
     if (isFinalBoss(e)) extraText = `${e.name}免疫麻痹`;
     if (crit) extraText = (extraText ? `${extraText}，` : '') + '雷霆暴击';
   } else if (s.linggen === 'sword') {
-    const bonusPen = Math.max(8, Math.floor(s.atk * 0.12));
-    dmg = Math.max(1, Math.floor(s.matk * 1.35) - magicDef() + (s.pen || 0) + bonusPen);
+    const bonusPen = Math.max(8, Math.floor(atk * 0.12));
+    dmg = Math.max(1, Math.floor(matk * 1.35) - magicDef() + (s.pen || 0) + bonusPen);
     if (Math.random() < 0.42) {
-      const follow = Math.max(1, Math.floor(s.matk * 0.75) - magicDef() + (s.pen || 0) + bonusPen);
+      const follow = Math.max(1, Math.floor(matk * 0.75) - magicDef() + (s.pen || 0) + bonusPen);
       const actualFollow = dealDamageToEnemy(e, follow);
       extraText = `剑气追击 ${actualFollow} 点伤害`;
     }
   } else { // metal
-    dmg = Math.max(1, Math.floor(s.matk * 1.4) - magicDef() + (s.pen || 0));
+    dmg = Math.max(1, Math.floor(matk * 1.4) - magicDef() + (s.pen || 0));
     if (!isFinalBoss(e)) {
       e.armorBreak = Math.max(e.armorBreak || 0, Math.max(3, Math.floor(e.def * 0.30)));
       e.armorBreakTurns = 2;
