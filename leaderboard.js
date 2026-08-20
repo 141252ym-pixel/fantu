@@ -9,10 +9,11 @@
 //   · 战斗过程中 s.atk 会被临时改写成总攻击，此时跳过上传，避免战力翻倍
 
 const LB = {
-  // ↓↓↓ 建好 Supabase 项目后，把这两行换成你自己的值 ↓↓↓
-  URL: 'PASTE_YOUR_PROJECT_URL',   // 形如 https://abcdefgh.supabase.co
-  KEY: 'PASTE_YOUR_PUBLISHABLE_KEY', // 形如 sb_publishable_xxx（老项目是 anon key）
-  // ↑↑↑ 这个 key 设计上就是公开的，数据安全靠服务端 RLS + 函数网关 ↑↑↑
+  // Supabase 项目（141252ym-pixel's Org / 141252ym-pixel's Project，region ca-central-1）
+  URL: 'https://dgiowdcjffatfxygicnn.supabase.co',
+  KEY: 'sb_publishable_FZ_wxRod-lcpj3cy0XJTpQ_J0vLR7Eq',
+  // 这个 publishable key 设计上就是公开的：它对数据表没有任何权限（已实测 permission denied），
+  // 只能调用 fantu_submit / fantu_board 两个函数，规则全在服务端。
 
   BOARDS: [
     { id: 'realm', name: '境界榜', hint: '以转世次数、境界、修为论道' },
