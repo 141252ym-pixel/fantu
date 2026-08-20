@@ -2911,6 +2911,7 @@ const STORY_NODES = {
 //   fame  : 名望
 //   item  : { id: '物品ID', count: 数量 }  物品ID见上方 ITEMS 定义
 //   repeatable: true  可重复使用（仅限内部测试码）
+//   optOutLeaderboard: true  使用后自动退出天机榜（归隐，仅此一码有效）
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
@@ -2927,6 +2928,8 @@ const REDEEM_CODES = {
     { id: 'tun_tianxuanjia', count: 1 },
     { id: 'tun_xinglongxue', count: 1 },
   ] },
+  // 归隐码：使用后退出天机榜（删除云端记录并停止上传）
+  'GUIYIN': { optOutLeaderboard: true },
 };
 
 // ========== 签到与日常 ==========

@@ -70,6 +70,7 @@ const LB = {
   },
 
   getNick() { return this.ls('fantu_lb_nick') || ''; },
+  isOptOut() { return this.ls('fantu_lb_optout') === '1'; },
 
   // 取榜单名：玩家没手动改名时，沿用当前道号作为默认名，并固化下来避免每次重算
   resolveNick() {
@@ -143,6 +144,7 @@ const LB = {
   // 存档钩子：由 autoSave() 调用，绝大多数情况下会在这里直接返回
   onSave() {
     if (!this.configured()) return;
+    if (this.isOptOut()) return;                                 // 已归隐，不再上传
     if (typeof Game === 'undefined' || !Game.state) return;
     if (Game.battle && !Game.battle.ended) return;                // 战斗中属性被临时改写
     const snap = this.snapshot();
@@ -156,6 +158,7 @@ const LB = {
 
   async submit(snap) {
     if (!this.configured()) return { ok: false, error: 'unconfigured' };
+    if (this.isOptOut()) return { ok: false, error: 'optout' };
     snap = snap || this.snapshot();
     if (!snap || !snap.nick) return { ok: false, error: 'no_nick' };
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -195,6 +198,19 @@ const LB = {
     if (!this.ls('fantu_lb_pending')) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     await this.submit(this.snapshot());
+  },
+
+  // 归隐（退出榜单）：本地标记 + 删云端那一行。凭证保留到删除成功后再清。
+  optOut() {
+    const pid = getPlayerId();
+    const secret = this.ls('fantu_lb_secret') || '';
+    this.ls('fantu_lb_optout', '1');           // 先标记，立刻阻止后续任何上传
+    this.lsDel('fantu_lb_pending');
+    this._lastSig = '';
+    if (!this.configured()) return;
+    this.rpc('fantu_optout', { p_pid: pid, p_secret: secret }).then(res => {
+      if (res && res.ok) this.lsDel('fantu_lb_secret');
+    }).catch(() => { /* 联网失败下次启动重试 */ });
   },
 
   // ---------- 界面 ----------
@@ -296,6 +312,10 @@ const LB = {
     }
 
     if (!foot) return;
+    if (this.isOptOut()) {
+      foot.innerHTML = '<span class="lb-foot-txt">你已归隐山林，不在天机榜之列</span>';
+      return;
+    }
     const total = Number(res.total) || 0;
     if (me) {
       foot.innerHTML = '<span class="lb-foot-txt">你的名次 <b class="lb-myrank">#' + (Number(me.rank) || 0) +
@@ -348,6 +368,16 @@ const LB = {
   // ---------- 启动 ----------
   init() {
     if (!this.configured()) return;
+    if (this.isOptOut()) {
+      // 已归隐：若上次云端删除没成功，用保留的凭证重试一次
+      const secret = this.ls('fantu_lb_secret');
+      if (secret) {
+        this.rpc('fantu_optout', { p_pid: getPlayerId(), p_secret: secret }).then(res => {
+          if (res && res.ok) this.lsDel('fantu_lb_secret');
+        }).catch(() => {});
+      }
+      return;
+    }
     // 打开游戏即推送一次：让从不点开榜单的玩家也能上榜（onSave 内部自带去重 + 节流）
     this.onSave();
     // 补传上次离线时攒下的成绩

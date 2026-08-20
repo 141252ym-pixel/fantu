@@ -3322,6 +3322,10 @@ function redeemCode(code) {
       parts.push(`${it ? it.name : itm.id}×${cnt}`);
     }
   }
+  if (reward.optOutLeaderboard) {
+    if (window.LB) LB.optOut();
+    parts.push('已归隐山林，退出天机榜');
+  }
 
   if (!reward.repeatable) s.redeemed.push(key);
   autoSave();

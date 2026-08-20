@@ -7,7 +7,7 @@
 -- 设计要点：
 --   1. 一张表存全部玩家，三个榜只是同一份数据的三种 ORDER BY
 --   2. 启用 RLS 且不建任何 policy ⇒ 前端拿着公开 key 也无法直连读写这张表
---   3. 前端只能调下面两个 SECURITY DEFINER 函数，所有规则由服务端掌握
+--   3. 前端只能调下面三个 SECURITY DEFINER 函数，所有规则由服务端掌握
 --      （等价于 Edge Function 网关的效果，但不需要装 CLI 部署）
 -- ============================================================================
 
@@ -218,13 +218,46 @@ $$;
 
 
 -- ---------------------------------------------------------------------------
--- 6. 只把这两个函数的执行权限开给匿名客户端
+-- 6. 退出榜单（归隐）：删除自己那一行，仅本人凭证可删
+-- ---------------------------------------------------------------------------
+create or replace function public.fantu_optout(p_pid text, p_secret text default null)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row public.fantu_leaderboard%rowtype;
+begin
+  if p_pid is null or p_pid !~ '^F[A-Z0-9]{6}$' then
+    return json_build_object('ok', false, 'error', 'bad_player_id');
+  end if;
+
+  select * into v_row from public.fantu_leaderboard where player_id = p_pid;
+  if not found then
+    return json_build_object('ok', true, 'deleted', false);   -- 本就不在榜
+  end if;
+
+  if p_secret is null or p_secret = '' or v_row.secret::text <> p_secret then
+    return json_build_object('ok', false, 'error', 'bad_secret');
+  end if;
+
+  delete from public.fantu_leaderboard where player_id = p_pid;
+  return json_build_object('ok', true, 'deleted', true);
+end;
+$$;
+
+
+-- ---------------------------------------------------------------------------
+-- 7. 只把这三个函数的执行权限开给匿名客户端
 -- ---------------------------------------------------------------------------
 revoke all on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text) from public;
 revoke all on function public.fantu_board(text,text) from public;
+revoke all on function public.fantu_optout(text,text) from public;
 
 grant execute on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text) to anon, authenticated;
 grant execute on function public.fantu_board(text,text) to anon, authenticated;
+grant execute on function public.fantu_optout(text,text) to anon, authenticated;
 
 
 -- ---------------------------------------------------------------------------
