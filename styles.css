@@ -203,6 +203,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   animation: fadeIn 0.3s;
 }
 .battle-overlay.hidden { display: none; }
@@ -210,6 +213,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .battle-panel {
   width: 100%;
   max-width: 480px;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   background: linear-gradient(180deg, #2a1f14, #1a120a);
   border: 2px solid #8b6b3d;
   border-radius: 8px;
@@ -217,6 +222,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 20px;
   box-shadow: 0 0 40px rgba(201, 169, 98, 0.25);
   color: #f0e4c2;
 }
@@ -300,6 +309,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
 /* ========== 抽卡 ========== */
@@ -325,7 +335,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .gacha-overlay.hidden { display: none; }
 /* 结果弹窗盖在转盘界面之上（转盘同为 .gacha-overlay 且 DOM 靠后，需更高 z-index 才能让结果可见） */
-#gacha-overlay, #gacha-ten-overlay, #gacha-hundred-overlay { z-index: 90; }
+#gacha-overlay, #gacha-ten-overlay, #gacha-hundred-overlay, #boss-loot-overlay { z-index: 90; }
 .gacha-card {
   width: 100%;
   max-width: 300px;
@@ -355,6 +365,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gacha-name { font-size: 20px; font-weight: 700; letter-spacing: 2px; }
 .gacha-desc { font-size: 13px; color: #d4c08a; }
 .gacha-card .ink-btn { width: 100%; }
+.boss-loot-card { border-color: #d9b85d; box-shadow: 0 0 48px rgba(245, 205, 95, 0.48); }
+.boss-loot-title { color: #ffe49a; font-weight: 700; font-size: 18px; letter-spacing: 4px; }
 
 /* 批量喂养数量输入弹窗 */
 .count-box { display: flex; align-items: center; gap: 10px; width: 100%; }

@@ -155,12 +155,23 @@
       </div>
     </div>
 
-    <!-- 百连抽结果弹窗 -->
+    <!-- 批量抽取结果弹窗 -->
     <div id="gacha-hundred-overlay" class="gacha-overlay hidden">
       <div class="gacha-card gacha-ten-card">
-        <div class="gacha-ten-title">百连抽结果</div>
+        <div id="gacha-hundred-title" class="gacha-ten-title">百连抽结果</div>
         <div id="gacha-hundred-list" class="gacha-ten-list"></div>
         <button class="ink-btn" onclick="UI.closeGachaHundred()">收下</button>
+      </div>
+    </div>
+
+    <!-- 终局 Boss 神藏掉落祝福 -->
+    <div id="boss-loot-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card boss-loot-card">
+        <div class="boss-loot-title">✦ 天降神藏 ✦</div>
+        <div id="boss-loot-icon" class="gacha-icon">✨</div>
+        <div id="boss-loot-name" class="gacha-name">—</div>
+        <div id="boss-loot-blessing" class="gacha-desc">—</div>
+        <button class="ink-btn" onclick="UI.closeBossLootCelebration()">收下神藏</button>
       </div>
     </div>
 

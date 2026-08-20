@@ -52,6 +52,11 @@ const UI = {
       gachaTenList: document.getElementById('gacha-ten-list'),
       gachaHundredOverlay: document.getElementById('gacha-hundred-overlay'),
       gachaHundredList: document.getElementById('gacha-hundred-list'),
+      gachaHundredTitle: document.getElementById('gacha-hundred-title'),
+      bossLootOverlay: document.getElementById('boss-loot-overlay'),
+      bossLootIcon: document.getElementById('boss-loot-icon'),
+      bossLootName: document.getElementById('boss-loot-name'),
+      bossLootBlessing: document.getElementById('boss-loot-blessing'),
       loginOverlay: document.getElementById('login-overlay'),
       loginName: document.getElementById('login-name'),
       loginContinue: document.getElementById('login-continue'),
@@ -767,6 +772,11 @@ const UI = {
     });
     el.appendChild(info);
 
+    const discountInfo = document.createElement('div');
+    discountInfo.id = 'pet-gacha-discount-info';
+    discountInfo.className = 'gacha-pity';
+    el.appendChild(discountInfo);
+
     // 喂养道具数量
     const food = document.createElement('div');
     food.className = 'gacha-pity';
@@ -842,42 +852,70 @@ const UI = {
     // 抽一次
     const btn = document.createElement('button');
     btn.className = 'ink-btn';
-    btn.textContent = `🐾 抽灵宠（${PET_GACHA_COST}灵石）`;
+    btn.dataset.petGachaCount = '1';
     btn.addEventListener('click', () => {
       playClickSound();
       const r = petGachaDraw();
-      if (r) { this.showPetGachaResult(r); this.renderTame(); }
+      // 抽取后只展示结果弹窗，避免重绘灵宠列表将抽取按钮挤位；新灵宠请在灵宠背包查看。
+      if (r) { this.showPetGachaResult(r); this.refreshPetGachaDiscounts(); }
     });
     el.appendChild(btn);
 
     // 十连
     const tenBtn = document.createElement('button');
     tenBtn.className = 'ink-btn';
-    tenBtn.textContent = `🐾 十连抽灵宠（${PET_GACHA_COST * 10}灵石）`;
+    tenBtn.dataset.petGachaCount = '10';
     tenBtn.addEventListener('click', () => {
       playClickSound();
       const res = petGachaDrawTen();
-      if (res) { this.showPetGachaTen(res); this.renderTame(); }
+      if (res) { this.showPetGachaTen(res); this.refreshPetGachaDiscounts(); }
     });
     el.appendChild(tenBtn);
 
-    // 百连（八折）
+    // 百连
     const hundredBtn = document.createElement('button');
     hundredBtn.className = 'ink-btn';
-    hundredBtn.textContent = `🐾 百连抽灵宠（${Math.floor(PET_GACHA_COST * 100 * 0.8)}灵石·八折）`;
+    hundredBtn.dataset.petGachaCount = '100';
     hundredBtn.addEventListener('click', () => {
       playClickSound();
-      if (!window.confirm(`灵宠百连抽将消耗 ${Math.floor(PET_GACHA_COST * 100 * 0.8)} 灵石（八折），确定继续吗？`)) return;
+      const purchase = getGachaPurchaseInfo(s, 'pet', 100);
+      if (!window.confirm(`灵宠百连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
       const res = petGachaDrawHundred();
-      if (res) { this.showPetGachaHundred(res); this.renderTame(); }
+      if (res) { this.showPetGachaHundred(res); this.refreshPetGachaDiscounts(); }
     });
     el.appendChild(hundredBtn);
+
+    const thousandBtn = document.createElement('button');
+    thousandBtn.className = 'ink-btn';
+    thousandBtn.dataset.petGachaCount = '1000';
+    thousandBtn.addEventListener('click', () => {
+      playClickSound();
+      const purchase = getGachaPurchaseInfo(s, 'pet', 1000);
+      if (!window.confirm(`灵宠千连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
+      const res = petGachaDrawThousand();
+      if (res) { this.showPetGachaHundred(res); this.refreshPetGachaDiscounts(); }
+    });
+    el.appendChild(thousandBtn);
+    this.refreshPetGachaDiscounts();
 
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
     backBtn.textContent = '返回';
     backBtn.addEventListener('click', () => goToNode('fangshi'));
     el.appendChild(backBtn);
+  },
+
+  refreshPetGachaDiscounts() {
+    const s = Game.state;
+    if (!s) return;
+    const names = { 1: '🐾 抽灵宠', 10: '🐾 十连抽灵宠', 100: '🐾 百连抽灵宠', 1000: '🐾 千连抽灵宠' };
+    document.querySelectorAll('[data-pet-gacha-count]').forEach(btn => {
+      const count = Number(btn.dataset.petGachaCount);
+      const info = getGachaPurchaseInfo(s, 'pet', count);
+      btn.textContent = `${names[count]}（${info.cost}灵石${info.discounted ? `·八折剩${info.remaining}次` : ''}）`;
+    });
+    const infoEl = document.getElementById('pet-gacha-discount-info');
+    if (infoEl) infoEl.textContent = `独立八折次数：单抽${getGachaPurchaseInfo(s, 'pet', 1).remaining} · 十连${getGachaPurchaseInfo(s, 'pet', 10).remaining} · 百连${getGachaPurchaseInfo(s, 'pet', 100).remaining} · 千连${getGachaPurchaseInfo(s, 'pet', 1000).remaining}`;
   },
 
   // 灵宠抽奖结果弹窗（复用藏宝阁转盘）
@@ -928,6 +966,7 @@ const UI = {
   // 灵宠百连结果弹窗（复用藏宝阁百连）
   showPetGachaHundred(res) {
     const list = this.els.gachaHundredList;
+    if (this.els.gachaHundredTitle) this.els.gachaHundredTitle.textContent = `${res.drawCount === 1000 ? '千连' : '百连'}抽结果`;
     list.innerHTML = '';
     // 稀有度统计
     const rareCount = {};
@@ -1466,10 +1505,17 @@ const UI = {
     });
     el.appendChild(info);
 
+    const discountInfo = document.createElement('div');
+    discountInfo.className = 'gacha-pity';
+    const discountParts = [1, 10, 100, 1000].map(count => `${({ 1: '单抽', 10: '十连', 100: '百连', 1000: '千连' })[count]}${getGachaPurchaseInfo(s, 'equipment', count).remaining}`);
+    discountInfo.textContent = `独立八折次数：${discountParts.join(' · ')}`;
+    el.appendChild(discountInfo);
+
     // 单抽
     const btn = document.createElement('button');
     btn.className = 'ink-btn';
-    btn.textContent = `抽一次（${GACHA_COST}灵石）`;
+    const singlePurchase = getGachaPurchaseInfo(s, 'equipment', 1);
+    btn.textContent = `抽一次（${singlePurchase.cost}灵石${singlePurchase.discounted ? `·八折剩${singlePurchase.remaining}次` : ''}）`;
     btn.addEventListener('click', () => {
       playClickSound();
       const r = gachaDraw();
@@ -1480,7 +1526,8 @@ const UI = {
     // 十连
     const tenBtn = document.createElement('button');
     tenBtn.className = 'ink-btn';
-    tenBtn.textContent = `十连抽（${GACHA_COST * 10}灵石）`;
+    const tenPurchase = getGachaPurchaseInfo(s, 'equipment', 10);
+    tenBtn.textContent = `十连抽（${tenPurchase.cost}灵石${tenPurchase.discounted ? `·八折剩${tenPurchase.remaining}次` : ''}）`;
     tenBtn.addEventListener('click', () => {
       playClickSound();
       const rs = gachaDrawTen();
@@ -1488,17 +1535,32 @@ const UI = {
     });
     el.appendChild(tenBtn);
 
-    // 百连（八折）
+    // 百连
     const hundredBtn = document.createElement('button');
     hundredBtn.className = 'ink-btn';
-    hundredBtn.textContent = `百连抽（${Math.floor(GACHA_COST * 100 * 0.8)}灵石·八折）`;
+    const hundredPurchase = getGachaPurchaseInfo(s, 'equipment', 100);
+    hundredBtn.textContent = `百连抽（${hundredPurchase.cost}灵石${hundredPurchase.discounted ? `·八折剩${hundredPurchase.remaining}次` : ''}）`;
     hundredBtn.addEventListener('click', () => {
       playClickSound();
-      if (!window.confirm(`百连抽将消耗 ${Math.floor(GACHA_COST * 100 * 0.8)} 灵石（八折），确定继续吗？`)) return;
+      const purchase = getGachaPurchaseInfo(s, 'equipment', 100);
+      if (!window.confirm(`百连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
       const rs = gachaDrawHundred();
       if (rs) { this.showGachaHundred(rs); this.renderGacha(); }
     });
     el.appendChild(hundredBtn);
+
+    const thousandBtn = document.createElement('button');
+    thousandBtn.className = 'ink-btn';
+    const thousandPurchase = getGachaPurchaseInfo(s, 'equipment', 1000);
+    thousandBtn.textContent = `千连抽（${thousandPurchase.cost}灵石${thousandPurchase.discounted ? `·八折剩${thousandPurchase.remaining}次` : ''}）`;
+    thousandBtn.addEventListener('click', () => {
+      playClickSound();
+      const purchase = getGachaPurchaseInfo(s, 'equipment', 1000);
+      if (!window.confirm(`千连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
+      const rs = gachaDrawThousand();
+      if (rs) { this.showGachaHundred(rs, 1000); this.renderGacha(); }
+    });
+    el.appendChild(thousandBtn);
 
     // 图鉴
     const codexBtn = document.createElement('button');
@@ -1546,8 +1608,9 @@ const UI = {
     this.els.gachaTenOverlay.classList.add('hidden');
   },
 
-  showGachaHundred(results) {
+  showGachaHundred(results, drawCount = 100) {
     const list = this.els.gachaHundredList;
+    if (this.els.gachaHundredTitle) this.els.gachaHundredTitle.textContent = `${drawCount === 1000 ? '千连' : '百连'}抽结果`;
     list.innerHTML = '';
     // 稀有度统计（按池子顺序展示）
     const rareCount = {};
@@ -1579,6 +1642,24 @@ const UI = {
 
   closeGachaHundred() {
     this.els.gachaHundredOverlay.classList.add('hidden');
+  },
+
+  showBossLootCelebration(item, bossName) {
+    if (!item || !this.els.bossLootOverlay) return;
+    const blessings = [
+      `恭喜道友！${bossName}陨落之际遗下神藏「${item.name}」。愿此宝护你仙途长明，问鼎大道！`,
+      `天机垂怜，${bossName}的遗藏认你为主。得「${item.name}」相助，道友当破尽万劫！`,
+      `神光落入掌中！你从${bossName}身上获得「${item.name}」，愿你执此至宝，直上九霄。`,
+    ];
+    this.els.bossLootIcon.textContent = item.icon;
+    this.els.bossLootName.textContent = item.name;
+    this.els.bossLootName.style.color = item.color || '#ffe49a';
+    this.els.bossLootBlessing.textContent = blessings[Math.floor(Math.random() * blessings.length)];
+    this.els.bossLootOverlay.classList.remove('hidden');
+  },
+
+  closeBossLootCelebration() {
+    this.els.bossLootOverlay.classList.add('hidden');
   },
 
   // ========== 战斗 ==========
@@ -1976,6 +2057,7 @@ const UI = {
     items.forEach(item => {
       const equipped = item._equipped === true;
       const lv = (s.equipLevel && s.equipLevel[item.id]) || 0;
+      const enhance = getEquipEnhanceSummary(s, item);
       const usable = !!getItemSlot(item) || item.type === 'pill'
         || !!((item.type === 'material' || item.type === 'misc') && item.effect);
 
@@ -1991,6 +2073,7 @@ const UI = {
         <div class="item-info">
           <div class="item-name"${nameStyle}>${item.name}${equipped ? '〔已装备〕' : ''}${equipped && lv > 0 ? ` +${lv}` : ''}</div>
           <div class="item-desc">${item.desc}${item.sell ? ` · 售价${item.sell}灵石` : ''}</div>
+          ${enhance ? `<div class="item-desc">强化基础${({ atk: '物攻', matk: '法攻', def: '物抗', mdef: '法抗', pen: '穿透' })[enhance.prefix]}：${enhance.base} → ${enhance.total}（+${enhance.level}/100；百分比词条固定）</div>` : ''}
         </div>
         <div class="item-count">${equipped ? '' : `×${item.count}`}</div>
       `;
@@ -2022,7 +2105,8 @@ const UI = {
       if (equipped && getItemSlot(item) !== 'artifact') {
         const strBtn = document.createElement('button');
         strBtn.className = 'item-str';
-        strBtn.textContent = lv > 0 ? `强化 +${lv}` : '强化';
+        const nextCost = getEquipStrengthenStoneCost(lv);
+        strBtn.textContent = `强化 +${lv}/100（强化石×${nextCost}）`;
         if (lv >= EQUIP_MAX_LEVEL) {
           strBtn.disabled = true;
           strBtn.style.opacity = '0.4';
@@ -2036,6 +2120,26 @@ const UI = {
           }
         });
         actions.appendChild(strBtn);
+      }
+
+      if (!equipped && getItemSlot(item) && (lv > 0 || item.rarity === '仙品' || item.rarity === '神品')) {
+        const dismantleBtn = document.createElement('button');
+        const refundInfo = getEquipDismantleRefund(item, lv);
+        dismantleBtn.className = 'item-sell';
+        dismantleBtn.textContent = `分解（返强化石×${refundInfo.total}）`;
+        dismantleBtn.addEventListener('click', () => {
+          const rarityText = refundInfo.rarityRefund ? `（含${item.rarity}装备基础返还×${refundInfo.rarityRefund}）` : '';
+          if (!confirm(`确定分解已强化的${item.name} +${lv}？\n将返还装备强化石×${refundInfo.total}${rarityText}，已消耗灵石不返还。`)) return;
+          playClickSound();
+          const result = dismantleStrengthenedItem(item.id);
+          this.showToast(result.ok ? `分解成功，返还装备强化石×${result.refund}` : result.msg);
+          if (result.ok) {
+            UI.updateBag(cat);
+            UI.updateStats();
+            UI.renderStatDetail();
+          }
+        });
+        actions.appendChild(dismantleBtn);
       }
 
       const sellBtn = document.createElement('button');

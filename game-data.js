@@ -2,6 +2,17 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v41',
+    date: '2026-08-20',
+    title: '百炼神兵 · 千连寻缘 · 八折福利',
+    items: [
+      '新增装备强化石：击败魔尊及更强终局 Boss 有40%概率掉落；燃血夺宝诀与囤囤鼠出战均可提高掉率',
+      '装备强化上限提升至+100：前50级按原始固定属性每级成长2%，后50级每级成长3%；百分比词条和特殊效果恒定不变',
+      '强化改用装备强化石并保留原有灵石递增消耗；已强化装备可分解返还一半累计强化石，仙品额外返还1颗、神品额外返还3颗',
+      '藏宝阁与灵兽谷新增千连抽；单抽、十连、百连、千连各自拥有10次八折机会，两池独立计算，历史抽取不占用次数',
+    ],
+  },
+  {
     version: 'v40',
     date: '2026-08-20',
     title: '灵宠体验 · 魔尊决战 · 神藏重铸',
@@ -314,6 +325,7 @@ const ITEMS = {
   tiebi:        { id: 'tiebi',        name: '铁笔',       type: 'weapon',   icon: '✍️',  desc: '攻击+8',         effect: 'atk8',   sell: 75 },
   fengyuteng:   { id: 'fengyuteng',   name: '风语藤',     type: 'material', icon: '🌿', desc: '炼器材料',       effect: 'xp30',   sell: 8 },
   lieyangshi:   { id: 'lieyangshi',   name: '烈阳石',     type: 'material', icon: '🔶', desc: '炼器材料',       effect: 'xp80',   sell: 30 },
+  equip_stone:  { id: 'equip_stone',  name: '装备强化石', type: 'material', icon: '🔷', desc: '蕴含精纯器灵，用于强化装备', effect: null, sell: 80 },
   hanbingxue:   { id: 'hanbingxue',   name: '寒冰雪',     type: 'material', icon: '❄️', desc: '炼丹材料',       effect: 'heal50', sell: 25 },
   yaowanggu_lingzhi:{ id:'yaowanggu_lingzhi',name:'药王谷灵草',type:'material',icon:'🌱', desc:'药草', effect:'heal80', sell: 20 },
   shanzhifu:    { id: 'shanzhifu',    name: '山贼符',     type: 'misc',     icon: '📜', desc: '似乎没什么用',   effect: null,    sell: 10 },
@@ -427,6 +439,8 @@ const ITEMS = {
 // ========== 抽卡池（藏宝阁） ==========
 const GACHA_COST = 200;
 const GACHA_PITY = 100; // 仙品保底：每100抽必出一次
+const GACHA_DISCOUNT_RATE = 0.8;
+const GACHA_DISCOUNT_USES = 10;
 const GACHA_POOL = [
   { rarity: '废品', weight: 36, color: '#7a7a7a', items: [
     'shuzhi', 'shitou', 'pobu', 'lanyez', 'powan',
@@ -646,14 +660,17 @@ const TUNTUNSHU_DODGE_FAVOR_MAX = 0.10;   // 满好感额外 +10%
 const TUNTUNSHU_DODGE_CAP = 0.30;         // 闪避率封顶
 const TUNTUNSHU_STEAL_CHANCE = 0.40;      // 战后偷灵石/材料的概率
 const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
+const EQUIP_STONE_DROP_CHANCE = 0.40;     // 魔尊及更强终局 Boss 掉落强化石的基础概率
+const TUNTUNSHU_EQUIP_STONE_DROP_MULTIPLIER = 1.20; // 囤囤鼠出战时强化石掉率倍率
 // 囤囤鼠偷取 Boss 专属装备：基础 0.02%，等级/进阶/好感满培养合计约 0.1%。
 const TUNTUNSHU_BOSS_STEAL_BASE_CHANCE = 0.0002;
 const TUNTUNSHU_BOSS_STEAL_LEVEL_MAX_BONUS = 0.00035;
 const TUNTUNSHU_BOSS_STEAL_STAGE_MAX_BONUS = 0.00025;
 const TUNTUNSHU_BOSS_STEAL_FAVOR_MAX_BONUS = 0.00020;
 const TUNTUNSHU_BOSS_STEAL_PITY = 2000;
-const DEMON_LORD_LOOT_CHANCE = 0.001;
-const DEMON_LORD_LOOT_PITY = 2000;
+// 六位终局 Boss 共用的神藏掉落：每次击败均有 0.1%，保底和重复保护全局共享。
+const FINAL_BOSS_LOOT_CHANCE = 0.001;
+const FINAL_BOSS_LOOT_PITY = 2000;
 // 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
 const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
 // 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
@@ -911,7 +928,7 @@ const ENEMIES = {
 
   // 魔尊：化神大圆满前不可力敌的终局强敌
   // 魔尊保留动态成长与机制压迫感，但基础面板下调，避免终局战只靠硬磨。
-  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 150000, atk: 5600, def: 850, matk: 7800, mdef: 1000, xp: 22000, stone: [12000,18000], drops: [], boss: true, demonLord: true, demonHitPct: 0.08, demonDoubleChance: 0.15 },
+  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 150000, atk: 5600, def: 850, matk: 7800, mdef: 1000, xp: 22000, stone: [12000,18000], drops: [], boss: true, demonLord: true, noEscape: true, demonHitPct: 0.08, demonDoubleChance: 0.15 },
 
   // 秘境过渡敌人（20~29层爬塔用，填平 6400→75000 的数值断层）
   mijing_yuling:   { id: 'mijing_yuling',   name: '秘境妖灵', hp: 9000,  atk: 620,  def: 140, matk: 760,  mdef: 180, xp: 2800,  stone: [1400, 2000], drops: [{id:'juqi_pill',chance:0.5}], boss: true },
@@ -932,11 +949,11 @@ const ENEMIES = {
   lei_jie_4:   { id: 'lei_jie_4',   name: '化神天劫·四重', hp: 1, atk: 0, def: 0, xp: 4000, stone: [800,800], drops: [], untouchable: true, boss: true, tribDmg: 0.24 },
   fei_sheng_jie:{ id:'fei_sheng_jie',name:'飞升天劫·九重',hp: 1, atk: 0, def: 0, xp: 8000, stone: [2000,2000], drops: [], untouchable: true, boss: true, tribDmg: 0.22 },
   // 仙人级强敌：基础数值覆盖人仙期，仙帝后继续按动态 Boss 规则增长
-  tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1, special: { name: '蚀魂魔焰', type: 'poison', pct: 0.04, turns: 2, chance: 0.24, cd: 3 } },
-  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, special: { name: '魔君威压', type: 'weaken', rate: 0.40, turns: 2, chance: 0.24, cd: 3 } },
-  honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5, special: { name: '荒兽践踏', type: 'percent', pct: 0.08, chance: 0.24, cd: 3 } },
-  tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8, special: { name: '天罚枷锁', type: 'stun', chance: 0.20, cd: 4 } },
-  chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1, special: { name: '归墟湮灭', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
+  tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1, finalBoss: true, finalHitPct: 0.09, finalDoubleChance: 0.16, finalSkill: '蚀魂魔焰' },
+  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, finalBoss: true, noEscape: true, finalHitPct: 0.10, finalDoubleChance: 0.18, finalSkill: '太古魔威' },
+  honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5, finalBoss: true, finalHitPct: 0.11, finalDoubleChance: 0.20, finalSkill: '洪荒践踏' },
+  tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8, finalBoss: true, finalHitPct: 0.12, finalDoubleChance: 0.22, finalSkill: '天罚湮灭' },
+  chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1, finalBoss: true, finalHitPct: 0.14, finalDoubleChance: 0.25, finalSkill: '归墟终焉' },
 };
 
 // ========== 秘境爬塔 ==========
