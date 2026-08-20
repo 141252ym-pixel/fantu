@@ -2,6 +2,18 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v40',
+    date: '2026-08-20',
+    title: '灵宠体验 · 魔尊决战 · 神藏重铸',
+    items: [
+      '灵宠自动放生现于抽取时即时生效；新增「放生已选品质」批量操作，出战灵宠与神品灵宠均受保护',
+      '囤囤鼠偷取 Boss 神藏基础概率调整为0.02%，满培养约0.1%；新增2000次保底与四连重复后的未拥有装备保护',
+      '魔尊保留动态成长、免疫减益与单段伤害上限，同时下调基础面板；地仙及以下挑战时将出现实力差距确认',
+      '魔尊战斗超过50个常规回合将自动判负；双方额外回合与魔尊连续攻击不额外计入回合数',
+      '击败魔尊可独立获得神藏装备，并拥有独立的保底与重复保护；神藏五件套新增基础属性及百分比强化效果',
+    ],
+  },
+  {
     version: 'v39',
     date: '2026-08-20',
     title: '水灵根平调 · 蚀水攻伐',
@@ -398,11 +410,11 @@ const ITEMS = {
   g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
 
   // ===== 囤囤鼠/魔尊私藏（专属途径获得） =====
-  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·物理攻击+10%；攻击时5%概率获得额外回合', effect: null, sell: 8000, rarity: '神品' },
-  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法术攻击+10%；攻击时5%概率获得额外回合', effect: null, sell: 8000, rarity: '神品' },
-  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·全伤害减免10%，受物理攻击时额外减免10%（乘算）', effect: null, sell: 8000, rarity: '神品' },
-  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·全伤害减免10%，受法术攻击时额外减免10%（乘算）', effect: null, sell: 8000, rarity: '神品' },
-  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·物理、法术穿透各10%', effect: null, sell: 8000, rarity: '神品' },
+  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·物攻+500，提高物理攻击10%；攻击时5%概率获得额外回合', effect: 'atk500', sell: 8000, rarity: '神品' },
+  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法攻+500，提高法术攻击10%；攻击时5%概率获得额外回合', effect: 'matk500', sell: 8000, rarity: '神品' },
+  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·物抗+500；全伤害减免10%，受物理攻击时额外减免10%（乘算）', effect: 'def500', sell: 8000, rarity: '神品' },
+  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·法抗+500；全伤害减免10%，受法术攻击时额外减免10%（乘算）', effect: 'mdef500', sell: 8000, rarity: '神品' },
+  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·穿透+300，物理、法术穿透各10%', effect: 'pen300', sell: 8000, rarity: '神品' },
 
   // ===== 抽卡废品（抽空产物，只能卖几灵石） =====
   shuzhi:  { id: 'shuzhi',  name: '枯树枝', type: 'misc', icon: '🌿', desc: '路边捡的，没什么用', effect: null, sell: 3 },
@@ -2138,7 +2150,7 @@ const STORY_NODES = {
     title: '魔尊出世',
     text: '天地异变，魔气冲天。魔尊破封而出，正道凋零。你作为后起之秀，被寄予厚望。',
     choices: [
-      { label: '迎战魔尊', next: 'demon_lord_fight', req: (s) => getRealmIndex(s) >= 25 },
+      { label: '迎战魔尊', action: () => beginDemonLordChallenge(), req: (s) => getRealmIndex(s) >= 25 },
       { label: '继续修炼', next: 'inner_gate' },
     ],
   },
@@ -2796,7 +2808,7 @@ const REDEEM_CODES = {
   'JZYHQQS4': { stone: 1000000 },
   'SOMETHINGFORNOTHING': { tribulationBlessing: true },
   // 策划测试码：可重复使用，便于快速验证数值与流程。
-  '63924817': { stone: 500000, xp: 500000, repeatable: true },
+  '63924817': { stone: 500000, xp: 500000, skipTribulations: true, repeatable: true },
   '80571346': { items: [
     { id: 'tun_tushenjian', count: 1 },
     { id: 'tun_canglongqiang', count: 1 },

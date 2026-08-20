@@ -383,12 +383,16 @@ function backfillTribulations(s) {
 }
 
 // 未渡劫则修为被卡在大圆满，无法跨越大境界
-function clampByTribulation(s) {
+function clampByTribulation(s, skipTribulations = false) {
   if (!s.tribulations) s.tribulations = {};
   const maxIdx = getRealmIndex(s);
   for (let i = 0; i <= maxIdx; i++) {
     const g = getTribulationGateForIndex(i);
     if (g && !s.tribulations[g.key] && s.xp >= getRealm(g.gateIdx).max) {
+      if (skipTribulations) {
+        s.tribulations[g.key] = true;
+        continue;
+      }
       s.xp = getRealm(g.gateIdx).max - 1;
       UI.showToast(`境界桎梏：需渡过${g.name}天劫方可晋升`);
       return;
@@ -412,10 +416,10 @@ function passTribulation(s, key, gateIdx) {
   playTribulationSound();
 }
 
-function addXp(s, amount) {
+function addXp(s, amount, skipTribulations = false) {
   const oldIdx = getRealmIndex(s);
   s.xp += amount;
-  clampByTribulation(s);
+  clampByTribulation(s, skipTribulations);
   const newIdx = getRealmIndex(s);
   if (newIdx > oldIdx) {
     // 突破
@@ -2222,6 +2226,17 @@ function getNodeText(node) {
 }
 
 // ========== 战斗系统 ==========
+function beginDemonLordChallenge() {
+  const s = Game.state;
+  // 人仙、地仙及以下挑战时明确告知风险；地仙之后可直接迎战。
+  if (getRealmIndex(s) <= 27) {
+    const ok = confirm('你与魔尊的实力差距仍然过大，且此战不可逃脱。\n确定仍要挑战魔尊吗？');
+    if (!ok) return false;
+  }
+  goToNode('demon_lord_fight');
+  return true;
+}
+
 // 秘境爬塔：根据层数返回随机敌人 id
 function pickMijingEnemy(floor) {
   let pool = MIJING_POOLS[0].enemies;
@@ -2400,6 +2415,7 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
     tribulation: tribulation,
     turns: turns,
     turnCount: 0,
+    demonLordRounds: 0,
     pillUsed: 0,
     specialCd: {},
   };
@@ -2529,6 +2545,21 @@ function performDemonLordAttack(s, e) {
     if (Game.battle.ended) return;
   }
   if (hits === 2) logBattle('魔尊魔气暴涨，连续轰出两掌！', 'enemy');
+}
+
+function endDemonLordBattleByTimeout() {
+  const s = Game.state;
+  Game.battle.ended = true;
+  s.hp = 0;
+  s.stats.battleLoss++;
+  s.stats.winStreak = 0;
+  logBattle('鏖战已超过五十回合，魔尊魔威不减。你真元耗尽，最终败下阵来……', 'sys');
+  playLoseSound();
+  setTimeout(() => {
+    Game.battle.loseCallback && Game.battle.loseCallback();
+    UI.battleEnd(false, Game.battle.loseNext || Game.state.nodeId);
+  }, 1500);
+  UI.updateBattle();
 }
 
 function playerAttack() {
@@ -2900,6 +2931,14 @@ function enemyTurn() {
       }
     }
     checkBattleEnd();
+    // 仅魔尊与玩家各完成一次常规行动才算一回合；额外回合和魔尊连击不额外计数。
+    if (!Game.battle.ended && isDemonLord(e)) {
+      Game.battle.demonLordRounds = (Game.battle.demonLordRounds || 0) + 1;
+      if (Game.battle.demonLordRounds > 50) {
+        endDemonLordBattleByTimeout();
+        return;
+      }
+    }
     if (!Game.battle.ended) {
       if (e.armorBreakTurns > 0 && --e.armorBreakTurns === 0) e.armorBreak = 0;
       if (Game.battle.enemySpecialCd > 0) Game.battle.enemySpecialCd--;
@@ -3041,7 +3080,11 @@ function redeemCode(code) {
     parts.push('获得天道庇佑（修为圆满后可免渡劫）');
   }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }
-  if (reward.xp) { addXp(s, reward.xp); parts.push(`修为×${reward.xp}`); }
+  if (reward.xp) {
+    addXp(s, reward.xp, !!reward.skipTribulations);
+    parts.push(`修为×${reward.xp}`);
+    if (reward.skipTribulations) parts.push('本次修为突破已越过天劫');
+  }
   if (reward.dao) { s.dao += reward.dao; parts.push(`道韵×${reward.dao}`); }
   if (reward.fame) { s.fame += reward.fame; parts.push(`名望×${reward.fame}`); }
   if (reward.item && reward.item.id) {
