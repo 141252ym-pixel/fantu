@@ -577,16 +577,6 @@ function migrateEquipment(s) {
     const level = Math.floor(Number(s.equipLevel[id]) || 0);
     s.equipLevel[id] = Math.max(0, Math.min(EQUIP_MAX_LEVEL, level));
   });
-  // 混沌钟曾作为武器装备，版本更新后迁入独立法宝栏。
-  for (const oldSlot of ['weapon', 'armor']) {
-    const id = s.equipment[oldSlot];
-    const targetSlot = getItemSlot(ITEMS[id]);
-    if (id && targetSlot && targetSlot !== oldSlot) {
-      if (!s.equipment[targetSlot]) s.equipment[targetSlot] = id;
-      else s.bag[id] = (s.bag[id] || 0) + 1;
-      s.equipment[oldSlot] = null;
-    }
-  }
 }
 
 function getMaxMp(s) {
