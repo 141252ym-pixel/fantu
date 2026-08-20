@@ -2,6 +2,16 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v45',
+    date: '2026-08-20',
+    title: '装备备战 · 六件装备 · 通用饰品槽',
+    items: [
+      '新增「备战」页面：可配带 6 件装备（武器/防具/法宝/鞋履 + 2 个通用饰品槽），装备不能重复',
+      '新增一批饰品（铜戒/银环/金乌环/龙纹戒/混沌指环等），加入藏宝阁奖池，可装进通用饰品槽',
+      '备战页下方实时统计 6 件装备的总加成（物攻/法攻/物抗/法抗/穿透/暴击率/暴击伤害）',
+    ],
+  },
+  {
     version: 'v44',
     date: '2026-08-20',
     title: '暴击率玩法 · 藏宝阁暴击法宝',
@@ -438,6 +448,19 @@ const ITEMS = {
   g_zhuxinfu:    { id: 'g_zhuxinfu',     name: '诛心符', type: 'artifact', slot: 'artifact', icon: '🎴', desc: '上品·攻击+120，暴击率+8%，暴击伤害+50%', effect: 'atk120', crit: 8,  critDmg: 50, sell: 450,  rarity: '上品' },
   g_mieshizhu:   { id: 'g_mieshizhu',    name: '灭世珠', type: 'artifact', slot: 'artifact', icon: '⚫', desc: '极品·攻击+240，暴击率+12%，暴击伤害+70%', effect: 'atk240', crit: 12, critDmg: 70, sell: 1100, rarity: '极品' },
 
+  // ===== 饰品：装备于两个通用饰品槽（备战页），不占武器/防具/法宝/鞋履栏 =====
+  s_tongjie:       { id: 's_tongjie',       name: '铜戒',     type: 'artifact', slot: 'trinket', icon: '💍', desc: '良品·物抗+20',  effect: 'def20',  sell: 70,   rarity: '良品' },
+  s_muzhulian:     { id: 's_muzhulian',     name: '木珠链',   type: 'artifact', slot: 'trinket', icon: '📿', desc: '良品·法抗+18',  effect: 'mdef18', sell: 70,   rarity: '良品' },
+  s_yinhuan:       { id: 's_yinhuan',       name: '银环',     type: 'artifact', slot: 'trinket', icon: '⭕', desc: '中品·攻击+55',  effect: 'atk55',  sell: 180,  rarity: '中品' },
+  s_yuzhui:        { id: 's_yuzhui',        name: '玉坠',     type: 'artifact', slot: 'trinket', icon: '🧿', desc: '中品·法攻+50',  effect: 'matk50', sell: 180,  rarity: '中品' },
+  s_jinwuhuan:     { id: 's_jinwuhuan',     name: '金乌环',   type: 'artifact', slot: 'trinket', icon: '☀️', desc: '上品·攻击+110', effect: 'atk110', sell: 450,  rarity: '上品' },
+  s_xuanguipei:    { id: 's_xuanguipei',    name: '玄龟佩',   type: 'artifact', slot: 'trinket', icon: '🐢', desc: '上品·物抗+75',  effect: 'def75',  sell: 450,  rarity: '上品' },
+  s_pojunzhihuan:  { id: 's_pojunzhihuan',  name: '破军指环', type: 'artifact', slot: 'trinket', icon: '💫', desc: '上品·穿透+50',  effect: 'pen50',  sell: 450,  rarity: '上品' },
+  s_longwenjie:    { id: 's_longwenjie',    name: '龙纹戒',   type: 'artifact', slot: 'trinket', icon: '🐉', desc: '极品·攻击+220，暴击率+5%', effect: 'atk220', crit: 5,  sell: 1100, rarity: '极品' },
+  s_fengyupei:     { id: 's_fengyupei',     name: '凤羽佩',   type: 'artifact', slot: 'trinket', icon: '🪶', desc: '极品·法攻+210，暴击伤害+25%', effect: 'matk210', critDmg: 25, sell: 1100, rarity: '极品' },
+  s_hundunzhihuan: { id: 's_hundunzhihuan', name: '混沌指环', type: 'artifact', slot: 'trinket', icon: '🌌', desc: '仙品·攻击+450，暴击率+8%', effect: 'atk450', crit: 8,  sell: 2500, rarity: '仙品' },
+  s_taijiyupei:    { id: 's_taijiyupei',    name: '太极玉佩', type: 'artifact', slot: 'trinket', icon: '☯️', desc: '仙品·法抗+280，暴击伤害+30%', effect: 'mdef280', critDmg: 30, sell: 2500, rarity: '仙品' },
+
   // ===== 抽卡装备（第四批：法攻/法抗/穿透） =====
   g_xuanmuzhang: { id: 'g_xuanmuzhang', name: '玄木杖',  type: 'weapon', icon: '🪄', desc: '中品·法攻+58',   effect: 'matk58',  sell: 180,  rarity: '中品' },
   g_yanlingzhu:  { id: 'g_yanlingzhu',  name: '炎灵珠',  type: 'weapon', icon: '🔮', desc: '上品·法攻+115',  effect: 'matk115', sell: 450,  rarity: '上品' },
@@ -487,27 +510,32 @@ const GACHA_POOL = [
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
     'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue', 'g_huixinfu',
+    's_tongjie', 's_muzhulian',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
     'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_tianxingzhu',
+    's_yinhuan', 's_yuzhui',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
     'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_zhuxinfu',
+    's_jinwuhuan', 's_xuanguipei', 's_pojunzhihuan',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
     'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_mieshizhu',
+    's_longwenjie', 's_fengyupei',
     { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
     'g_zhuxianzhui', 'g_shenxingxue',
+    's_hundunzhihuan', 's_taijiyupei',
     { id: 'jiuzhuan_pill', count: 3 }, { id: 'jiuzhuanling_pill', count: 3 },
   ]},
   { rarity: '神品', weight: 0.05, color: '#ffd54f', items: [

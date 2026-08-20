@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=29" />
+  <link rel="stylesheet" href="styles.css?v=30" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -204,6 +204,15 @@
       </div>
     </div>
 
+    <!-- 备战页选装备弹窗 -->
+    <div id="equip-pick-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card equip-pick-card">
+        <div id="equip-pick-title" class="gacha-ten-title">选择装备</div>
+        <div id="equip-pick-list" class="equip-pick-list"></div>
+        <button class="ink-btn" onclick="UI.closeEquipPick()">取消</button>
+      </div>
+    </div>
+
     <!-- 更新公告弹窗 -->
     <div id="announce-overlay" class="gacha-overlay hidden">
       <div class="gacha-card announce-card">
@@ -305,6 +314,7 @@
       <div class="side-tabs">
         <button class="side-tab active" data-tab="stats" onclick="UI.switchSideTab('stats')">修为</button>
         <button class="side-tab" data-tab="bag" onclick="UI.switchSideTab('bag')">储物袋</button>
+        <button class="side-tab" data-tab="loadout" onclick="UI.switchSideTab('loadout')">备战</button>
         <button class="side-tab" data-tab="achievements" onclick="UI.switchSideTab('achievements')">成就</button>
         <button class="side-tab" data-tab="daily" onclick="UI.switchSideTab('daily')">日常</button>
         <button class="side-tab" data-tab="redeem" onclick="UI.switchSideTab('redeem')">兑换</button>
@@ -332,6 +342,14 @@
           <button class="cat-btn" data-cat="misc" onclick="UI.updateBag('misc')">杂物</button>
         </div>
         <div id="bag-list" class="bag-list"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-loadout">
+        <div class="pane-title">装备备战</div>
+        <div class="loadout-tip">可配带 6 件装备（4 固定槽 + 2 通用槽），同一件装备不能重复。点击槽位选择装备。</div>
+        <div id="loadout-slots" class="loadout-slots"></div>
+        <div class="pane-title">装备加成</div>
+        <div id="loadout-stats" class="loadout-stats"></div>
       </div>
 
       <div class="tab-pane" id="tab-achievements">
@@ -399,9 +417,9 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=50"></script>
-  <script src="game-engine.js?v=41"></script>
-  <script src="game-ui.js?v=40"></script>
+  <script src="game-data.js?v=51"></script>
+  <script src="game-engine.js?v=42"></script>
+  <script src="game-ui.js?v=41"></script>
   <script src="leaderboard.js?v=1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {

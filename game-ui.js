@@ -68,6 +68,11 @@ const UI = {
       redeemResult: document.getElementById('redeem-result'),
       dailySignin: document.getElementById('daily-signin'),
       dailyTasks: document.getElementById('daily-tasks'),
+      loadoutSlots: document.getElementById('loadout-slots'),
+      loadoutStats: document.getElementById('loadout-stats'),
+      equipPickOverlay: document.getElementById('equip-pick-overlay'),
+      equipPickTitle: document.getElementById('equip-pick-title'),
+      equipPickList: document.getElementById('equip-pick-list'),
     };
     this.updateStats();
     updateSoundIcon();
@@ -1983,6 +1988,7 @@ const UI = {
     });
     if (name === 'bag') this.updateBag('all');
     if (name === 'stats') this.renderStatDetail();
+    if (name === 'loadout') this.renderLoadout();
     if (name === 'achievements') this.updateAchievements();
     if (name === 'daily') this.renderDaily();
     if (name === 'save') this.updateSaveSlots();
@@ -2065,7 +2071,7 @@ const UI = {
     if (!s) return;
     let items = [];
     // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
-    for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
+    for (const slot of EQUIP_SLOTS) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
         const it = ITEMS[eqId];
@@ -2462,6 +2468,143 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">击杀</span><span class="value">${st.enemiesKilled || 0}</span></div>
     <div class="stat-line"><span class="label">成就</span><span class="value">${(s.achievements || []).length}/${ACHIEVEMENTS.length}</span></div>
   `;
+};
+
+// ========== 装备备战页面 ==========
+const LOADOUT_SLOT_NAMES = {
+  weapon: '武器', armor: '防具', artifact: '法宝', shoes: '鞋履',
+  extra1: '通用槽 · 壹', extra2: '通用槽 · 贰',
+};
+let _loadoutPickSlot = null;
+
+UI.renderLoadout = function() {
+  const s = Game.state;
+  if (!s || !this.els.loadoutSlots) return;
+
+  const slotHtml = EQUIP_SLOTS.map(slot => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    const lv = (s.equipLevel && s.equipLevel[id]) || 0;
+    let inner;
+    if (it) {
+      let nameStyle = '';
+      if (it.rarity) {
+        const tier = GACHA_POOL.find(t => t.rarity === it.rarity);
+        if (tier) nameStyle = ` style="color:${tier.color}"`;
+      }
+      inner = `
+        <span class="loadout-item-icon">${it.icon}</span>
+        <div class="loadout-item-info">
+          <div class="loadout-item-name"${nameStyle}>${it.name}${lv > 0 ? ` +${lv}` : ''}</div>
+          <div class="loadout-item-desc">${it.desc || ''}</div>
+        </div>
+        <div class="loadout-item-remove" onclick="event.stopPropagation();UI.unequipLoadoutSlot('${slot}')">卸</div>
+      `;
+    } else {
+      inner = `<span class="loadout-empty">— 空 —</span>`;
+    }
+    return `
+      <div class="loadout-slot" onclick="UI.openEquipPick('${slot}')">
+        <div class="loadout-slot-name">${LOADOUT_SLOT_NAMES[slot]}</div>
+        <div class="loadout-slot-body">${inner}</div>
+      </div>
+    `;
+  }).join('');
+  this.els.loadoutSlots.innerHTML = slotHtml;
+
+  const atk = getAllEquipBonus(s, 'atk');
+  const matk = getAllEquipBonus(s, 'matk');
+  const def = getAllEquipBonus(s, 'def');
+  const mdef = getAllEquipBonus(s, 'mdef');
+  const pen = getAllEquipBonus(s, 'pen');
+  const crit = getEquipCritBonus(s);
+  const critDmg = getEquipCritDmgBonus(s);
+  this.els.loadoutStats.innerHTML = `
+    <div class="loadout-stat"><span class="ls-label">物攻</span><b>+${atk}</b></div>
+    <div class="loadout-stat"><span class="ls-label">法攻</span><b>+${matk}</b></div>
+    <div class="loadout-stat"><span class="ls-label">物抗</span><b>+${def}</b></div>
+    <div class="loadout-stat"><span class="ls-label">法抗</span><b>+${mdef}</b></div>
+    <div class="loadout-stat"><span class="ls-label">穿透</span><b>+${pen}</b></div>
+    <div class="loadout-stat"><span class="ls-label">暴击率</span><b>+${crit}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">暴击伤害</span><b>+${critDmg}%</b></div>
+  `;
+};
+
+UI.openEquipPick = function(slot) {
+  const s = Game.state;
+  if (!s || !this.els.equipPickOverlay) return;
+  _loadoutPickSlot = slot;
+  this.els.equipPickTitle.textContent = `选择装备 · ${LOADOUT_SLOT_NAMES[slot] || slot}`;
+
+  // 候选：背包中可装入该槽的 + 其他槽已装备的（可移动过来，排除本槽自身）
+  const seen = new Set();
+  const candidates = [];
+  EQUIP_SLOTS.forEach(sl => {
+    if (sl === slot) return;
+    const id = s.equipment && s.equipment[sl];
+    if (id && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
+      seen.add(id);
+      candidates.push({ id, source: sl });
+    }
+  });
+  for (const id in s.bag) {
+    if (s.bag[id] > 0 && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
+      seen.add(id);
+      candidates.push({ id });
+    }
+  }
+
+  if (candidates.length === 0) {
+    this.els.equipPickList.innerHTML = '<div class="loadout-empty">没有可放入此槽的装备</div>';
+  } else {
+    this.els.equipPickList.innerHTML = candidates.map(c => {
+      const it = ITEMS[c.id];
+      const lv = (s.equipLevel && s.equipLevel[c.id]) || 0;
+      let nameStyle = '';
+      if (it.rarity) {
+        const tier = GACHA_POOL.find(t => t.rarity === it.rarity);
+        if (tier) nameStyle = ` style="color:${tier.color}"`;
+      }
+      return `
+        <div class="loadout-pick-item" onclick="UI.pickEquipSlot('${c.id}')">
+          <span class="loadout-item-icon">${it.icon}</span>
+          <div class="loadout-item-info">
+            <div class="loadout-item-name"${nameStyle}>${it.name}${lv > 0 ? ` +${lv}` : ''}</div>
+            <div class="loadout-item-desc">${it.desc || ''}${c.source ? '（已装备，将移动）' : ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  this.els.equipPickOverlay.classList.remove('hidden');
+};
+
+UI.closeEquipPick = function() {
+  if (this.els.equipPickOverlay) this.els.equipPickOverlay.classList.add('hidden');
+  _loadoutPickSlot = null;
+};
+
+UI.pickEquipSlot = function(id) {
+  const slot = _loadoutPickSlot;
+  if (!slot) return;
+  const res = equipToSlot(id, slot);
+  this.showToast(res.ok ? '已装备' : res.msg);
+  this.closeEquipPick();
+  this.renderLoadout();
+  this.updateStats();
+  this.updateBag('all');
+};
+
+UI.unequipLoadoutSlot = function(slot) {
+  const s = Game.state;
+  const id = s.equipment && s.equipment[slot];
+  if (!id) return;
+  const name = ITEMS[id] ? ITEMS[id].name : '装备';
+  unequipSlot(slot);
+  this.showToast(`已卸下${name}`);
+  this.renderLoadout();
+  this.updateStats();
+  this.updateBag('all');
 };
 
 // ========== 音效系统（Web Audio 合成） ==========

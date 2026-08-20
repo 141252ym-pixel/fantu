@@ -128,7 +128,7 @@ function newGame() {
     fame: 0,
     dao: 0,
     bag: { huiqi_pill: 2 },
-    equipment: { weapon: null, armor: null, artifact: null, shoes: null },
+    equipment: { weapon: null, armor: null, artifact: null, shoes: null, extra1: null, extra2: null },
     equipLevel: {},
     achievements: [],
     titles: [],
@@ -527,11 +527,50 @@ function getItemSlot(item) {
   return item.type === 'weapon' ? 'weapon' : null;
 }
 
+// 判断某件装备能否装入指定槽位：固定槽只装对应 slot，通用槽装任意可装备物
+function canEquipToSlot(item, slot) {
+  if (!item) return false;
+  if (FIXED_SLOTS.includes(slot)) return getItemSlot(item) === slot;
+  if (EXTRA_SLOTS.includes(slot)) return !!getItemSlot(item);
+  return false;
+}
+
+// 卸下指定槽位的装备回背包（空槽返回 false）
+function unequipSlot(slot) {
+  const s = Game.state;
+  const id = s.equipment && s.equipment[slot];
+  if (!id) return false;
+  s.equipment[slot] = null;
+  grantItem(s, id, 1);
+  return true;
+}
+
+// 将装备穿戴到指定槽位（供备战页面选装备弹窗）；内置「不重复」校验。
+// 若该装备已装备在其他槽，则先卸下再装入目标槽（即「移动」而非复制）。
+function equipToSlot(id, targetSlot) {
+  const s = Game.state;
+  const item = ITEMS[id];
+  if (!item || !canEquipToSlot(item, targetSlot)) return { ok: false, msg: '该装备无法放入此槽位' };
+  const occupied = EQUIP_SLOTS.find(slot => s.equipment[slot] === id);
+  if (occupied && occupied === targetSlot) return { ok: false, msg: '该装备已在此槽位' };
+  if (!hasItem(id) && !occupied) return { ok: false, msg: '背包中没有这件装备' };
+  // 已装备在其他槽：先卸下回背包
+  if (occupied) {
+    s.equipment[occupied] = null;
+    grantItem(s, id, 1);
+  }
+  // 目标槽已有装备，先放回背包
+  if (s.equipment[targetSlot]) grantItem(s, s.equipment[targetSlot], 1);
+  s.equipment[targetSlot] = id;
+  removeItemFromState(s, id, 1);
+  return { ok: true };
+}
+
 function migrateEquipment(s) {
   if (!s.bag || typeof s.bag !== 'object') s.bag = {};
   if (!s.equipment || typeof s.equipment !== 'object') s.equipment = {};
   if (!s.equipLevel || typeof s.equipLevel !== 'object') s.equipLevel = {};
-  for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
+  for (const slot of EQUIP_SLOTS) {
     if (s.equipment[slot] == null) s.equipment[slot] = null;
   }
   // 旧存档强化等级原样保留；仅修正异常值，避免更新后装备等级丢失或超出新上限。
@@ -648,6 +687,11 @@ function restoreBattleMana(s) {
   return gain;
 }
 
+// ===== 装备槽位：4 固定槽 + 2 通用槽（备战页），同一装备在 6 槽中不能重复 =====
+const FIXED_SLOTS = ['weapon', 'armor', 'artifact', 'shoes'];
+const EXTRA_SLOTS = ['extra1', 'extra2'];
+const EQUIP_SLOTS = FIXED_SLOTS.concat(EXTRA_SLOTS);
+
 // 装备强化只成长 effect 中的固定基础属性；百分比、减伤、额外回合等特殊词条恒定不变。
 const EQUIP_MAX_LEVEL = 100;
 const EQUIP_FIRST_HALF_LEVELS = 50;
@@ -704,12 +748,12 @@ function getEquipBonus(s, slot, prefix) {
 }
 
 function getAllEquipBonus(s, prefix) {
-  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
+  return EQUIP_SLOTS.reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
 }
 
 // 暴击：读取装备法宝中的 crit（暴击率%）与 critDmg（暴击伤害%）加成
 function getEquipCritBonus(s) {
-  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => {
+  return EQUIP_SLOTS.reduce((total, slot) => {
     const id = s.equipment && s.equipment[slot];
     const it = id && ITEMS[id];
     return total + (it && it.crit ? it.crit : 0);
@@ -717,7 +761,7 @@ function getEquipCritBonus(s) {
 }
 
 function getEquipCritDmgBonus(s) {
-  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => {
+  return EQUIP_SLOTS.reduce((total, slot) => {
     const id = s.equipment && s.equipment[slot];
     const it = id && ITEMS[id];
     return total + (it && it.critDmg ? it.critDmg : 0);
@@ -1964,8 +2008,8 @@ function useItem(id) {
   if (!item) return false;
   // 已装备的武器/防具可卸下，此时不在背包里，跳过 hasItem 检查
   const slot = getItemSlot(item);
-  const isEquipped = !!slot && s.equipment[slot] === id;
-  if (!hasItem(id) && !isEquipped) return false;
+  const equippedSlot = slot ? EQUIP_SLOTS.find(sl => s.equipment[sl] === id) : null;
+  if (!hasItem(id) && !equippedSlot) return false;
 
   // 喂养灵宠道具：兽粮 +40 经验，灵兽丹 +200 经验
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
@@ -1995,17 +2039,31 @@ function useItem(id) {
     incDailyTask('pill');
   } else if (slot) {
     // 装备/卸下
-    if (s.equipment[slot] === id) {
+    if (equippedSlot) {
       // 卸下：装备放回背包
-      s.equipment[slot] = null;
+      s.equipment[equippedSlot] = null;
       grantItem(s, id, 1);
       UI.showToast(`卸下${item.name}`);
     } else {
-      // 装备（旧的放回背包）
-      if (s.equipment[slot]) {
-        grantItem(s, s.equipment[slot], 1);
+      // 确定目标槽位：饰品映射到第一个空的通用槽
+      let targetSlot = slot;
+      if (slot === 'trinket') {
+        targetSlot = EXTRA_SLOTS.find(sl => !s.equipment[sl]);
+        if (!targetSlot) {
+          UI.showToast('饰品槽已满，请先在备战页卸下');
+          return false;
+        }
       }
-      s.equipment[slot] = id;
+      // 不重复：该装备已在其他槽（双保险）
+      if (EQUIP_SLOTS.some(sl => s.equipment[sl] === id)) {
+        UI.showToast('同一装备不能重复装备');
+        return false;
+      }
+      // 装备（旧的放回背包）
+      if (s.equipment[targetSlot]) {
+        grantItem(s, s.equipment[targetSlot], 1);
+      }
+      s.equipment[targetSlot] = id;
       removeItemFromState(s, id, 1);
       UI.showToast(`装备${item.name}`);
     }
@@ -2045,7 +2103,7 @@ function sellItem(id) {
   const item = ITEMS[id];
   if (!item) return false;
   if (!hasItem(id)) return false;
-  if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
+  if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
     UI.showToast('请先卸下装备');
     return false;
   }
@@ -2068,7 +2126,7 @@ function sellItemBatch(id) {
     const item = ITEMS[id];
     const count = s.bag[id] || 0;
     if (!item || count <= 0) return false;
-    if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
+    if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
         UI.showToast('已装备的物品无法出售');
         return false;
     }
