@@ -2,6 +2,17 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v47',
+    date: '2026-08-20',
+    title: '装备套装 · 物理/法术双流派',
+    items: [
+      '新增「装备套装」：集齐同主题 3 件装备（武器+防具+鞋）即可触发额外百分比加成',
+      '物理流 6 套（青锋/精钢/灵纹/玄铁/赤霄/诛仙）、法术流 4 套（玄素/炎云/五罗/太清），各有不同流派加成',
+      '新增 4 件法抗鞋（冰蚕靴/霜纹靴/玄冥靴/太阴靴），加入藏宝阁奖池',
+      '备战页可查看各套装的收集进度与激活效果；成套低稀有度也能反超散件神品，多种搭配取舍',
+    ],
+  },
+  {
     version: 'v46',
     date: '2026-08-20',
     title: '天机榜 · 实时全球排行榜',
@@ -479,6 +490,10 @@ const ITEMS = {
   g_liuyunxue:  { id: 'g_liuyunxue',   name: '流云靴',  type: 'armor', slot: 'shoes', icon: '👞', desc: '上品·穿透+50',  effect: 'pen50',   sell: 450,  rarity: '上品' },
   g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
   g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
+  g_bingcanxue:   { id: 'g_bingcanxue',   name: '冰蚕靴', type: 'armor', slot: 'shoes', icon: '❄️', desc: '中品·法抗+30',  effect: 'mdef30',  sell: 180,  rarity: '中品' },
+  g_shuangwenxue: { id: 'g_shuangwenxue', name: '霜纹靴', type: 'armor', slot: 'shoes', icon: '🧊', desc: '上品·法抗+62',  effect: 'mdef62',  sell: 450,  rarity: '上品' },
+  g_xuanmingxue:  { id: 'g_xuanmingxue',  name: '玄冥靴', type: 'armor', slot: 'shoes', icon: '🌑', desc: '极品·法抗+115', effect: 'mdef115', sell: 1100, rarity: '极品' },
+  g_taiyinxue:    { id: 'g_taiyinxue',    name: '太阴靴', type: 'armor', slot: 'shoes', icon: '🌙', desc: '仙品·法抗+240', effect: 'mdef240', sell: 2500, rarity: '仙品' },
 
   // ===== 囤囤鼠/魔尊私藏（专属途径获得） =====
   tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·物攻+500，提高物理攻击10%；攻击时5%概率获得额外回合', effect: 'atk500', sell: 8000, rarity: '神品' },
@@ -515,26 +530,26 @@ const GACHA_POOL = [
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_tianxingzhu',
+    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_bingcanxue', 'g_tianxingzhu',
     's_yinhuan', 's_yuzhui',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_zhuxinfu',
+    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_shuangwenxue', 'g_zhuxinfu',
     's_jinwuhuan', 's_xuanguipei', 's_pojunzhihuan',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_mieshizhu',
+    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_xuanmingxue', 'g_mieshizhu',
     's_longwenjie', 's_fengyupei',
     { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
-    'g_zhuxianzhui', 'g_shenxingxue',
+    'g_zhuxianzhui', 'g_shenxingxue', 'g_taiyinxue',
     's_hundunzhihuan', 's_taijiyupei',
     { id: 'jiuzhuan_pill', count: 3 }, { id: 'jiuzhuanling_pill', count: 3 },
   ]},
@@ -542,6 +557,23 @@ const GACHA_POOL = [
     'g_hundunzhong', 'g_qiankunding', 'g_fuxiqin', 'g_shennongding',
   ]},
 ];
+
+// ========== 装备套装（集齐多件触发额外加成） ==========
+// 一件装备只属于一个套装；神品（神藏/特效法宝）不参与套装，保持「散件神品」定位。
+const EQUIP_SETS = {
+  // ===== 物理流：武器+防具+鞋（凡品~仙品） =====
+  qingfeng: { name: '青锋套', members: ['g_qingfeng', 'g_qingbu', 'g_cubu'], bonuses: [{ need: 2, atkPct: 6 }, { need: 3, defPct: 6 }] },
+  jinggang: { name: '精钢套', members: ['g_jinggang', 'g_suozijia', 'g_niupixue'], bonuses: [{ need: 2, atkPct: 7 }, { need: 3, defPct: 7 }] },
+  lingwen:  { name: '灵纹套', members: ['g_lingwen', 'g_lingwenjia', 'g_lupixue'], bonuses: [{ need: 2, atkPct: 8 }, { need: 3, crit: 5 }] },
+  xuantie:  { name: '玄铁套', members: ['g_xuantie', 'g_xuantiejia', 'g_liuyunxue'], bonuses: [{ need: 2, atkPct: 10 }, { need: 3, penPct: 6 }] },
+  chixiao:  { name: '赤霄套', members: ['g_chixiao', 'g_chiyanjia', 'g_fengxingxue'], bonuses: [{ need: 2, atkPct: 12 }, { need: 3, critDmg: 15 }] },
+  zhuxian:  { name: '诛仙套', members: ['g_zhuxian', 'g_xianlingjia', 'g_shenxingxue'], bonuses: [{ need: 2, atkPct: 15 }, { need: 3, penPct: 8 }] },
+  // ===== 法术流：法杖+法袍+法抗鞋（中品~仙品） =====
+  xuansu:   { name: '玄素套', members: ['g_xuanmuzhang', 'g_susefapao', 'g_bingcanxue'], bonuses: [{ need: 2, matkPct: 8 }, { need: 3, mdefPct: 8 }] },
+  yanyun:   { name: '炎云套', members: ['g_yanlingzhu', 'g_yunwenfapao', 'g_shuangwenxue'], bonuses: [{ need: 2, matkPct: 10 }, { need: 3, mdefPct: 8 }] },
+  wuluo:    { name: '五罗套', members: ['g_wuleizhu', 'g_tianluofapao', 'g_xuanmingxue'], bonuses: [{ need: 2, matkPct: 12 }, { need: 3, critDmg: 15 }] },
+  taiqing:  { name: '太清套', members: ['g_dashenbian', 'g_taijitu', 'g_taiyinxue'], bonuses: [{ need: 2, matkPct: 15 }, { need: 3, mdefPct: 10 }] },
+};
 
 // ========== 成就设定 ==========
 const ACHIEVEMENTS = [

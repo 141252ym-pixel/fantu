@@ -70,6 +70,7 @@ const UI = {
       dailyTasks: document.getElementById('daily-tasks'),
       loadoutSlots: document.getElementById('loadout-slots'),
       loadoutStats: document.getElementById('loadout-stats'),
+      loadoutSets: document.getElementById('loadout-sets'),
       equipPickOverlay: document.getElementById('equip-pick-overlay'),
       equipPickTitle: document.getElementById('equip-pick-title'),
       equipPickList: document.getElementById('equip-pick-list'),
@@ -2530,6 +2531,37 @@ UI.renderLoadout = function() {
     <div class="loadout-stat"><span class="ls-label">暴击率</span><b>+${crit}%</b></div>
     <div class="loadout-stat"><span class="ls-label">暴击伤害</span><b>+${critDmg}%</b></div>
   `;
+
+  // 套装效果：展示每套收集进度与激活加成
+  if (this.els.loadoutSets && typeof EQUIP_SETS !== 'undefined') {
+    const equipped = new Set(Object.values(s.equipment || {}).filter(Boolean));
+    const bonusKeys = [
+      ['atkPct', '物攻'], ['matkPct', '法攻'], ['defPct', '物抗'], ['mdefPct', '法抗'],
+      ['penPct', '穿透'], ['crit', '暴击率'], ['critDmg', '暴击伤害'],
+    ];
+    const fmtBonus = b => `${b.need}件：${bonusKeys.filter(([k]) => b[k]).map(([k, label]) => `${label}+${b[k]}%`).join('，')}`;
+    this.els.loadoutSets.innerHTML = Object.keys(EQUIP_SETS).map(key => {
+      const set = EQUIP_SETS[key];
+      const count = set.members.filter(id => equipped.has(id)).length;
+      const first = ITEMS[set.members[0]];
+      const tier = first && GACHA_POOL.find(t => t.rarity === first.rarity);
+      const active = set.bonuses.some(b => count >= b.need);
+      return `
+        <div class="loadout-set${active ? ' active' : ''}">
+          <div class="loadout-set-head">
+            <span class="loadout-set-name" style="color:${tier ? tier.color : 'inherit'}">${set.name}</span>
+            <span class="loadout-set-count">${count}/${set.members.length}</span>
+          </div>
+          <div class="loadout-set-members">${set.members.map(id => {
+            const it = ITEMS[id];
+            const own = equipped.has(id);
+            return `<span class="loadout-set-member${own ? ' owned' : ''}" title="${it ? it.name : id}">${it ? it.icon : '?'}</span>`;
+          }).join('')}</div>
+          <div class="loadout-set-bonus">${set.bonuses.map(fmtBonus).join('　')}</div>
+        </div>
+      `;
+    }).join('');
+  }
 };
 
 UI.openEquipPick = function(slot) {

@@ -754,12 +754,29 @@ function getEquipCritDmgBonus(s) {
   }, 0);
 }
 
+// 套装加成：统计已装备件数，累加达到阈值的加成
+function getActiveSetBonuses(s) {
+  const bonus = { atkPct: 0, matkPct: 0, defPct: 0, mdefPct: 0, penPct: 0, crit: 0, critDmg: 0 };
+  if (typeof EQUIP_SETS === 'undefined' || !s || !s.equipment) return bonus;
+  const equipped = new Set(Object.values(s.equipment).filter(Boolean));
+  for (const key in EQUIP_SETS) {
+    const set = EQUIP_SETS[key];
+    const count = set.members.filter(id => equipped.has(id)).length;
+    for (const b of set.bonuses) {
+      if (count >= b.need) {
+        for (const k in b) if (k !== 'need') bonus[k] = (bonus[k] || 0) + b[k];
+      }
+    }
+  }
+  return bonus;
+}
+
 function getCritRate(s) {
-  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + getEquipCritBonus(s) / 100);
+  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + (getEquipCritBonus(s) + getActiveSetBonuses(s).crit) / 100);
 }
 
 function getCritDmg(s) {
-  return Math.min(CRIT_DMG_CAP, CRIT_DMG_BASE + getEquipCritDmgBonus(s) / 100);
+  return Math.min(CRIT_DMG_CAP, CRIT_DMG_BASE + (getEquipCritDmgBonus(s) + getActiveSetBonuses(s).critDmg) / 100);
 }
 
 // 判定一次是否暴击；暴击则返回放大后的伤害
@@ -1627,6 +1644,7 @@ function getTotalAtk(s) {
   atk += getSectBonus(s, 'atk');
   atk += getXinjingBonus(s);
   if (s.equipment && s.equipment.weapon === 'tun_tushenjian') atk *= 1.10;
+  atk *= 1 + (getActiveSetBonuses(s).atkPct || 0) / 100;
   return Math.floor(atk * PLAYER_ATK_SCALE * getReincarnationBonus(s));
 }
 function getTotalMatk(s) {
@@ -1637,6 +1655,7 @@ function getTotalMatk(s) {
   matk += getSectBonus(s, 'matk');
   matk += getXinjingBonus(s);
   if (s.equipment && s.equipment.weapon === 'tun_canglongqiang') matk *= 1.10;
+  matk *= 1 + (getActiveSetBonuses(s).matkPct || 0) / 100;
   return Math.floor(matk * PLAYER_ATK_SCALE * getReincarnationBonus(s));
 }
 function getTotalDef(s) {
@@ -1646,6 +1665,7 @@ function getTotalDef(s) {
   def += getGongfaBonus(s, 'def');
   def += getSectBonus(s, 'def');
   def += getXinjingBonus(s);
+  def *= 1 + (getActiveSetBonuses(s).defPct || 0) / 100;
   return Math.floor(def * getReincarnationBonus(s));
 }
 function getTotalMdef(s) {
@@ -1655,6 +1675,7 @@ function getTotalMdef(s) {
   mdef += getGongfaBonus(s, 'mdef');
   mdef += getSectBonus(s, 'mdef');
   mdef += getXinjingBonus(s);
+  mdef *= 1 + (getActiveSetBonuses(s).mdefPct || 0) / 100;
   return Math.floor(mdef * getReincarnationBonus(s));
 }
 function getTotalPen(s) {
@@ -1664,6 +1685,7 @@ function getTotalPen(s) {
   pen += getGongfaBonus(s, 'pen');
   pen += getSectBonus(s, 'pen');
   pen += getXinjingBonus(s);
+  pen *= 1 + (getActiveSetBonuses(s).penPct || 0) / 100;
   return Math.floor(pen * getReincarnationBonus(s));
 }
 

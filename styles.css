@@ -1383,3 +1383,57 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .loadout-pick-item:hover { background: rgba(201, 169, 98, 0.18); }
 .loadout-pick-item .loadout-item-name { color: #e6d3a0; }
 .loadout-pick-item .loadout-item-desc { color: #b09a6a; }
+
+/* 套装效果 */
+.loadout-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.loadout-set {
+  padding: 8px 10px;
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px dashed #d4c08a;
+  border-radius: 4px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.loadout-set.active {
+  background: rgba(201, 169, 98, 0.16);
+  border-style: solid;
+  border-color: #d4a94a;
+  opacity: 1;
+}
+.loadout-set-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.loadout-set-name { font-size: 13px; font-weight: 600; }
+.loadout-set-count { font-size: 12px; color: #7a6a4a; font-variant-numeric: tabular-nums; }
+.loadout-set.active .loadout-set-count { color: #5c3a1a; }
+.loadout-set-members {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.loadout-set-member {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid #cbb98a;
+  font-size: 14px;
+  filter: grayscale(1) opacity(0.45);
+}
+.loadout-set-member.owned {
+  filter: none;
+  background: rgba(201, 169, 98, 0.22);
+  border-color: #d4a94a;
+}
+.loadout-set-bonus { font-size: 11px; color: #7a6a4a; line-height: 1.4; }
+.loadout-set.active .loadout-set-bonus { color: #5c3a1a; }
