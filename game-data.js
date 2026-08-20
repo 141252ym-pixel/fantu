@@ -1,10 +1,239 @@
+// ========== 更新公告 ==========
+// 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
+const UPDATE_LOG = [
+  {
+    version: 'v39',
+    date: '2026-08-20',
+    title: '水灵根平调 · 蚀水攻伐',
+    items: [
+      '水幕术伤害上调（法攻系数 1.1→1.45），并新增「寒水渗透」持续侵蚀，弥补水灵根缺乏输出手段的问题',
+      '水幕术回血下调（10%→2%）、水幕减伤下调（45%→25%），修复「无限回血无伤磨死怪」的失衡问题',
+    ],
+  },
+  {
+    version: 'v38',
+    date: '2026-08-20',
+    title: '战斗面板攻防属性 · Boss推荐门槛 · Boss彩蛋',
+    items: [
+      '战斗面板新增双方攻防属性（物攻/法攻/物抗/法抗），敌我差距一目了然',
+      'Boss 新增推荐挑战门槛（建议攻击/防御/气血达到多少再来打），打不过时心中有数',
+      '战斗搞笑独白彩蛋扩展到 Boss 战（天劫除外），不再只有普通小怪触发',
+    ],
+  },
+  {
+    version: 'v37',
+    date: '2026-08-20',
+    title: 'Boss 强度对标玩家当前实力',
+    items: [
+      '所有 Boss 改为按玩家当前总强度（含装备、神兽、功法、宗门、心境加成）动态对齐血量/攻击/防御，满装玩家也无法再一刀秒 Boss',
+      'Boss 防御与法防同步对标玩家攻击，保证 Boss 能稳定破防、战斗势均力敌',
+    ],
+  },
+  {
+    version: 'v36',
+    date: '2026-08-20',
+    title: '囤囤鼠神藏限定中后期Boss · Boss强化',
+    items: [
+      '囤囤鼠偷神藏限定中后期 Boss（梼杌/混沌/禁地穷奇/烛龙/魔尊/域外天魔/上古魔君/洪荒祖兽/天道化身/混沌元灵），早期与秘境 Boss 不再掉落',
+      'Boss 攻击伤害与血量整体加强 30%，中后期战斗更具挑战',
+    ],
+  },
+  {
+    version: 'v35',
+    date: '2026-08-20',
+    title: '灵宠升星重构 · 重复全保留 · 消耗分档',
+    items: [
+      '重复灵宠不再自动转灵石，全部保留入包，由玩家手动放生',
+      '升星新增灵石消耗，按品质分档：低阶便宜、高阶昂贵（废品20 → 神品1500）',
+    ],
+  },
+  {
+    version: 'v34',
+    date: '2026-08-20',
+    title: '灵宠升星修复 · 重复灵宠保留',
+    items: [
+      '修复：低阶灵宠抽到重复也会保留入包，不再直接放生，可攒齐 3 只同名升星',
+      '非神品同名灵宠最多保留 6 只，超过后再抽到才自动转灵石；神品仍不设上限',
+    ],
+  },
+  {
+    version: 'v33',
+    date: '2026-08-20',
+    title: '囤囤鼠成就 · 妙手神偷称号',
+    items: [
+      '囤囤鼠偷到Boss私藏神装时，解锁成就「鼠鼠立大功」并获得称号「妙手神偷」',
+      '称号展示于顶栏道号旁与修为面板，彰显你的神偷之名',
+    ],
+  },
+  {
+    version: 'v32',
+    date: '2026-08-20',
+    title: '新神品灵宠 · 囤囤鼠',
+    items: [
+      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料，极低概率(0.001%)偷走Boss私藏神装（专属掉落，仅囤囤鼠能偷）',
+      '囤囤鼠专注闪避与搜刮，靠「囤粮」慢慢变富，不参与普通技能追击',
+    ],
+  },
+  {
+    version: 'v31',
+    date: '2026-08-20',
+    title: '灵宠好感度 · 零食转盘 · 独立界面',
+    items: [
+      '灵宠新增好感度系统：送零食/装饰品投其所好，好感提升战斗放技能概率（0好感×0.5 → 满20级×1.5）',
+      '新增「灵宠零食/装饰」转盘，分凡品/精制/仙品三档，零食3口味+装饰3风格',
+      '灵宠界面改为顶栏🐾独立全屏界面，从侧边栏拆出，可送礼培养好感',
+    ],
+  },
+  {
+    version: 'v30',
+    date: '2026-08-20',
+    title: '功法图鉴 · 宗门绝学总览',
+    items: [
+      '功法图鉴新增「宗门绝学」总览，按青云宗 / 丹霞谷 / 天魔教分组展示各派独门技能',
+      '每个宗门标注宗门加成，战斗技能归宗门、被动功法按品阶，查阅更清晰',
+    ],
+  },
+  {
+    version: 'v29',
+    date: '2026-08-19',
+    title: '灵宠百连抽 · 八折',
+    items: [
+      '灵兽谷抽灵宠新增「百连抽」，一次 100 抽打八折（16000 灵石）',
+      '百连结果按灵宠/道具合并显示，重复或自动放生灵宠自动折算灵石',
+    ],
+  },
+  {
+    version: 'v28',
+    date: '2026-08-19',
+    title: '藏宝阁 · 回蓝药补全',
+    items: [
+      '极品、仙品档新增「九转回灵丹」（回复65%灵力），与回血药九转还魂丹对称',
+      '此前高稀有度只出回血药、不出回蓝药，现在两档都能抽到回蓝药',
+    ],
+  },
+  {
+    version: 'v27',
+    date: '2026-08-19',
+    title: '藏宝阁百连抽 · 八折',
+    items: [
+      '藏宝阁新增「百连抽」，一次 100 抽打八折（16000 灵石）',
+      '百连结果按物品合并显示，并汇总各稀有度出货数量，一目了然',
+    ],
+  },
+  {
+    version: 'v26',
+    date: '2026-08-19',
+    title: '功法图鉴',
+    items: [
+      '修为面板新增「📖 功法图鉴」，一键查看全部功法',
+      '按品阶（黄/玄/地/天/仙/神级）分组展示，标注被动/主动、宗门专属与习得状态',
+    ],
+  },
+  {
+    version: 'v25',
+    date: '2026-08-19',
+    title: '藏宝阁图鉴',
+    items: [
+      '藏宝阁新增「📖 图鉴」按钮，一键查看全部可抽取物品',
+      '按稀有度分组展示武器、防具、鞋履、法宝与丹药，附概率与属性',
+    ],
+  },
+  {
+    version: 'v24',
+    date: '2026-08-19',
+    title: '鞋履装备 · 独立装备栏',
+    items: [
+      '新增第 4 个装备栏「鞋履」：鞋子可与武器、防具、法宝同时穿戴',
+      '藏宝阁新增 6 双鞋：粗布鞋/牛皮靴/鹿皮靴/流云靴/风行靴/神行靴',
+      '低阶鞋加物抗护足，高阶鞋加穿透显灵动，数值比同品级主装备更温和',
+      '原有「粗布鞋」自动迁入鞋履栏，老档无缝衔接',
+    ],
+  },
+  {
+    version: 'v23',
+    date: '2026-08-19',
+    title: '战斗彩蛋 · 搞笑独白',
+    items: [
+      '小怪战斗随机触发搞笑独白：开场、出手、挨打三类，每场约 1~2 条',
+      '致敬修仙流行梗：「莫欺少年穷」「此子恐怖如斯」「反派死于话多」等',
+      'Boss、天劫、竞技斗法、心魔试炼不加彩蛋，保持原有氛围',
+    ],
+  },
+  {
+    version: 'v22',
+    date: '2026-08-19',
+    title: '战斗平衡调整',
+    items: [
+      '后期无限境界成长放缓：每层攻击增幅由 1.18 降为 1.10，境界越高越平缓',
+      '转世加成减半：每次转世全属性 +10% 调整为 +5%',
+      '玩家攻击系数整体下调 25%，打怪不再一招秒',
+      '普通小怪血量对齐玩家攻击，至少需要数刀才能击杀',
+    ],
+  },
+  {
+    version: 'v21',
+    date: '2026-08-19',
+    title: '灵宠数值平衡',
+    items: [
+      '灵宠属性百分比加成整体下调约 1/3，后期不再过度放大',
+      '灵宠升星加成由每星 +5% 调整为 +3%',
+    ],
+  },
+  {
+    version: 'v16',
+    date: '2026-08-19',
+    title: '灵宠经验系统',
+    items: [
+      '灵宠升级改为经验条：灵石/兽粮/灵兽丹喂食后积累经验，攒满自动升级',
+      '升级经验按「100 × 等级²」递增，越往后越难，高等级更显珍贵',
+      '灵石喂养：1 灵石 = 1 经验，点「升1级」自动补满当前所需',
+      '兽粮 +40 经验、灵兽丹 +200 经验（老档已有等级自动保留转换）',
+    ],
+  },
+  {
+    version: 'v14',
+    date: '2026-08-19',
+    title: '灵宠机制调整',
+    items: [
+      '灵石喂养降价：由「等级×100」改为「100 + 等级×10」，高级不再昂贵',
+      '灵兽丹效果由 +3 级下调为 +2 级，灵石喂养成为稳定升级手段',
+      '新增宠物等级上限：按品质分档（废品30~神品100级），升星每星 +10 级上限',
+      '到顶后灵宠无法继续喂食，需升星突破上限',
+    ],
+  },
+  {
+    version: 'v12',
+    date: '2026-08-19',
+    title: '灵宠升星 · 批量喂丹',
+    items: [
+      '灵宠升星：3 只同名同星灵宠合成 1 只更高星，每星全属性 +5%',
+      '批量喂养：灵兽丹 / 兽粮可一次喂多颗，无需逐颗点击',
+      '药王谷拜师改为一生一次，堵住重复刷丹药的漏洞',
+      '修复渡劫界面玩家血条被文字遮挡的问题',
+      '修复试炼秘境 19→20 层妖兽实力断层',
+    ],
+  },
+  {
+    version: 'v11',
+    date: '2026-08-18',
+    title: '宗门 · 竞技 · 心魔试炼',
+    items: [
+      '新增宗门系统：拜师入宗、宗门任务、狩猎历练',
+      '新增竞技斗法：与诸修士切磋论道、一较高下',
+      '新增心魔试炼：直面心魔、磨砺道心',
+      '境界拓展：仙帝之后循环生成更高尊号',
+      '新增转世重修、音效系统与玩法成就',
+    ],
+  },
+];
+
 // ========== 灵根设定 ==========
 const LINGGEN = {
   metal:   { name: '金灵根', color: '#b8b8b8', skill: '金刃斩', manaPct: 0.20, desc: '破甲反伤：削弱敌方防御，并反震下一次伤害',
               skillText: '你催动金灵根，指尖凝聚出一道金芒，化作一柄无形利刃，破空而出！' },
   wood:    { name: '木灵根', color: '#5d8a4a', skill: '缠藤术', manaPct: 0.18, desc: '治疗控制：回复气血，并以藤蔓压制敌人攻势',
               skillText: '你脚下木灵气涌动，数道藤蔓自地面暴起，如毒蛇般缠向敌人！' },
-  water:   { name: '水灵根', color: '#4a7a9a', skill: '水幕术', manaPct: 0.16, desc: '减伤治疗：回复气血，并凝聚水幕抵挡下一击',
+  water:   { name: '水灵根', color: '#4a7a9a', skill: '水幕术', manaPct: 0.16, desc: '蚀水攻伐：造成伤害并令寒水持续渗透，附带少量回复与水幕减伤',
               skillText: '你双手结印，水汽在身周汇聚成一道洪流，顺势席卷而去！' },
   fire:    { name: '火灵根', color: '#c25a2a', skill: '烈焰术', manaPct: 0.22, desc: '灼烧爆发：高额法术伤害，并令敌人持续燃烧',
               skillText: '你催动火灵根，一团灼热烈焰从掌心喷涌而出，所过之处空气都在扭曲！' },
@@ -78,8 +307,36 @@ const ITEMS = {
   shanzhifu:    { id: 'shanzhifu',    name: '山贼符',     type: 'misc',     icon: '📜', desc: '似乎没什么用',   effect: null,    sell: 10 },
   dao_compass:  { id: 'dao_compass',  name: '问道罗盘',   type: 'misc',     icon: '🧭', desc: '感应机缘',       effect: 'dao10', sell: 100 },
   lianhua_meng: { id: 'lianhua_meng', name: '莲花盟令',   type: 'misc',     icon: '🌸', desc: '莲花盟信物',     effect: null,    sell: 50 },
-  shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可提升出战灵宠1级', effect: 'pet_food1', sell: 40 },
-  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可提升出战灵宠3级', effect: 'pet_food3', sell: 200 },
+  shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可为出战灵宠增加40经验', effect: 'pet_food1', sell: 40 },
+  lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可为出战灵宠增加200经验', effect: 'pet_food3', sell: 200 },
+
+  // ===== 灵宠零食（投其所好送对口味好感加倍） =====
+  rougan:      { id: 'rougan',      name: '肉干',     type: 'misc', icon: '🍖', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'meat',  sell: 20 },
+  xiangrou:    { id: 'xiangrou',    name: '香肉',     type: 'misc', icon: '🍗', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'meat',  sell: 60 },
+  longgan:     { id: 'longgan',     name: '龙肝凤髓', type: 'misc', icon: '🥩', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'meat',  sell: 200 },
+  yeguo:       { id: 'yeguo',       name: '野果',     type: 'misc', icon: '🍎', desc: '灵宠零食·果食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'fruit', sell: 20 },
+  lingguo:     { id: 'lingguo',     name: '灵果',     type: 'misc', icon: '🍑', desc: '灵宠零食·果食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'fruit', sell: 60 },
+  zhuguo:      { id: 'zhuguo',      name: '朱果',     type: 'misc', icon: '🍒', desc: '灵宠零食·果食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'fruit', sell: 200 },
+  nencao:      { id: 'nencao',      name: '嫩草',     type: 'misc', icon: '🌿', desc: '灵宠零食·草食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'grass', sell: 20 },
+  lingcao:     { id: 'lingcao',     name: '灵草',     type: 'misc', icon: '🌱', desc: '灵宠零食·草食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'grass', sell: 60 },
+  xianzhicao:  { id: 'xianzhicao',  name: '仙芝草',   type: 'misc', icon: '🍀', desc: '灵宠零食·草食，投其所好好感加倍', favor: 32, cat: 'food', taste: 'grass', sell: 200 },
+  songzi:      { id: 'songzi',      name: '松子',     type: 'misc', icon: '🌰', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'nut',   sell: 20 },
+  guazi:       { id: 'guazi',       name: '瓜子',     type: 'misc', icon: '🌻', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 14, cat: 'food', taste: 'nut',   sell: 60 },
+  xianhetao:   { id: 'xianhetao',   name: '仙核桃',   type: 'misc', icon: '🥥', desc: '灵宠零食·坚果，投其所好好感加倍', favor: 32, cat: 'food', taste: 'nut',   sell: 200 },
+
+  // ===== 灵宠装饰（投其所好送对风格好感加倍） =====
+  tongling:    { id: 'tongling',    name: '铜铃',     type: 'misc', icon: '🔔', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'bell',   sell: 25 },
+  yinling:     { id: 'yinling',     name: '银铃',     type: 'misc', icon: '🎐', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 16, cat: 'decor', style: 'bell',   sell: 75 },
+  xianyinling: { id: 'xianyinling', name: '仙音铃',   type: 'misc', icon: '🎼', desc: '灵宠饰品·铃铛，投其所好好感加倍', favor: 36, cat: 'decor', style: 'bell',   sell: 250 },
+  cuchou:      { id: 'cuchou',      name: '粗绸',     type: 'misc', icon: '🎀', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'ribbon', sell: 25 },
+  jinduan:     { id: 'jinduan',     name: '锦缎',     type: 'misc', icon: '🎗️', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 16, cat: 'decor', style: 'ribbon', sell: 75 },
+  yunxiaduan:  { id: 'yunxiaduan',  name: '云霞缎',   type: 'misc', icon: '🧣', desc: '灵宠饰品·绸带，投其所好好感加倍', favor: 36, cat: 'decor', style: 'ribbon', sell: 250 },
+  muzhu:       { id: 'muzhu',       name: '木珠',     type: 'misc', icon: '📿', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'gem',    sell: 25 },
+  yuzhu:       { id: 'yuzhu',       name: '玉珠',     type: 'misc', icon: '💍', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 16, cat: 'decor', style: 'gem',    sell: 75 },
+  yemingzhu:   { id: 'yemingzhu',   name: '夜明珠',   type: 'misc', icon: '💠', desc: '灵宠饰品·宝珠，投其所好好感加倍', favor: 36, cat: 'decor', style: 'gem',    sell: 250 },
+  tengqiu:     { id: 'tengqiu',     name: '藤球',     type: 'misc', icon: '🧶', desc: '灵宠玩具·藤球，投其所好好感加倍', favor: 7,  cat: 'decor', style: 'toy',    sell: 25 },
+  mupaolun:    { id: 'mupaolun',    name: '木制跑轮', type: 'misc', icon: '🎡', desc: '灵宠玩具·跑轮，投其所好好感加倍', favor: 16, cat: 'decor', style: 'toy',    sell: 75 },
+  jiulianhuan: { id: 'jiulianhuan', name: '九连环',   type: 'misc', icon: '⛓️', desc: '灵宠玩具·九连环，投其所好好感加倍', favor: 36, cat: 'decor', style: 'toy',    sell: 250 },
 
   // ===== 抽卡装备（稀有度分层，越高越稀有） =====
   g_qingfeng:  { id: 'g_qingfeng',   name: '青锋剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+15',  effect: 'atk15',   sell: 30,   rarity: '凡品' },
@@ -97,7 +354,7 @@ const ITEMS = {
 
   // ===== 抽卡装备（第二批：更多武器/防具） =====
   g_taomu:     { id: 'g_taomu',      name: '桃木剑',    type: 'weapon', icon: '🗡️', desc: '凡品·攻击+12',  effect: 'atk12',   sell: 30,   rarity: '凡品' },
-  g_cubu:      { id: 'g_cubu',       name: '粗布鞋',    type: 'armor', slot: 'armor', icon: '👟', desc: '凡品·防御+8',   effect: 'def8',    sell: 30,   rarity: '凡品' },
+  g_cubu:      { id: 'g_cubu',       name: '粗布鞋',    type: 'armor', slot: 'shoes', icon: '👟', desc: '凡品·防御+8',   effect: 'def8',    sell: 30,   rarity: '凡品' },
   g_tiejidao:  { id: 'g_tiejidao',   name: '铁脊刀',    type: 'weapon', icon: '🔪', desc: '良品·攻击+28',  effect: 'atk28',   sell: 70,   rarity: '良品' },
   g_niupijia:  { id: 'g_niupijia',   name: '牛皮甲',    type: 'armor', slot: 'armor', icon: '🛡️', desc: '良品·防御+18',  effect: 'def18',   sell: 70,   rarity: '良品' },
   g_hantieqiang:{id: 'g_hantieqiang',name: '寒铁枪',    type: 'weapon', icon: '🔱', desc: '中品·攻击+55',  effect: 'atk55',   sell: 180,  rarity: '中品' },
@@ -133,6 +390,20 @@ const ITEMS = {
   g_pojunzhui:   { id: 'g_pojunzhui',   name: '破军锥',  type: 'weapon', icon: '🔱', desc: '极品·穿透+110', effect: 'pen110',  sell: 1100, rarity: '极品' },
   g_zhuxianzhui: { id: 'g_zhuxianzhui', name: '诛仙锥',  type: 'weapon', icon: '💠', desc: '仙品·穿透+150', effect: 'pen150',  sell: 2500, rarity: '仙品' },
 
+  // ===== 抽卡装备（鞋子：独立装备栏「鞋履」，与衣服可同时穿戴） =====
+  g_niupixue:   { id: 'g_niupixue',    name: '牛皮靴',  type: 'armor', slot: 'shoes', icon: '👢', desc: '良品·防御+16',  effect: 'def16',   sell: 70,   rarity: '良品' },
+  g_lupixue:    { id: 'g_lupixue',     name: '鹿皮靴',  type: 'armor', slot: 'shoes', icon: '🥾', desc: '中品·防御+32',  effect: 'def32',   sell: 180,  rarity: '中品' },
+  g_liuyunxue:  { id: 'g_liuyunxue',   name: '流云靴',  type: 'armor', slot: 'shoes', icon: '👞', desc: '上品·穿透+50',  effect: 'pen50',   sell: 450,  rarity: '上品' },
+  g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
+  g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
+
+  // ===== 囤囤鼠私藏（仅能由囤囤鼠 0.001% 概率偷 Boss 获得，无其他获取途径） =====
+  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·攻击+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'atk600', sell: 8000, rarity: '神品' },
+  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法攻+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'matk600', sell: 8000, rarity: '神品' },
+  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·物抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'def360', sell: 8000, rarity: '神品' },
+  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·法抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'mdef360', sell: 8000, rarity: '神品' },
+  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·穿透+250（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'pen250', sell: 8000, rarity: '神品' },
+
   // ===== 抽卡废品（抽空产物，只能卖几灵石） =====
   shuzhi:  { id: 'shuzhi',  name: '枯树枝', type: 'misc', icon: '🌿', desc: '路边捡的，没什么用', effect: null, sell: 3 },
   shitou:  { id: 'shitou',  name: '碎石子', type: 'misc', icon: '🪨', desc: '随处可见的石头',     effect: null, sell: 5 },
@@ -153,29 +424,29 @@ const GACHA_POOL = [
     { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
-    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia',
+    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui',
+    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci',
+    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui',
-    { id: 'jiuzhuan_pill', count: 2 },
+    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue',
+    { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
-    'g_zhuxianzhui',
-    { id: 'jiuzhuan_pill', count: 3 },
+    'g_zhuxianzhui', 'g_shenxingxue',
+    { id: 'jiuzhuan_pill', count: 3 }, { id: 'jiuzhuanling_pill', count: 3 },
   ]},
   { rarity: '神品', weight: 0.05, color: '#ffd54f', items: [
     'g_hundunzhong', 'g_qiankunding', 'g_fuxiqin', 'g_shennongding',
@@ -215,6 +486,7 @@ const ACHIEVEMENTS = [
   { id: 'arena_tier',   name: '斗法扬名',   desc: '斗法段位达到金丹斗尊',       icon: '🏆' },
   { id: 'xinmo_win',    name: '斩却心魔',   desc: '首次斩灭心魔化身',           icon: '🖤' },
   { id: 'xinjing_100',  name: '心如止水',   desc: '心境达到 100',               icon: '🧘' },
+  { id: 'tuntun_theft', name: '鼠鼠立大功', desc: '囤囤鼠偷走Boss的私藏神装',   icon: '🐹', title: '妙手神偷' },
 ];
 
 // ========== 合成配方 ==========
@@ -259,78 +531,83 @@ const PETS = {
     base: { atk: 1, matk: 1, def: 0, mdef: 0, pen: 0 },
     growth: { atk: 1, matk: 1, def: 1, mdef: 0, pen: 0 },
     skill: '啮咬', skillChance: 0.10, skillMult: 1.1,
-    desc: '山林间最不起眼的小灵兽。' },
+    desc: '山林间最不起眼的小灵兽。', likes: { food: 'fruit', decor: 'bell' } },
   huitu: { id: 'huitu', name: '灰兔', icon: '🐰', quality: '废品', qc: '#7a7a7a',
     base: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
     growth: { atk: 1, matk: 1, def: 1, mdef: 1, pen: 0 },
     skill: '蹬腿', skillChance: 0.10, skillMult: 1.1,
-    desc: '机警的小灰兔，速度飞快。' },
+    desc: '机警的小灰兔，速度飞快。', likes: { food: 'grass', decor: 'bell' } },
   // 凡品
   xiaobaihu: { id: 'xiaobaihu', name: '小白狐', icon: '🦊', quality: '凡品', qc: '#c9c9c9',
     base: { atk: 4, matk: 4, def: 2, mdef: 2, pen: 0 },
     growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
     skill: '狐火', skillChance: 0.18, skillMult: 1.3,
-    desc: '通体雪白的小狐狸，性情温顺，口吐狐火。' },
+    desc: '通体雪白的小狐狸，性情温顺，口吐狐火。', likes: { food: 'fruit', decor: 'ribbon' } },
   qingshe: { id: 'qingshe', name: '青蛇', icon: '🐍', quality: '凡品', qc: '#c9c9c9',
     base: { atk: 5, matk: 3, def: 2, mdef: 2, pen: 0 },
     growth: { atk: 2, matk: 2, def: 1, mdef: 1, pen: 0 },
     skill: '毒牙', skillChance: 0.15, skillMult: 1.3,
-    desc: '通体青碧的灵蛇，毒牙锋利。' },
+    desc: '通体青碧的灵蛇，毒牙锋利。', likes: { food: 'meat', decor: 'gem' } },
   // 良品
   xuanwu: { id: 'xuanwu', name: '玄龟', icon: '🐢', quality: '良品', qc: '#4caf50',
     base: { atk: 3, matk: 3, def: 10, mdef: 7, pen: 0 },
     growth: { atk: 1, matk: 1, def: 4, mdef: 3, pen: 0 },
     skill: '玄龟冲撞', skillChance: 0.15, skillMult: 1.5,
-    desc: '背负玄甲的灵龟，防御无双，坚不可摧。' },
+    desc: '背负玄甲的灵龟，防御无双，坚不可摧。', likes: { food: 'grass', decor: 'gem' } },
   linglu: { id: 'linglu', name: '灵鹿', icon: '🦌', quality: '良品', qc: '#4caf50',
     base: { atk: 4, matk: 7, def: 4, mdef: 4, pen: 0 },
     growth: { atk: 2, matk: 3, def: 2, mdef: 2, pen: 0 },
     skill: '灵角', skillChance: 0.18, skillMult: 1.4,
-    desc: '头顶灵角的灵鹿，通体灵光。' },
+    desc: '头顶灵角的灵鹿，通体灵光。', likes: { food: 'grass', decor: 'ribbon' } },
   // 中品
   huoya: { id: 'huoya', name: '火鸦', icon: '🦅', quality: '中品', qc: '#4a90d9',
     base: { atk: 8, matk: 10, def: 4, mdef: 4, pen: 1 },
     growth: { atk: 3, matk: 4, def: 2, mdef: 2, pen: 0 },
     skill: '火羽', skillChance: 0.20, skillMult: 1.5,
-    desc: '浑身燃着赤焰的火鸦，鸣声如雷。' },
+    desc: '浑身燃着赤焰的火鸦，鸣声如雷。', likes: { food: 'meat', decor: 'bell' } },
   baiyuan: { id: 'baiyuan', name: '白猿', icon: '🐒', quality: '中品', qc: '#4a90d9',
     base: { atk: 10, matk: 6, def: 7, mdef: 5, pen: 1 },
     growth: { atk: 4, matk: 3, def: 3, mdef: 2, pen: 0 },
     skill: '猿啸', skillChance: 0.18, skillMult: 1.5,
-    desc: '通臂白猿，力大无穷。' },
+    desc: '通臂白猿，力大无穷。', likes: { food: 'fruit', decor: 'bell' } },
   // 上品
   baihu: { id: 'baihu', name: '白虎', icon: '🐯', quality: '上品', qc: '#9b59b6',
     base: { atk: 15, matk: 10, def: 8, mdef: 7, pen: 3 },
     growth: { atk: 5, matk: 4, def: 3, mdef: 3, pen: 1 },
     skill: '虎啸', skillChance: 0.20, skillMult: 1.6,
-    desc: '西方庚金白虎，主杀伐，威震山野。' },
+    desc: '西方庚金白虎，主杀伐，威震山野。', likes: { food: 'meat', decor: 'bell' } },
   jinpeng: { id: 'jinpeng', name: '金鹏', icon: '🦜', quality: '上品', qc: '#9b59b6',
     base: { atk: 13, matk: 15, def: 7, mdef: 8, pen: 3 },
     growth: { atk: 5, matk: 5, def: 3, mdef: 3, pen: 1 },
     skill: '金翅', skillChance: 0.20, skillMult: 1.6,
-    desc: '展翅千里的大鹏，金羽遮天。' },
+    desc: '展翅千里的大鹏，金羽遮天。', likes: { food: 'meat', decor: 'ribbon' } },
   // 极品
   qinglong: { id: 'qinglong', name: '青龙', icon: '🐉', quality: '极品', qc: '#e6a23c',
     base: { atk: 22, matk: 17, def: 11, mdef: 10, pen: 6 },
     growth: { atk: 7, matk: 6, def: 4, mdef: 4, pen: 2 },
     skill: '龙息', skillChance: 0.22, skillMult: 1.8,
-    desc: '东方苍龙，龙威浩荡，睥睨天下。' },
+    desc: '东方苍龙，龙威浩荡，睥睨天下。', likes: { food: 'meat', decor: 'gem' } },
   huofeng: { id: 'huofeng', name: '火凤', icon: '🦚', quality: '极品', qc: '#e6a23c',
     base: { atk: 18, matk: 24, def: 9, mdef: 11, pen: 6 },
     growth: { atk: 6, matk: 8, def: 3, mdef: 4, pen: 2 },
     skill: '凤炎', skillChance: 0.22, skillMult: 1.8,
-    desc: '浴火而生的火凤，烈焰滔天。' },
+    desc: '浴火而生的火凤，烈焰滔天。', likes: { food: 'fruit', decor: 'ribbon' } },
   // 神品（最高，龙与凤凰）
   shenlong: { id: 'shenlong', name: '神龙', icon: '🐲', quality: '神品', qc: '#e0473c', affinity: 'attack',
     base: { atk: 32, matk: 28, def: 16, mdef: 15, pen: 10 },
     growth: { atk: 10, matk: 9, def: 5, mdef: 5, pen: 3 },
     skill: '神龙吐息', skillChance: 0.25, skillMult: 2.2,
-    desc: '九天之上的神龙，俯瞰众生，威压万物。' },
+    desc: '九天之上的神龙，俯瞰众生，威压万物。', likes: { food: 'meat', decor: 'gem' } },
   fenghuang: { id: 'fenghuang', name: '凤凰', icon: '🦩', quality: '神品', qc: '#e0473c', affinity: 'guard',
     base: { atk: 28, matk: 32, def: 14, mdef: 17, pen: 10 },
     growth: { atk: 9, matk: 10, def: 5, mdef: 6, pen: 3 },
     skill: '涅槃', skillChance: 0.25, skillMult: 2.2,
-    desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。' },
+    desc: '百鸟之王的凤凰，浴火涅槃，不死不灭。', likes: { food: 'fruit', decor: 'ribbon' } },
+  tuntunshu: { id: 'tuntunshu', name: '囤囤鼠', icon: '🐹', quality: '神品', qc: '#e0473c', affinity: 'guard',
+    base: { atk: 20, matk: 20, def: 18, mdef: 16, pen: 8 },
+    growth: { atk: 6, matk: 6, def: 6, mdef: 5, pen: 2 },
+    skill: '囤粮遁', skillChance: 0.20, skillMult: 1.0,
+    desc: '神品灵兽，天生敛财囤粮。战斗中能叼着主人躲开攻击，战后顺手牵羊偷灵石材料，极低概率连Boss的掉落都能顺走。', likes: { food: ['nut', 'fruit'], decor: ['toy', 'gem'] } },
 };
 
 // 灵宠抽奖池（爆率参照藏宝阁：weight 为概率权重）
@@ -343,22 +620,50 @@ const PET_GACHA_POOL = [
   { rarity: '中品',   weight: 8.5, color: '#4a90d9', items: ['huoya', 'baiyuan'] },
   { rarity: '上品',   weight: 4,   color: '#9b59b6', items: ['baihu', 'jinpeng'] },
   { rarity: '极品',   weight: 1.2, color: '#e6a23c', items: ['qinglong', 'huofeng'] },
-  { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang'] },
+  { rarity: '神品',   weight: 0.5, color: '#e0473c', items: ['shenlong', 'fenghuang', 'tuntunshu'] },
   { rarity: '兽粮',   weight: 17,  color: '#d4a76a', items: ['shouliang'], type: 'item' },
   { rarity: '灵兽丹', weight: 8.8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
+];
+// 灵宠好感度：送零食/装饰品投其所好叠加好感，好感提升灵宠放技能概率
+const PET_FAVOR_MAX = 20;             // 好感等级上限
+const PET_FAVOR_EXP_PER_LEVEL = 100;  // 每级所需好感进度（进度满 +1 级）
+// 囤囤鼠专属被动：闪避 + 战后偷取
+const TUNTUNSHU_DODGE_BASE = 0.06;        // 基础闪避率
+const TUNTUNSHU_DODGE_PER_STAGE = 0.02;   // 每阶 +2%
+const TUNTUNSHU_DODGE_FAVOR_MAX = 0.10;   // 满好感额外 +10%
+const TUNTUNSHU_DODGE_CAP = 0.30;         // 闪避率封顶
+const TUNTUNSHU_STEAL_CHANCE = 0.40;      // 战后偷灵石/材料的概率
+const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
+const TUNTUNSHU_BOSS_STEAL_CHANCE = 0.00001; // 偷 Boss 掉落装备的概率（0.001%，极稀有）
+// 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
+const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
+// 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
+const TUNTUNSHU_STEAL_BOSSES = ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong', 'demon_lord', 'tianmo', 'mojun', 'honghuang_shou', 'tian_dao', 'chaos_yuanling'];
+// 灵宠零食/装饰转盘（分稀有度档，送对口味/风格好感加倍）
+const PET_TREAT_COST = 100;
+const PET_TREAT_POOL = [
+  { rarity: '凡品', weight: 40, color: '#c9c9c9', items: ['rougan', 'yeguo', 'nencao', 'songzi', 'tongling', 'cuchou', 'muzhu', 'tengqiu'] },
+  { rarity: '精制', weight: 28, color: '#4a90d9', items: ['xiangrou', 'lingguo', 'lingcao', 'yinling', 'jinduan', 'yuzhu', 'guazi', 'mupaolun'] },
+  { rarity: '仙品', weight: 10, color: '#e0473c', items: ['longgan', 'zhuguo', 'xianzhicao', 'xianhetao', 'xianyinling', 'yunxiaduan', 'yemingzhu', 'jiulianhuan'] },
+  { rarity: '兽粮', weight: 14, color: '#d4a76a', items: ['shouliang'], type: 'item' },
+  { rarity: '灵兽丹', weight: 8, color: '#ffd54f', items: ['lingshou_dan'], type: 'item' },
 ];
 // 品质档位（用于比较强弱）与重复抽到的灵石补偿
 const PET_QUALITY_RANK = { '废品': 0, '凡品': 1, '良品': 2, '中品': 3, '上品': 4, '极品': 5, '神品': 6 };
 const PET_REFUND = { '废品': 10, '凡品': 30, '良品': 60, '中品': 120, '上品': 250, '极品': 600, '神品': 1500 };
+// 灵宠升星消耗（每次升星消耗的灵石，按品质分档：低阶便宜、高阶昂贵）
+const PET_STAR_COST = { '废品': 20, '凡品': 50, '良品': 100, '中品': 200, '上品': 400, '极品': 800, '神品': 1500 };
+// 宠物等级上限（按品质分档），升星每 +1 星额外 +10 级上限
+const PET_MAX_LEVEL = { '废品': 30, '凡品': 40, '良品': 50, '中品': 60, '上品': 70, '极品': 80, '神品': 100 };
 // 双轨成长：固定属性照常随等级增长，百分比属性取决于主人基础属性；品质越高，系数与技能强度越高。
 const PET_QUALITY_GROWTH = {
-  '废品': { pct: 0.003, skillChance: 0.70, skillPower: 0.72 },
-  '凡品': { pct: 0.006, skillChance: 0.82, skillPower: 0.82 },
-  '良品': { pct: 0.010, skillChance: 0.94, skillPower: 0.94 },
-  '中品': { pct: 0.015, skillChance: 1.06, skillPower: 1.06 },
-  '上品': { pct: 0.022, skillChance: 1.18, skillPower: 1.18 },
-  '极品': { pct: 0.032, skillChance: 1.32, skillPower: 1.32 },
-  '神品': { pct: 0.045, skillChance: 1.48, skillPower: 1.48 },
+  '废品': { pct: 0.002, skillChance: 0.70, skillPower: 0.72 },
+  '凡品': { pct: 0.004, skillChance: 0.82, skillPower: 0.82 },
+  '良品': { pct: 0.007, skillChance: 0.94, skillPower: 0.94 },
+  '中品': { pct: 0.010, skillChance: 1.06, skillPower: 1.06 },
+  '上品': { pct: 0.015, skillChance: 1.18, skillPower: 1.18 },
+  '极品': { pct: 0.021, skillChance: 1.32, skillPower: 1.32 },
+  '神品': { pct: 0.030, skillChance: 1.48, skillPower: 1.48 },
 };
 // 神品灵宠出生时随机获得一个天赋；天赋数值仅在每十级进阶时提高。
 const DIVINE_PET_TRAITS = {
@@ -588,6 +893,11 @@ const ENEMIES = {
   // 魔尊：化神大圆满前不可力敌的终局强敌
   demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 230000, atk: 5600, def: 1200, matk: 7800, mdef: 1500, xp: 22000, stone: [12000,18000], drops: [], boss: true, special: { name: '魔神叩关', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
 
+  // 秘境过渡敌人（20~29层爬塔用，填平 6400→75000 的数值断层）
+  mijing_yuling:   { id: 'mijing_yuling',   name: '秘境妖灵', hp: 9000,  atk: 620,  def: 140, matk: 760,  mdef: 180, xp: 2800,  stone: [1400, 2000], drops: [{id:'juqi_pill',chance:0.5}], boss: true },
+  mijing_yaoshuai: { id: 'mijing_yaoshuai', name: '秘境妖帅', hp: 22000, atk: 1250, def: 260, matk: 1550, mdef: 330, xp: 5500,  stone: [3400, 4800], drops: [{id:'juqi_pill',chance:1},{id:'huichun_pill',chance:0.4}], boss: true },
+  mijing_yaozun:   { id: 'mijing_yaozun',   name: '秘境妖尊', hp: 52000, atk: 2100, def: 420, matk: 2600, mdef: 530, xp: 9800,  stone: [6200, 9000], drops: [{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:0.5}], boss: true },
+
   // 四凶禁地（高难度挑战，强度递增；魔尊仍为此阶段最强）
   taowu:       { id: 'taowu',    name: '梼杌',       hp: 75000, atk: 2500, def: 480, matk: 2900, mdef: 560, xp: 8000,  stone: [3500,5000],  drops: [{id:'lieyangshi',chance:1},{id:'tiebi',chance:0.5}], boss: true, special: { name: '凶煞裂地', type: 'weaken', rate: 0.35, turns: 2, chance: 0.24, cd: 3 } },
   hundun:      { id: 'hundun',   name: '混沌',       hp: 120000, atk: 3300, def: 650, matk: 3900, mdef: 760, xp: 12000, stone: [5500,8000], drops: [{id:'hanbingxue',chance:1},{id:'juqi_pill',chance:1}], boss: true, special: { name: '混沌侵蚀', type: 'poison', pct: 0.035, turns: 2, chance: 0.24, cd: 3 } },
@@ -616,8 +926,11 @@ const MIJING_POOLS = [
   { minFloor: 5,  enemies: ['stone_monkey', 'blood_cultist'] },
   { minFloor: 10, enemies: ['bifuluan', 'qiongqi', 'nine_tails'] },
   { minFloor: 15, enemies: ['taotie', 'yinglong'] },
-  { minFloor: 20, enemies: ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong'] },
-  { minFloor: 25, enemies: ['tianmo', 'mojun'] },
+  { minFloor: 20, enemies: ['mijing_yuling'] },
+  { minFloor: 24, enemies: ['mijing_yaoshuai'] },
+  { minFloor: 27, enemies: ['mijing_yaozun'] },
+  { minFloor: 30, enemies: ['taowu', 'hundun', 'qiongchi_fiend', 'zhulong'] },
+  { minFloor: 35, enemies: ['tianmo', 'mojun'] },
 ];
 
 // 不存在的 daopei 物品兜底（上面的敌人 drop 里用到了）
@@ -1172,7 +1485,7 @@ const STORY_NODES = {
     title: '药王',
     text: '"小友能破老夫的迷踪雾，也算有缘。你可愿拜入老夫门下，学习丹道？"',
     choices: [
-      { label: '愿意拜师', next: 'yaowang_disciple' },
+      { label: '愿意拜师', next: 'yaowang_disciple', req: (s) => !s.yaowangDisciple },
       { label: '婉拒，告辞', next: 'qingyun_gate' },
     ],
   },
@@ -1181,6 +1494,8 @@ const STORY_NODES = {
     title: '药王弟子',
     text: '药王满意地点点头，传授你基础丹道知识，并赠你一瓶丹药。',
     onEnter: (s) => {
+      if (s.yaowangDisciple) return;
+      s.yaowangDisciple = true;
       s.dao += 5;
       grantItem(s, 'juqi_pill', 3);
       s.fame += 10;
@@ -2468,6 +2783,7 @@ const STORY_NODES = {
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
+  'Q7K2MX9T': { stone: 100000 },
   'JZYHQQS4': { stone: 1000000 },
   'SOMETHINGFORNOTHING': { tribulationBlessing: true },
 };

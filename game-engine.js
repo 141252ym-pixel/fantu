@@ -13,12 +13,14 @@ let _nodeDynamicText = null;
 const MAX_PILLS_PER_BATTLE = 5;
 
 // 玩家攻击力系数（整体削弱，避免打 boss 过快）
-const PLAYER_ATK_SCALE = 0.8;
+const PLAYER_ATK_SCALE = 0.6;
 
-// Boss 动态平衡参数（无限境界后生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
+// Boss 动态平衡参数（按玩家当前强度生效，避免玩家一刀秒 Boss / Boss 打不动玩家）
 const BOSS_HP_PER_HIT = 8;    // Boss 血量 ≈ 玩家每刀伤害 × 8
 const BOSS_ATK_VS_DEF = 1.3;  // Boss 攻击 ≈ 玩家防御 × 1.3（稳定破防）
 const BOSS_DEF_VS_ATK = 0.5;  // Boss 防御 ≈ 玩家攻击 × 0.5（玩家每刀约半攻）
+const BOSS_DMG_MULT = 1.3;    // Boss 普通攻击伤害倍率（整体加强 Boss 伤害）
+const BOSS_HP_MULT = 1.3;     // Boss 血量倍率（整体加厚 Boss 血量）
 
 // 论道台同门名册：避免切磋时总是遇到同一两个固定对手。
 const DAO_PEER_NAMES = [
@@ -33,6 +35,36 @@ function getRandomDaoPeerName(s) {
   const name = candidates[Math.floor(Math.random() * candidates.length)];
   s.lastDaoPeerName = name;
   return name;
+}
+
+// ========== 战斗彩蛋台词（随机触发，仅普通小怪） ==========
+const EASTER_EGG_INTRO = [
+  '「此子恐怖如斯，断不可留！」——它说得义正辞严，仿佛自己不是先来送死的那一个。',
+  '「三十年河东，三十年河西——」敌人话没说完，你提醒它：「这句不是这么用的。」',
+  '敌人负手而立：「我为天帝，当镇杀世间一切敌……呃，至少镇杀你。」最后半句明显底气不足。',
+  '敌人上下打量你：「就这？本座闭关十年，一觉醒来宗门没了，正好拿你出气。」',
+  '「道友请留步。」敌人一脸和善——你心里咯噔一下，申公豹也是这么开场的。',
+  '敌人小声嘀咕：「反派死于话多……所以本座决定，先动手，再补台词！」',
+];
+const EASTER_EGG_PLAYER_ATK = [
+  '你心中默念「莫欺少年穷」，气势如虹——然后招式偏了三寸。',
+  '你大喊「手握日月摘星辰」，嗓音破音，场面一度十分尴尬。',
+  '你摆出「我为天帝」的架势，脚下一滑，顺势改成了一记平砍。',
+  '你想起师尊说「打架别废话」，于是你只废话了半句就出手了。',
+  '你默念口诀，念到一半忘了词，硬着头皮：「算了，能打到就行。」',
+  '「苟住，别浪。」你对自己说，然后一个浪翻，冲了上去。',
+];
+const EASTER_EGG_ENEMY_ATK = [
+  '「吃我这招『修为不够法宝来凑』！」它举起的法宝，怎么看都有点山寨。',
+  '「别躲啊，我大招都读条一半了，你躲了怪浪费的。」',
+  '敌人边打边喊「我于杀戮中绽放！」你：「你那是挨打中绽放吧。」',
+  '「看我这招——诶，打偏了……不，这叫佯攻，是战术！」',
+  '敌人喘着粗气骂骂咧咧：「你怎么这么抗揍，我手都打酸了，你改练铁布衫了？」',
+  '「反派死于话多」——敌人明显犹豫了一下，最后选择闭嘴，狠狠给你一下。',
+];
+
+function rollEasterEgg(list, chance) {
+  return Math.random() < chance ? list[Math.floor(Math.random() * list.length)] : null;
 }
 
 // ========== 初始化 ==========
@@ -95,9 +127,11 @@ function newGame() {
     fame: 0,
     dao: 0,
     bag: { huiqi_pill: 2 },
-    equipment: { weapon: null, armor: null, artifact: null },
+    equipment: { weapon: null, armor: null, artifact: null, shoes: null },
     equipLevel: {},
     achievements: [],
+    titles: [],
+    title: null,
     stats: {
       battleWin: 0,
       battleLoss: 0,
@@ -143,20 +177,22 @@ function restartGame() {
   UI.showToast('已重新开始（手动存档已保留）');
 }
 
-// 转世永久加成：每次转世全属性 +10%（乘法叠加）
+// 转世永久加成：每次转世全属性 +5%（乘法叠加）
 function getReincarnationBonus(s) {
-  return 1 + 0.1 * (s.reincarnation || 0);
+  return 1 + 0.05 * (s.reincarnation || 0);
 }
 
 // 死亡转世重修：保留道号/功法/成就，其余清空，从炼气一层重新开始（灵根重新随机）
 function reincarnate(s) {
-  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements };
+  const keep = { name: s.name, gongfa: s.gongfa, achievements: s.achievements, titles: s.titles, title: s.title };
   const reincarnation = (s.reincarnation || 0) + 1;
   newGame();
   const ns = Game.state;
   ns.name = keep.name;
   ns.gongfa = keep.gongfa;
   ns.achievements = keep.achievements;
+  ns.titles = keep.titles;
+  ns.title = keep.title;
   ns.reincarnation = reincarnation;
   realignRealm(ns); // 用炼气一层 + 转世加成重算属性
   goToNode('start');
@@ -247,9 +283,9 @@ function getRealm(idx) {
   const name = tier === 0 ? honor : `${honor}${tier + 1}重天`;
   return {
     name,
-    max: Math.round(1750000 * Math.pow(1.30, n)),
-    atk: Math.round(15000 * Math.pow(1.18, n)),
-    def: Math.round(2560 * Math.pow(1.17, n)),
+    max: Math.round(1750000 * Math.pow(1.24, n)),
+    atk: Math.round(15000 * Math.pow(1.10, n)),
+    def: Math.round(2560 * Math.pow(1.10, n)),
   };
 }
 
@@ -476,7 +512,7 @@ function getItemSlot(item) {
 function migrateEquipment(s) {
   if (!s.bag || typeof s.bag !== 'object') s.bag = {};
   if (!s.equipment || typeof s.equipment !== 'object') s.equipment = {};
-  for (const slot of ['weapon', 'armor', 'artifact']) {
+  for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
     if (s.equipment[slot] == null) s.equipment[slot] = null;
   }
   // 混沌钟曾作为武器装备，版本更新后迁入独立法宝栏。
@@ -559,7 +595,7 @@ function getEquipBonus(s, slot, prefix) {
 }
 
 function getAllEquipBonus(s, prefix) {
-  return ['weapon', 'armor', 'artifact'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
+  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
 }
 
 // ========== 灵宠 ==========
@@ -580,7 +616,7 @@ function migratePets(s) {
     used.add(uid);
     const level = Math.max(1, p.level || 1);
     // 旧档若已有独立技能等级，完整保留；没有时按已有等级补齐进阶对应的技能等级。
-    const entry = { ...p, uid, level, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0) };
+    const entry = { ...p, uid, level, exp: p.exp || 0, skillLevel: Math.max(Math.floor(level / 10), p.skillLevel || 0), favor: p.favor || 0, favorExp: p.favorExp || 0 };
     // 老玩家福利：历史神品灵宠补发一次随机神品天赋；已有天赋绝不改动。
     if (PETS[entry.id].quality === '神品' && !getPetTrait(entry)) entry.trait = rollDivineTrait(entry.id);
     return entry;
@@ -899,6 +935,15 @@ function getEquippedPet(s) {
 }
 
 function getPetStage(entry) { return Math.floor((entry.level || 1) / 10); }
+function getPetMaxLevel(entry) {
+  const pet = PETS[entry.id];
+  const base = (pet && PET_MAX_LEVEL[pet.quality]) || 50;
+  return base + ((entry.star || 1) - 1) * 10;
+}
+// 升到下一级所需经验：100 × 等级²，越往后越难
+function getPetExpToNext(level) { return 100 * level * level; }
+// 灵宠经验值：1 灵石 = 1 经验；兽粮 +40、灵兽丹 +200
+function getPetItemExp(itemId) { return itemId === 'lingshou_dan' ? 200 : 40; }
 function getPetSkillRank(entry) { return Math.max(getPetStage(entry), entry.skillLevel || 0); }
 function getPetQualityGrowth(pet) { return PET_QUALITY_GROWTH[pet.quality] || PET_QUALITY_GROWTH['废品']; }
 function getPetTrait(entry) { return entry && entry.trait ? DIVINE_PET_TRAITS[entry.trait.id] : null; }
@@ -924,38 +969,129 @@ function getPetStatBonus(s, entry, stat) {
   if (pet.affinity === 'attack') affinity = ['atk', 'matk', 'pen'].includes(stat) ? 1.35 : 0.78;
   if (pet.affinity === 'guard') affinity = ['def', 'mdef'].includes(stat) ? 1.35 : 0.78;
   const percent = owner * conf.pct * (1 + stage * 0.20) * affinity;
-  return Math.floor(fixed + percent);
+  const starMult = 1 + ((entry.star || 1) - 1) * 0.03;
+  return Math.floor((fixed + percent) * starMult);
 }
 
+// 好感度 → 技能概率系数：0 级 0.5 → 满级 1.5（线性）
+function getPetFavorMult(entry) {
+  const favor = entry.favor || 0;
+  return 0.5 + (favor / PET_FAVOR_MAX) * 1.0;
+}
+// 好感度信息（等级/进度/百分比），供 UI 渲染
+function getPetFavorInfo(entry) {
+  return {
+    favor: entry.favor || 0,
+    favorExp: entry.favorExp || 0,
+    max: PET_FAVOR_MAX,
+    expPerLevel: PET_FAVOR_EXP_PER_LEVEL,
+    pct: Math.min(100, Math.round(((entry.favorExp || 0) / PET_FAVOR_EXP_PER_LEVEL) * 100)),
+  };
+}
 function getPetSkillChance(entry) {
   const pet = PETS[entry.id];
-  return Math.min(0.75, pet.skillChance * getPetQualityGrowth(pet).skillChance * (1 + getPetSkillRank(entry) * 0.12));
+  return Math.min(0.85, pet.skillChance * getPetQualityGrowth(pet).skillChance * (1 + getPetSkillRank(entry) * 0.12) * getPetFavorMult(entry));
 }
 function getPetSkillMult(entry) {
   const pet = PETS[entry.id];
   return pet.skillMult * getPetQualityGrowth(pet).skillPower * (1 + getPetSkillRank(entry) * 0.18);
 }
+// 囤囤鼠闪避率：基础 + 每阶 + 满好感加成，封顶
+function getTuntunshuDodgeRate(entry) {
+  const favor = entry.favor || 0;
+  return Math.min(TUNTUNSHU_DODGE_CAP, TUNTUNSHU_DODGE_BASE + getPetStage(entry) * TUNTUNSHU_DODGE_PER_STAGE + (favor / PET_FAVOR_MAX) * TUNTUNSHU_DODGE_FAVOR_MAX);
+}
+// 囤囤鼠带主人闪避：成功返回 0（免伤），否则返回原伤害
+function tryPetDodge(s, dmg) {
+  const entry = getEquippedPet(s);
+  if (!entry || entry.id !== 'tuntunshu' || dmg <= 0) return dmg;
+  if (Math.random() < getTuntunshuDodgeRate(entry)) {
+    logBattle(`【囤囤鼠】眼疾手快，叼着你的衣角一个翻滚，堪堪躲开了这一击！`, 'player');
+    return 0;
+  }
+  return dmg;
+}
+// 囤囤鼠战后偷取：偷灵石、偷材料、极低概率偷 Boss 掉落，返回额外日志文本
+function tuntunshuSteal(s, e, stoneGain) {
+  const entry = getEquippedPet(s);
+  if (!entry || entry.id !== 'tuntunshu') return '';
+  const parts = [];
+  if (stoneGain > 0 && Math.random() < TUNTUNSHU_STEAL_CHANCE) {
+    const steal = Math.max(1, Math.floor(stoneGain * TUNTUNSHU_STEAL_STONE_PCT));
+    s.stone += steal;
+    parts.push(`顺手牵羊偷了 ${steal} 灵石`);
+  }
+  if (e.drops && e.drops.length) {
+    const materialDrops = e.drops.filter(d => ITEMS[d.id] && ITEMS[d.id].type === 'material');
+    if (materialDrops.length && Math.random() < TUNTUNSHU_STEAL_CHANCE) {
+      const d = materialDrops[Math.floor(Math.random() * materialDrops.length)];
+      grantItem(s, d.id, 1);
+      parts.push(`偷来一份${ITEMS[d.id].name}`);
+    }
+  }
+  // 偷神藏：仅限中后期 Boss（白名单）
+  if (TUNTUNSHU_STEAL_BOSSES.includes(e.id) && Math.random() < TUNTUNSHU_BOSS_STEAL_CHANCE) {
+    const d = TUNTUNSHU_BOSS_LOOT[Math.floor(Math.random() * TUNTUNSHU_BOSS_LOOT.length)];
+    grantItem(s, d, 1);
+    parts.push(`竟从 ${e.name} 身上顺走了一件${ITEMS[d].name}！！`);
+    grantAchievement('tuntun_theft');
+  }
+  return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
+}
 
-// 抽到的宠物入背包；神品允许重复，每只神品都随机拥有不同天赋。
+// 灵宠喜好判断：likes.food / likes.decor 支持单个或多个（数组）
+function petLikeFood(pet, taste) {
+  const f = pet && pet.likes && pet.likes.food;
+  return Array.isArray(f) ? f.includes(taste) : f === taste;
+}
+function petLikeDecor(pet, style) {
+  const d = pet && pet.likes && pet.likes.decor;
+  return Array.isArray(d) ? d.includes(style) : d === style;
+}
+
+// 送灵宠零食/装饰：投其所好 ×2、送错 ×0.5，叠加好感进度，进度满升 1 级
+function feedPetTreat(s, petId, itemId) {
+  const item = ITEMS[itemId];
+  if (!item || !item.favor) { UI.showToast('该物品不能送灵宠'); return null; }
+  const entry = s.pets.find(p => p.uid === petId);
+  if (!entry) { UI.showToast('找不到这只灵宠'); return null; }
+  if ((s.bag[itemId] || 0) <= 0) { UI.showToast('没有该礼物'); return null; }
+  const pet = PETS[entry.id];
+  const liked = (item.cat === 'food' && petLikeFood(pet, item.taste)) || (item.cat === 'decor' && petLikeDecor(pet, item.style));
+  const gain = liked ? Math.floor(item.favor * 2) : Math.floor(item.favor * 0.5);
+  const before = entry.favor || 0;
+  if (before >= PET_FAVOR_MAX) {
+    UI.showToast(`${pet.name} 好感已满（${PET_FAVOR_MAX}级），不能再提升`);
+    return { gained: 0, favor: before, favorExp: entry.favorExp || 0, liked, isMax: true };
+  }
+  s.bag[itemId] -= 1;
+  let favor = before;
+  let favorExp = (entry.favorExp || 0) + gain;
+  while (favorExp >= PET_FAVOR_EXP_PER_LEVEL && favor < PET_FAVOR_MAX) {
+    favorExp -= PET_FAVOR_EXP_PER_LEVEL;
+    favor++;
+  }
+  if (favor >= PET_FAVOR_MAX) favorExp = 0;
+  entry.favor = favor;
+  entry.favorExp = favorExp;
+  const up = favor - before;
+  const tag = liked ? '（投其所好）' : '（不感兴趣）';
+  UI.showToast(`${pet.name} 收到 ${item.name}，好感 +${gain}${tag}${up > 0 ? `，好感提升至 ${favor} 级！` : ''}`);
+  autoSave(); UI.updateStats();
+  return { gained: gain, favor, favorExp, liked, leveledUp: up };
+}
+
+// 抽到的宠物入背包；重复灵宠一律保留（供升星消耗），由玩家手动放生；神品每只随机拥有不同天赋。
 function addPetToBag(s, petId) {
   if (!Array.isArray(s.pets)) s.pets = [];
   const pet = PETS[petId];
-  if (!pet) return { duplicate: false, refund: 0 };
-  const refund = PET_REFUND[pet.quality] || 0;
-  if (pet.quality !== '神品' && s.petAutoRelease && s.petAutoRelease[pet.quality]) {
-    s.stone += refund;
-    return { released: true, refund };
-  }
-  if (pet.quality !== '神品' && s.pets.some(p => p.id === petId)) {
-    s.stone += refund;
-    return { duplicate: true, refund };
-  }
-  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1 };
+  if (!pet) return null;
+  const entry = { id: petId, uid: `pet_${petId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, level: 1, star: 1, favor: 0, favorExp: 0 };
   if (pet.quality === '神品') entry.trait = rollDivineTrait(petId);
   entry.skillLevel = 0;
   s.pets.push(entry);
   if (!s.pet) s.pet = entry.uid;
-  return { duplicate: false, refund: 0, entry };
+  return entry;
 }
 
 function getPetBonus(s, stat) {
@@ -997,11 +1133,7 @@ function petGachaDraw() {
     grantItem(s, r.item.id, 1);
     r.granted = true;
   } else {
-    const res = addPetToBag(s, r.pet.id);
-    if (res.duplicate || res.released) {
-      r.refund = res.refund;
-      r.released = !!res.released;
-    }
+    addPetToBag(s, r.pet.id);
   }
   autoSave();
   UI.updateStats();
@@ -1015,24 +1147,96 @@ function petGachaDrawTen() {
   if (s.stone < cost) { UI.showToast(`灵石不足（十连需 ${cost}）`); return null; }
   s.stone -= cost;
   const list = [];
-  let refund = 0;
   for (let i = 0; i < 10; i++) {
     const r = rollPetOnce(s);
     if (r.type === 'item') {
       grantItem(s, r.item.id, 1);
     } else {
-      const res = addPetToBag(s, r.pet.id);
-      if (res.duplicate || res.released) {
-        refund += res.refund;
-        r.refund = res.refund;
-        r.released = !!res.released;
-      }
+      addPetToBag(s, r.pet.id);
     }
     list.push(r);
   }
   autoSave();
   UI.updateStats();
-  return { list, refund };
+  return { list };
+}
+
+// 百连抽灵宠（八折）
+function petGachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(PET_GACHA_COST * 100 * 0.8);
+  if (s.stone < cost) { UI.showToast(`灵石不足（百连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 100; i++) {
+    const r = rollPetOnce(s);
+    if (r.type === 'item') {
+      grantItem(s, r.item.id, 1);
+    } else {
+      addPetToBag(s, r.pet.id);
+    }
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list };
+}
+
+// 灵宠零食/装饰转盘：按权重随机，抽出道具入包
+function rollTreatOnce(s) {
+  s.treatGachaCount = (s.treatGachaCount || 0) + 1;
+  let roll = Math.random() * 100;
+  let tier = PET_TREAT_POOL[0];
+  for (const t of PET_TREAT_POOL) {
+    if (roll < t.weight) { tier = t; break; }
+    roll -= t.weight;
+  }
+  const pickId = tier.items[Math.floor(Math.random() * tier.items.length)];
+  return { type: 'item', item: ITEMS[pickId], rarity: tier.rarity, color: tier.color };
+}
+
+function treatGachaDraw() {
+  const s = Game.state;
+  if (s.stone < PET_TREAT_COST) { UI.showToast(`灵石不足（需 ${PET_TREAT_COST}）`); return null; }
+  s.stone -= PET_TREAT_COST;
+  const r = rollTreatOnce(s);
+  grantItem(s, r.item.id, 1);
+  r.granted = true;
+  autoSave();
+  UI.updateStats();
+  return r;
+}
+
+function treatGachaDrawTen() {
+  const s = Game.state;
+  const cost = PET_TREAT_COST * 10;
+  if (s.stone < cost) { UI.showToast(`灵石不足（十连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 10; i++) {
+    const r = rollTreatOnce(s);
+    grantItem(s, r.item.id, 1);
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list };
+}
+
+function treatGachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(PET_TREAT_COST * 100 * 0.8);
+  if (s.stone < cost) { UI.showToast(`灵石不足（百连需 ${cost}）`); return null; }
+  s.stone -= cost;
+  const list = [];
+  for (let i = 0; i < 100; i++) {
+    const r = rollTreatOnce(s);
+    grantItem(s, r.item.id, 1);
+    list.push(r);
+  }
+  autoSave();
+  UI.updateStats();
+  return { list };
 }
 
 // 出战某只灵宠
@@ -1047,7 +1251,29 @@ function equipPet(petId) {
   return true;
 }
 
-// 喂食升级：消耗灵石提升指定（默认出战）灵宠等级
+// 给灵宠加经验，自动处理升级（受等级上限约束）；返回本次升级的级数
+function addPetExp(entry, amount) {
+  if (!entry || amount <= 0) return 0;
+  const maxLv = getPetMaxLevel(entry);
+  let lv = entry.level || 1;
+  let exp = entry.exp || 0;
+  const beforeStage = getPetStage(entry);
+  exp += amount;
+  let levelUps = 0;
+  while (lv < maxLv && exp >= getPetExpToNext(lv)) {
+    exp -= getPetExpToNext(lv);
+    lv++;
+    levelUps++;
+  }
+  if (lv >= maxLv) exp = 0; // 到顶后多余经验清零
+  entry.level = lv;
+  entry.exp = exp;
+  const afterStage = getPetStage(entry);
+  if (afterStage > beforeStage) entry.skillLevel = Math.max(entry.skillLevel || 0, afterStage);
+  return levelUps;
+}
+
+// 灵石喂养：消耗灵石换取经验（1 灵石 = 1 经验），一次补满当前等级升 1 级
 function feedPet(petId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
@@ -1056,35 +1282,38 @@ function feedPet(petId) {
   if (!entry) return false;
   const pet = PETS[entry.id];
   const lv = entry.level || 1;
-  const beforeStage = getPetStage(entry);
-  const cost = lv * 100;
-  if (s.stone < cost) { UI.showToast(`灵石不足（需${cost}）`); return false; }
-  s.stone -= cost;
-  entry.level = lv + 1;
-  const advanced = getPetStage(entry) > beforeStage;
-  if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
-  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
+  const maxLv = getPetMaxLevel(entry);
+  if (lv >= maxLv) { UI.showToast(`${pet.name} 已达等级上限（${maxLv}级），升星可突破`); return false; }
+  const need = getPetExpToNext(lv) - (entry.exp || 0); // 升 1 级还差的经验 = 所需灵石
+  if (s.stone < need) { UI.showToast(`灵石不足（升1级需${need}灵石）`); return false; }
+  s.stone -= need;
+  addPetExp(entry, need);
+  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！`);
   autoSave();
   UI.updateStats();
   return true;
 }
 
-// 用喂养道具升级：兽粮 +1 级，灵兽丹 +3 级
-function feedPetByItem(petId, itemId) {
+// 用喂养道具加经验：兽粮 +40、灵兽丹 +200；count 可批量
+function feedPetByItem(petId, itemId, count) {
   const s = Game.state;
   if (!petId) petId = s.pet;
   if (!petId) { UI.showToast('你还没有灵宠'); return false; }
   const entry = s.pets.find(p => p.uid === petId);
   if (!entry) return false;
-  if (!hasItem(itemId)) { UI.showToast('没有该喂养道具'); return false; }
+  const have = (s.bag && s.bag[itemId]) || 0;
+  if (have <= 0) { UI.showToast('没有该喂养道具'); return false; }
   const pet = PETS[entry.id];
-  const gain = itemId === 'lingshou_dan' ? 3 : 1;
-  const beforeStage = getPetStage(entry);
-  removeItemFromState(s, itemId, 1);
-  entry.level = (entry.level || 1) + gain;
-  const advanced = getPetStage(entry) > beforeStage;
-  if (advanced) entry.skillLevel = Math.max(entry.skillLevel || 0, getPetStage(entry));
-  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${advanced ? ` 进阶至${getPetStage(entry)}阶，技能与天赋增强！` : ''}`);
+  const lv = entry.level || 1;
+  const maxLv = getPetMaxLevel(entry);
+  if (lv >= maxLv) { UI.showToast(`${pet.name} 已达等级上限（${maxLv}级），升星可突破`); return false; }
+  count = Math.max(1, Math.min(count || 1, have));
+  const perExp = getPetItemExp(itemId);
+  removeItemFromState(s, itemId, count);
+  const before = lv;
+  addPetExp(entry, perExp * count);
+  const leveled = entry.level - before;
+  UI.showToast(`${pet.name} 获得 ${perExp * count} 经验${leveled > 0 ? `，提升至 ${entry.level} 级` : ''}${leveled > 1 ? `（连升${leveled}级）` : ''}！`);
   autoSave();
   UI.updateStats();
   return true;
@@ -1109,6 +1338,39 @@ function releasePet(petId) {
   return true;
 }
 
+// 灵宠升星：3 只同名同星宠物合成 1 只星级+1 的主宠（每星全属性 +10%）
+function starUpPet(petId) {
+  const s = Game.state;
+  if (!petId) petId = s.pet;
+  if (!petId) { UI.showToast('你还没有灵宠'); return false; }
+  const entry = s.pets.find(p => p.uid === petId);
+  if (!entry) return false;
+  const pet = PETS[entry.id];
+  const star = entry.star || 1;
+  const cost = PET_STAR_COST[pet.quality] || 100;
+  // 找另外两只同名同星（且不是主宠自身）的宠物
+  const others = s.pets.filter(p => p.id === entry.id && p.uid !== entry.uid && (p.star || 1) === star);
+  if (others.length < 2) {
+    UI.showToast(`升星需 3 只同名${star}星宠物，还差 ${2 - others.length} 只（当前同星 ${others.length} 只）`);
+    return false;
+  }
+  if (s.stone < cost) {
+    UI.showToast(`灵石不足（升星需 ${cost} 灵石）`);
+    return false;
+  }
+  // 消耗 2 只素材 + 灵石
+  for (let i = 0; i < 2; i++) {
+    const idx = s.pets.findIndex(p => p.uid === others[i].uid);
+    if (idx >= 0) s.pets.splice(idx, 1);
+  }
+  s.stone -= cost;
+  entry.star = star + 1;
+  UI.showToast(`✨ ${pet.name} 升为 ${star + 1} 星！全属性 +5%（累计 +${star * 5}%），消耗 ${cost} 灵石`);
+  autoSave();
+  UI.updateStats();
+  return true;
+}
+
 // 灵宠战斗助攻：有概率触发技能造成额外伤害
 function petAssist(ownerDamage) {
   const s = Game.state;
@@ -1116,6 +1378,7 @@ function petAssist(ownerDamage) {
   if (!entry || !ownerDamage || ownerDamage <= 0) return;
   const pet = PETS[entry.id];
   if (!pet || Game.battle.ended) return;
+  if (pet.id === 'tuntunshu') return; // 囤囤鼠不追加伤害，靠闪避+偷取
   if (Math.random() < getPetSkillChance(entry)) {
     const e = Game.battle.enemy;
     const rawDamage = Math.max(1, Math.floor(s.atk * getPetSkillMult(entry)) + (entry.level || 1) * 4 - getEnemyDefense(e, false) + (s.pen || 0));
@@ -1472,7 +1735,7 @@ function useItem(id) {
   const isEquipped = !!slot && s.equipment[slot] === id;
   if (!hasItem(id) && !isEquipped) return false;
 
-  // 喂养灵宠道具：兽粮 +1 级，灵兽丹 +3 级
+  // 喂养灵宠道具：兽粮 +40 经验，灵兽丹 +200 经验
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
     if (!s.pet) { UI.showToast('你还没有出战灵宠，先去灵兽谷抽一只吧'); return false; }
     const result = feedPetByItem(s.pet, id);
@@ -1550,7 +1813,7 @@ function sellItem(id) {
   const item = ITEMS[id];
   if (!item) return false;
   if (!hasItem(id)) return false;
-  if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
+  if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
     UI.showToast('请先卸下装备');
     return false;
   }
@@ -1573,7 +1836,7 @@ function sellItemBatch(id) {
     const item = ITEMS[id];
     const count = s.bag[id] || 0;
     if (!item || count <= 0) return false;
-    if (['weapon', 'armor', 'artifact'].some(slot => s.equipment[slot] === id)) {
+    if (['weapon', 'armor', 'artifact', 'shoes'].some(slot => s.equipment[slot] === id)) {
         UI.showToast('已装备的物品无法出售');
         return false;
     }
@@ -1664,6 +1927,26 @@ function gachaDrawTen() {
   s.stone -= cost;
   const results = [];
   for (let i = 0; i < 10; i++) {
+    results.push(rollGachaOnce(s));
+  }
+  playGachaSound();
+  autoSave();
+  UI.updateStats();
+  UI.updateBag();
+  return results;
+}
+
+// 百连抽（八折）
+function gachaDrawHundred() {
+  const s = Game.state;
+  const cost = Math.floor(GACHA_COST * 100 * 0.8);
+  if (s.stone < cost) {
+    UI.showToast(`灵石不足（百连需 ${cost}）`);
+    return null;
+  }
+  s.stone -= cost;
+  const results = [];
+  for (let i = 0; i < 100; i++) {
     results.push(rollGachaOnce(s));
   }
   playGachaSound();
@@ -1771,6 +2054,15 @@ function grantAchievement(id) {
   const ach = ACHIEVEMENTS.find(a => a.id === id);
   if (ach) {
     UI.showToast(`成就达成：${ach.name}`);
+    // 成就附带称号：解锁并自动佩戴（首个称号）
+    if (ach.title) {
+      if (!s.titles) s.titles = [];
+      if (!s.titles.includes(ach.title)) {
+        s.titles.push(ach.title);
+        if (!s.title) s.title = ach.title;
+        UI.showToast(`获得称号「${ach.title}」`);
+      }
+    }
   }
   autoSave();
 }
@@ -1931,20 +2223,22 @@ function scaleEnemyForRealm(enemy, s) {
   enemy.realmName = realm.name;
 }
 
-// Boss 动态平衡：无限境界后按玩家总属性对齐，保证不被秒、能破防（仅 boss 且非天劫）
+// Boss 动态平衡：按玩家当前总强度（含装备/神兽/功法/宗门）对齐，保证不被秒、能破防（仅 boss 且非天劫）
 function scaleBossForPlayer(enemy, s) {
   if (!enemy.boss || enemy.untouchable) return;
-  if (getRealmIndex(s) <= 35) return; // 仙帝及以下保持原数值
   const p = enemy.power || 1;
-  const perHit = Math.max(1, Math.floor(s.atk * (1 - BOSS_DEF_VS_ATK)));
+  const atk = getTotalAtk(s);
+  const def = getTotalDef(s);
+  const mdef = getTotalMdef(s);
+  const perHit = Math.max(1, Math.floor(atk * (1 - BOSS_DEF_VS_ATK)));
   const targetHp = perHit * BOSS_HP_PER_HIT * p;
-  const targetAtk = Math.floor(s.def * BOSS_ATK_VS_DEF * p);
-  const targetDef = Math.floor(s.atk * BOSS_DEF_VS_ATK);
+  const targetAtk = Math.floor(def * BOSS_ATK_VS_DEF * p);
+  const targetDef = Math.floor(atk * BOSS_DEF_VS_ATK);
   enemy.maxHp = Math.max(enemy.maxHp, targetHp);
   enemy.hp = enemy.maxHp;
   enemy.atk = Math.max(enemy.atk, targetAtk);
   enemy.def = Math.max(enemy.def, targetDef);
-  enemy.matk = Math.max(enemy.matk, targetAtk);
+  enemy.matk = Math.max(enemy.matk, Math.floor(mdef * BOSS_ATK_VS_DEF * p));
   enemy.mdef = Math.max(enemy.mdef, targetDef);
 }
 
@@ -1986,6 +2280,16 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   }
   scaleEnemyForRealm(enemy, Game.state);
   scaleBossForPlayer(enemy, Game.state);
+  // Boss 血量整体加厚（天劫除外，天劫按固定百分比伤害结算）
+  if (enemy.boss && !enemy.untouchable) {
+    enemy.maxHp = Math.floor(enemy.maxHp * BOSS_HP_MULT);
+    enemy.hp = enemy.maxHp;
+  }
+  // 普通怪(非 Boss)最低血量:对齐玩家总攻击,保证至少扛 5 刀,避免后期一招秒
+  if (!enemy.boss && !enemy.untouchable) {
+    const minHp = Math.floor(Game.state.atk * 5);
+    if (enemy.maxHp < minHp) { enemy.maxHp = minHp; enemy.hp = minHp; }
+  }
   migrateMana(Game.state);
   Game.state.mp = Game.state.maxMp;
 
@@ -2006,6 +2310,11 @@ function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNe
   };
 
   logBattle(`遭遇了 ${enemy.name}！`, 'sys');
+  // 战斗彩蛋：开场独白（普通小怪与 Boss，天劫除外）
+  if (!enemy.untouchable) {
+    const introEgg = rollEasterEgg(EASTER_EGG_INTRO, 0.20);
+    if (introEgg) logBattle(introEgg, 'enemy');
+  }
   applyDivinePetBattleStart(Game.state);
 }
 
@@ -2075,6 +2384,11 @@ function playerAttack() {
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
   logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
+  // 战斗彩蛋：出手独白（普通小怪与 Boss，天劫除外）
+  if (!e.untouchable) {
+    const atkEgg = rollEasterEgg(EASTER_EGG_PLAYER_ATK, 0.15);
+    if (atkEgg) logBattle(atkEgg, 'player');
+  }
   checkBattleEnd();
   if (!Game.battle.ended) petFollowUpOnPlayerAttack(dmg);
   if (!Game.battle.ended) petAssist(dmg);
@@ -2109,11 +2423,13 @@ function playerSkill() {
     if (seal) e.rootedTurns = 1;
     extraText = `回复 ${heal} 气血${seal ? '，藤蔓封住敌方下次攻击' : ''}`;
   } else if (s.linggen === 'water') {
-    dmg = Math.max(1, Math.floor(s.matk * 1.1) - magicDef() + (s.pen || 0));
-    const heal = Math.max(1, Math.floor(s.maxHp * 0.10));
+    dmg = Math.max(1, Math.floor(s.matk * 1.45) - magicDef() + (s.pen || 0));
+    const heal = Math.max(1, Math.floor(s.maxHp * 0.02));
     s.hp = Math.min(s.maxHp, s.hp + heal);
-    Game.battle.waterGuard = 0.45;
-    extraText = `回复 ${heal} 气血，水幕可减免下一击45%伤害`;
+    Game.battle.waterGuard = 0.25;
+    e.waterTurns = 2;
+    e.waterDamage = Math.max(1, Math.floor(s.matk * 0.22));
+    extraText = `回复 ${heal} 气血，水幕减免下一击25%伤害，寒水渗透（每回合 ${e.waterDamage} 点，持续2回合）`;
   } else if (s.linggen === 'thunder') {
     const crit = Math.random() < 0.32;
     const mult = crit ? 2.8 : 1.7;
@@ -2291,6 +2607,13 @@ function enemyTurn() {
       checkBattleEnd();
       if (Game.battle.ended) return;
     }
+    if (e.waterTurns > 0) {
+      e.hp -= e.waterDamage || 1;
+      e.waterTurns--;
+      logBattle(`${e.name} 被寒水侵蚀，受到 ${e.waterDamage || 1} 点伤害！`, 'player');
+      checkBattleEnd();
+      if (Game.battle.ended) return;
+    }
     if (Game.battle.poisonTurns > 0) {
       const poison = Math.max(1, Math.floor(s.maxHp * (Game.battle.poisonPct || 0.02)));
       s.hp -= poison;
@@ -2337,6 +2660,7 @@ function enemyTurn() {
       let dmg = isMagic
         ? Math.max(1, e.matk - s.mdef + (e.pen || 0) + Math.floor(Math.random() * 3))
         : Math.max(1, e.atk - s.def + (e.pen || 0) + Math.floor(Math.random() * 3));
+      if (e.boss) dmg = Math.floor(dmg * BOSS_DMG_MULT);
       if (Game.battle.defending) {
         dmg = Math.floor(dmg * 0.4);
         Game.battle.defending = false;
@@ -2376,8 +2700,14 @@ function enemyTurn() {
         logBattle(`丹霞灵壁展开，将来袭之力卸去大半，并反震 ${e.name} ${reflect} 点伤害！`, 'player');
       }
       dmg = applyPetIncomingDamage(s, dmg);
+      dmg = tryPetDodge(s, dmg);
       s.hp -= dmg;
-      logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
+      if (dmg > 0) logBattle(`你受到 ${dmg} 点伤害。`, 'enemy');
+      // 战斗彩蛋：敌人独白（普通小怪与 Boss，天劫除外）
+      if (!e.untouchable) {
+        const enemyEgg = rollEasterEgg(EASTER_EGG_ENEMY_ATK, 0.15);
+        if (enemyEgg) logBattle(enemyEgg, 'enemy');
+      }
       if (Game.battle.metalReflect) {
         const reflect = Math.max(1, Math.floor(dmg * Game.battle.metalReflect));
         e.hp -= reflect;
@@ -2489,8 +2819,9 @@ function checkBattleEnd() {
         }
       });
     }
+    const stealText = tuntunshuSteal(s, e, stoneGain);
     const rewardBoostText = Game.battle.rewardBoost ? ` 燃血夺宝生效：奖励提高${Math.round(Game.battle.rewardBoost * 100)}%。` : '';
-    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${rewardBoostText}`, 'sys');
+    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${rewardBoostText}${stealText ? ' ' + stealText : ''}`, 'sys');
     playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=27" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -46,6 +46,8 @@
         </button>
         <button id="sound-toggle" class="icon-btn" onclick="toggleSound()" title="音效：开">🔊</button>
         <button id="bgm-toggle" class="icon-btn" onclick="toggleBgm()" title="音乐：开">🎵</button>
+        <button class="icon-btn" onclick="UI.openPetOverlay()" title="灵宠">🐾</button>
+        <button id="announce-btn" class="icon-btn" onclick="UI.openAnnounce()" title="更新公告">📢</button>
       </div>
     </header>
 
@@ -105,12 +107,26 @@
       <div class="battle-panel">
         <div class="battle-header">
           <div class="battle-title">⚔ 战斗</div>
+          <div class="battle-player">
+            <div class="battle-player-name" id="battle-player-name">—</div>
+            <div class="battle-hp-bar hp">
+              <div class="bar"><div class="bar-fill" id="battle-hp-fill"></div></div>
+              <div class="battle-hp-val" id="battle-hp-val">0/0</div>
+            </div>
+            <div class="battle-mp-bar mp">
+              <div class="bar"><div class="bar-fill" id="battle-mp-fill"></div></div>
+              <div class="battle-mp-val" id="battle-mp-val">0/0</div>
+            </div>
+            <div class="battle-stats" id="battle-player-stats">—</div>
+          </div>
           <div class="battle-enemy">
             <div id="enemy-name" class="enemy-name">—</div>
             <div class="enemy-hp-bar">
               <div class="bar"><div class="bar-fill" id="enemy-hp-fill"></div></div>
               <div class="enemy-hp-val" id="enemy-hp-val">0/0</div>
             </div>
+            <div class="battle-stats" id="battle-enemy-stats">—</div>
+            <div class="battle-recommend" id="battle-recommend">—</div>
           </div>
           <div id="battle-status" class="battle-status">状态：无</div>
         </div>
@@ -139,6 +155,97 @@
       </div>
     </div>
 
+    <!-- 百连抽结果弹窗 -->
+    <div id="gacha-hundred-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card gacha-ten-card">
+        <div class="gacha-ten-title">百连抽结果</div>
+        <div id="gacha-hundred-list" class="gacha-ten-list"></div>
+        <button class="ink-btn" onclick="UI.closeGachaHundred()">收下</button>
+      </div>
+    </div>
+
+    <!-- 批量喂养数量输入弹窗 -->
+    <div id="count-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card count-card">
+        <div id="count-title" class="gacha-name">批量喂养</div>
+        <div id="count-desc" class="gacha-desc">—</div>
+        <div class="count-box">
+          <button class="ink-btn count-btn" onclick="UI.countStep(-1)">−</button>
+          <input id="count-input" class="count-input" type="number" min="1" value="1" inputmode="numeric" oninput="UI.countClamp()" />
+          <button class="ink-btn count-btn" onclick="UI.countStep(1)">＋</button>
+        </div>
+        <div id="count-max" class="count-max">—</div>
+        <button class="ink-btn" onclick="UI.countConfirm()">确定</button>
+        <button class="ink-btn danger" onclick="UI.countCancel()">取消</button>
+      </div>
+    </div>
+
+    <!-- 更新公告弹窗 -->
+    <div id="announce-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card announce-card">
+        <div class="gacha-name">📢 更新公告</div>
+        <div id="announce-list" class="announce-list"></div>
+        <button class="ink-btn" onclick="UI.closeAnnounce()">知道了</button>
+      </div>
+    </div>
+
+    <!-- 藏宝阁图鉴弹窗 -->
+    <div id="codex-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card codex-card">
+        <div class="gacha-name">📖 藏宝阁图鉴</div>
+        <div id="codex-list" class="codex-list"></div>
+        <button class="ink-btn" onclick="UI.closeCodex()">知道了</button>
+      </div>
+    </div>
+
+    <!-- 功法图鉴弹窗 -->
+    <div id="gongfa-codex-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card codex-card">
+        <div class="gacha-name">📖 功法图鉴</div>
+        <div id="gongfa-codex-list" class="codex-list"></div>
+        <button class="ink-btn" onclick="UI.closeGongfaCodex()">知道了</button>
+      </div>
+    </div>
+
+    <!-- 灵宠图鉴弹窗 -->
+    <div id="pet-codex-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card codex-card">
+        <div class="gacha-name">📖 灵宠图鉴</div>
+        <div id="pet-codex-list" class="codex-list"></div>
+        <button class="ink-btn" onclick="UI.closePetCodex()">知道了</button>
+      </div>
+    </div>
+
+    <!-- 礼物图鉴弹窗 -->
+    <div id="gift-codex-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card codex-card">
+        <div class="gacha-name">📖 礼物图鉴</div>
+        <div id="gift-codex-list" class="codex-list"></div>
+        <button class="ink-btn" onclick="UI.closeGiftCodex()">知道了</button>
+      </div>
+    </div>
+
+    <!-- 灵宠独立界面（全屏覆盖） -->
+    <div id="pet-overlay" class="pet-overlay hidden">
+      <div class="pet-overlay-head">
+        <div class="pet-overlay-title">🐾 灵宠</div>
+        <div class="pet-overlay-actions">
+          <button class="ink-btn" onclick="UI.openTreatGacha()">🎡 零食转盘</button>
+          <button class="ink-btn danger" onclick="UI.closePetOverlay()">关闭</button>
+        </div>
+      </div>
+      <div id="pet-overlay-body" class="pet-overlay-body"></div>
+    </div>
+
+    <!-- 灵宠零食/装饰转盘弹窗 -->
+    <div id="treat-gacha-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card treat-gacha-card">
+        <div class="gacha-name">🎡 灵宠零食装饰转盘</div>
+        <div id="treat-gacha-body"></div>
+        <button class="ink-btn" onclick="UI.closeTreatGacha()">关闭</button>
+      </div>
+    </div>
+
     <!-- 侧边面板 -->
     <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
     <aside id="side-panel" class="side-panel">
@@ -146,7 +253,6 @@
         <button class="side-tab active" data-tab="stats" onclick="UI.switchSideTab('stats')">修为</button>
         <button class="side-tab" data-tab="bag" onclick="UI.switchSideTab('bag')">储物袋</button>
         <button class="side-tab" data-tab="achievements" onclick="UI.switchSideTab('achievements')">成就</button>
-        <button class="side-tab" data-tab="pet" onclick="UI.switchSideTab('pet')">灵宠</button>
         <button class="side-tab" data-tab="daily" onclick="UI.switchSideTab('daily')">日常</button>
         <button class="side-tab" data-tab="redeem" onclick="UI.switchSideTab('redeem')">兑换</button>
         <button class="side-tab" data-tab="save" onclick="UI.switchSideTab('save')">存档</button>
@@ -178,11 +284,6 @@
       <div class="tab-pane" id="tab-achievements">
         <div class="pane-title">成就</div>
         <div id="achievement-list" class="achievement-list"></div>
-      </div>
-
-      <div class="tab-pane" id="tab-pet">
-        <div class="pane-title">灵宠</div>
-        <div id="pet-panel"></div>
       </div>
 
       <div class="tab-pane" id="tab-daily">
@@ -245,9 +346,9 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=9"></script>
-  <script src="game-engine.js?v=9"></script>
-  <script src="game-ui.js?v=9"></script>
+  <script src="game-data.js?v=46"></script>
+  <script src="game-engine.js?v=38"></script>
+  <script src="game-ui.js?v=37"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
@@ -255,7 +356,7 @@
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=9').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=14').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {
