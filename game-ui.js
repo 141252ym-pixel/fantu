@@ -54,7 +54,9 @@ const UI = {
       gachaHundredList: document.getElementById('gacha-hundred-list'),
       gachaHundredTitle: document.getElementById('gacha-hundred-title'),
       batchSellConfirmOverlay: document.getElementById('batch-sell-confirm-overlay'),
+      batchSellConfirmTitle: document.getElementById('batch-sell-confirm-title'),
       batchSellConfirmDesc: document.getElementById('batch-sell-confirm-desc'),
+      batchSellConfirmAction: document.getElementById('batch-sell-confirm-action'),
       bossLootOverlay: document.getElementById('boss-loot-overlay'),
       bossLootIcon: document.getElementById('boss-loot-icon'),
       bossLootName: document.getElementById('boss-loot-name'),
@@ -114,10 +116,12 @@ const UI = {
   loginStart() {
     let name = this.els.loginName.value.trim();
     if (!name) name = '无名';
-    // 已有存档时二次确认，防止误点「踏入仙途」覆盖进度
-    if (loadGame() && !confirm('检测到已有存档，重新开始会覆盖当前进度。\n确定要重新开始吗？')) {
-      return;
-    }
+    // 已有存档时使用游戏内确认窗，防止误点覆盖进度。
+    if (loadGame()) return this.openDestructiveConfirm('确认重新开始', '检测到已有存档。重新开始会覆盖当前自动存档，且无法恢复。', '确认重新开始', () => this.startNewGameConfirmed(name));
+    this.startNewGameConfirmed(name);
+  },
+
+  startNewGameConfirmed(name) {
     this.els.loginOverlay.classList.add('hidden');
     startNewGame(name);
     this.maybeShowAnnounce();
@@ -423,12 +427,18 @@ const UI = {
 
     const info = document.createElement('div');
     info.className = 'gacha-pity';
-    info.textContent = `洞府 ${c.level} 级 · 灵田 ${c.plots.length}/${c.maxPlots} 块 · 修炼加成 +${Math.round(c.xpBonus * 100)}%`;
+    info.textContent = `洞府 ${c.level}/30 级 · 灵田 ${c.plots.length}/${c.maxPlots} 块 · 修炼加成 +${Math.round(c.xpBonus * 100)}%`;
     el.appendChild(info);
 
+    const spring = document.createElement('div');
+    spring.className = 'gacha-pity';
+    spring.textContent = `灵泉 ${c.springLevel || 0}/30 级 · 作物成长时间 -${c.springLevel || 0}% · 每次修炼回复 ${Math.round(getCaveSpringHealPct(s) * 100)}% 气血与灵力`;
+    el.appendChild(spring);
+
     c.plots.forEach((plot, i) => {
-      const herb = HERBS[plot.herb];
-      const remain = herb.growMs - (Date.now() - plot.plantedAt);
+      const herb = FARM_CROPS[plot.crop];
+      if (!herb) return;
+      const remain = (plot.durationMs || herb.growMs) - (Date.now() - plot.plantedAt);
       const row = document.createElement('button');
       row.className = 'ink-btn';
       if (remain > 0) {
@@ -450,25 +460,30 @@ const UI = {
     });
 
     if (c.plots.length < c.maxPlots) {
-      const tip = document.createElement('div');
-      tip.className = 'gacha-pity';
-      tip.textContent = `还有 ${c.maxPlots - c.plots.length} 块灵田空闲，可选择灵药种植：`;
-      el.appendChild(tip);
-      for (const hid in HERBS) {
-        const herb = HERBS[hid];
-        const btn = document.createElement('button');
-        btn.className = 'ink-btn';
-        btn.textContent = `${herb.icon} 种${herb.name}（${herb.seed}灵石 · ${Math.round(herb.growMs / 60000)}分钟）`;
-        btn.addEventListener('click', () => {
-          playClickSound();
-          const r = plantHerb(s, hid);
-          UI.showToast(r.msg);
-          UI.renderCave();
-          UI.updateStats();
-        });
-        el.appendChild(btn);
-      }
+      const tip = document.createElement('div'); tip.className = 'gacha-pity'; tip.textContent = `还有 ${c.maxPlots - c.plots.length} 块灵田空闲。种子需先在灵田商店购买；所有作物收获额外返还种子价2～5倍灵石。`; el.appendChild(tip);
     }
+
+    const controls = document.createElement('div');
+    controls.className = 'gacha-info';
+    controls.innerHTML = `<select id="farm-crop-select">${Object.values(FARM_CROPS).map(h => `<option value="${h.id}">${h.icon}${h.name}·${Math.round(h.growMs / 60000)}分钟·${h.desc}</option>`).join('')}</select><select id="farm-fert-select"><option value="">不施肥</option>${Object.values(ITEMS).filter(x => x.fertilizer).map(x => `<option value="${x.id}">${x.icon}${x.name}（${x.desc}）</option>`).join('')}</select><input id="farm-plant-count" type="number" min="1" value="1" inputmode="numeric">`;
+    el.appendChild(controls);
+    const cropAction = (all) => {
+      const crop = document.getElementById('farm-crop-select').value;
+      const fert = document.getElementById('farm-fert-select').value || null;
+      const asked = all ? c.maxPlots - c.plots.length : Number(document.getElementById('farm-plant-count').value);
+      const r = plantCrop(s, crop, fert, asked); UI.showToast(r.msg); UI.renderCave(); UI.updateStats();
+    };
+    [['🌱 种植', false], ['🌱 批量种满空田', true], ['🌾 一键收获', 'harvest'], ['🔁 按上次配置补种', 'last'], ['🧺 一键施肥', 'fertilize']].forEach(([label, mode]) => {
+      const btn = document.createElement('button'); btn.className = 'ink-btn'; btn.textContent = label;
+      btn.addEventListener('click', () => { const r = mode === 'harvest' ? harvestAllCrops(s) : mode === 'last' ? plantLastCrop(s) : mode === 'fertilize' ? fertilizeAllCrops(s, document.getElementById('farm-fert-select').value) : cropAction(mode); if (r) UI.showToast(r.msg); UI.renderCave(); UI.updateStats(); }); el.appendChild(btn);
+    });
+
+    const shopTitle = document.createElement('div'); shopTitle.className = 'gacha-pity'; shopTitle.textContent = '灵田商店（每种种子每日限购100个；输入数量后购买）'; el.appendChild(shopTitle);
+    const shop = document.createElement('div'); shop.className = 'gacha-info';
+    shop.innerHTML = `<select id="farm-shop-select">${[...Object.values(FARM_CROPS).map(h => ({ id: h.seedItem, name: ITEMS[h.seedItem].name, price: h.seedPrice })), ...Object.values(ITEMS).filter(x => x.fertilizer).map(x => ({ id: x.id, name: x.name, price: ({ fert_yield_small:100, fert_yield_mid:300, fert_yield_high:900, fert_time_small:100, fert_time_mid:300, fert_time_high:900 })[x.id] }))].map(x => `<option value="${x.id}">${x.name}·${x.price}灵石</option>`).join('')}</select><input id="farm-shop-count" type="number" min="1" value="1" inputmode="numeric">`;
+    el.appendChild(shop);
+    const buy = document.createElement('button'); buy.className = 'ink-btn'; buy.textContent = '购买种子/肥料'; buy.addEventListener('click', () => { const r = buyFarmGoods(s, document.getElementById('farm-shop-select').value, Number(document.getElementById('farm-shop-count').value)); UI.showToast(r.msg); UI.renderCave(); UI.updateStats(); }); el.appendChild(buy);
+    const buyMax = document.createElement('button'); buyMax.className = 'ink-btn'; buyMax.textContent = '最大数量（种子余量/灵石上限）'; buyMax.addEventListener('click', () => { const id = document.getElementById('farm-shop-select').value; const crop = Object.values(FARM_CROPS).find(x => x.seedItem === id); const unit = crop ? crop.seedPrice : ({ fert_yield_small:100, fert_yield_mid:300, fert_yield_high:900, fert_time_small:100, fert_time_mid:300, fert_time_high:900 })[id]; const bought = (s.cave.seedBuys && s.cave.seedBuys[id]) || 0; document.getElementById('farm-shop-count').value = Math.max(1, Math.min(Math.floor(s.stone / unit), crop ? 100 - bought : Math.floor(s.stone / unit))); }); el.appendChild(buyMax);
 
     if (c.level < CAVE_LEVELS.length) {
       const next = CAVE_LEVELS[c.level];
@@ -489,6 +504,11 @@ const UI = {
       tip.textContent = '洞府已升至满级。';
       el.appendChild(tip);
     }
+
+    const springBtn = document.createElement('button'); springBtn.className = 'ink-btn';
+    const springNext = (c.springLevel || 0) + 1;
+    springBtn.textContent = !s.cave.springBuilt ? '💧 建造灵泉（1000灵石，建成即1级）' : `💧 升级灵泉（${springNext > 30 ? '已满级' : Math.floor((CAVE_LEVELS[springNext - 1] || { cost: 0 }).cost / 2)}灵石）`;
+    springBtn.addEventListener('click', () => { const r = buildOrUpgradeSpring(s); UI.showToast(r.msg); UI.renderCave(); UI.updateStats(); }); el.appendChild(springBtn);
 
     const backBtn = document.createElement('button');
     backBtn.className = 'ink-btn';
@@ -1651,18 +1671,35 @@ const UI = {
     if (!item || count <= 0) return;
     const gain = item.sell * count;
     this.pendingBatchSell = { itemId: item.id, cat };
+    this.pendingDestructiveAction = null;
+    this.els.batchSellConfirmTitle.textContent = '确认全部出售';
+    this.els.batchSellConfirmAction.textContent = '确认出售';
     this.els.batchSellConfirmDesc.textContent = `确定出售 ${item.name}×${count}，获得 ${gain} 灵石？`;
+    this.els.batchSellConfirmOverlay.classList.remove('hidden');
+  },
+
+  openDestructiveConfirm(title, desc, actionLabel, action) {
+    this.pendingBatchSell = null;
+    this.pendingDestructiveAction = action;
+    this.els.batchSellConfirmTitle.textContent = title;
+    this.els.batchSellConfirmDesc.textContent = desc;
+    this.els.batchSellConfirmAction.textContent = actionLabel;
     this.els.batchSellConfirmOverlay.classList.remove('hidden');
   },
 
   cancelBatchSellConfirm() {
     this.pendingBatchSell = null;
+    this.pendingDestructiveAction = null;
+    this.els.batchSellConfirmTitle.textContent = '确认全部出售';
+    this.els.batchSellConfirmAction.textContent = '确认出售';
     this.els.batchSellConfirmOverlay.classList.add('hidden');
   },
 
   confirmBatchSell() {
     const pending = this.pendingBatchSell;
+    const destructiveAction = this.pendingDestructiveAction;
     this.cancelBatchSellConfirm();
+    if (destructiveAction) return destructiveAction();
     if (!pending) return;
     playClickSound();
     if (sellItemBatch(pending.itemId)) {
@@ -1670,6 +1707,7 @@ const UI = {
       this.updateStats();
       this.renderStatDetail();
     }
+
   },
 
   showBossLootCelebration(item, bossName) {
@@ -2109,6 +2147,14 @@ const UI = {
       const actions = document.createElement('div');
       actions.className = 'item-actions';
 
+      if (!equipped && item.farmResource) {
+        const resourceSell = document.createElement('button');
+        resourceSell.className = 'item-sell';
+        resourceSell.textContent = '售出灵田作物';
+        resourceSell.addEventListener('click', () => { playClickSound(); sellFarmResource(item.id); UI.updateBag(cat); UI.updateStats(); });
+        actions.appendChild(resourceSell);
+      }
+
       const useBtn = document.createElement('button');
       useBtn.className = 'item-use';
       if (getItemSlot(item)) {
@@ -2369,9 +2415,7 @@ const UI = {
   },
 
   resetAll() {
-    if (!confirm('确定要删除所有存档重新开始吗？此操作不可恢复。')) return;
-    resetGame();
-    this.closeSidePanel();
+    this.openDestructiveConfirm('确认删档重开', '将删除自动存档与全部手动存档。此操作不可恢复。', '确认删档', () => { resetGame(); this.closeSidePanel(); });
   },
 
   // ========== Toast ==========

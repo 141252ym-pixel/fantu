@@ -746,9 +746,19 @@ function migrateGongfa(s) {
 // ========== 洞府经营 ==========
 function migrateCave(s) {
   if (!s.cave || typeof s.cave !== 'object') s.cave = { level: 1, plots: [] };
-  if (!s.cave.level) s.cave.level = 1;
+  s.cave.level = Math.max(1, Math.min(CAVE_LEVELS.length, Math.floor(s.cave.level || 1)));
   if (!Array.isArray(s.cave.plots)) s.cave.plots = [];
-  s.cave.plots = s.cave.plots.filter(p => p && HERBS[p.herb]);
+  if (typeof s.cave.springBuilt !== 'boolean') s.cave.springBuilt = false;
+  s.cave.springLevel = Math.max(0, Math.min(s.cave.level, Math.floor(s.cave.springLevel || 0)));
+  if (!s.cave.seedBuys || typeof s.cave.seedBuys !== 'object') s.cave.seedBuys = {};
+  const legacyMap = { lingzhi: 'linggu', renshen: 'ziyushen', xuelian: 'xuelian', longyan: 'jiuqu', jiuhua: 'xinghui' };
+  s.cave.plots = s.cave.plots.map(p => {
+    if (!p) return null;
+    if (p.crop && FARM_CROPS[p.crop]) return p;
+    const crop = legacyMap[p.herb];
+    const old = p.herb && HERBS[p.herb];
+    return crop ? { crop, plantedAt: p.plantedAt || Date.now(), durationMs: old ? old.growMs : FARM_CROPS[crop].growMs, legacy: true } : null;
+  }).filter(Boolean).slice(0, s.cave.level);
 }
 
 function getCaveInfo(s) {
@@ -756,7 +766,7 @@ function getCaveInfo(s) {
   migrateCave(s);
   const lv = Math.min(s.cave.level, CAVE_LEVELS.length);
   const conf = CAVE_LEVELS[lv - 1];
-  return { level: lv, conf, plots: s.cave.plots, maxPlots: conf.plots, xpBonus: conf.xpBonus };
+  return { level: lv, conf, plots: s.cave.plots, maxPlots: conf.plots, xpBonus: conf.xpBonus, springLevel: s.cave.springLevel || 0, springBuilt: !!s.cave.springBuilt };
 }
 
 // 洞府修炼加成（作用于闭关修炼）
@@ -765,17 +775,48 @@ function getCaveXpBonus(s) {
   return getCaveInfo(s).xpBonus;
 }
 
-// 种植灵药到第一块空闲田
-function plantHerb(s, herbId) {
+function getCaveSpringHealPct(s) {
   const c = getCaveInfo(s);
-  const herb = HERBS[herbId];
-  if (!herb) return { ok: false, msg: '未知灵药' };
-  if (c.plots.length >= c.maxPlots) return { ok: false, msg: '灵田已满，请先收获或升级洞府' };
-  if ((s.stone || 0) < herb.seed) return { ok: false, msg: `灵石不足（需 ${herb.seed}）` };
-  s.stone -= herb.seed;
-  s.cave.plots.push({ herb: herbId, plantedAt: Date.now() });
+  return 0.05 + (c.springLevel || 0) * 0.01;
+}
+
+function restoreCaveCultivationVital(s) {
+  const pct = getCaveSpringHealPct(s);
+  const hp = Math.max(1, Math.floor(s.maxHp * pct));
+  const mp = Math.max(1, Math.floor(s.maxMp * pct));
+  s.hp = Math.min(s.maxHp, s.hp + hp);
+  s.mp = Math.min(s.maxMp, s.mp + mp);
+  return { hp, mp, pct };
+}
+
+function getCropDuration(s, crop, fertilizerId) {
+  const c = getCaveInfo(s);
+  const fert = fertilizerId && ITEMS[fertilizerId] && ITEMS[fertilizerId].fertilizer;
+  const springFactor = 1 - (c.springLevel || 0) * 0.01;
+  const fertFactor = fert && fert.kind === 'time' ? 1 - fert.bonus : 1;
+  return Math.max(60000, Math.ceil(crop.growMs * springFactor * fertFactor));
+}
+
+function plantCrop(s, cropId, fertilizerId, requestedCount = 1) {
+  const c = getCaveInfo(s);
+  const crop = FARM_CROPS[cropId];
+  if (!crop) return { ok: false, msg: '未知作物' };
+  const fert = fertilizerId && ITEMS[fertilizerId] && ITEMS[fertilizerId].fertilizer;
+  if (fertilizerId && !fert) return { ok: false, msg: '未知肥料' };
+  const wanted = Math.max(1, Math.floor(requestedCount || 1));
+  const count = Math.min(wanted, c.maxPlots - c.plots.length, s.bag[crop.seedItem] || 0, fert ? (s.bag[fertilizerId] || 0) : Infinity);
+  if (count <= 0) return { ok: false, msg: c.plots.length >= c.maxPlots ? '灵田已满' : '种子或肥料不足' };
+  const now = Date.now();
+  for (let i = 0; i < count; i++) {
+    removeItemFromState(s, crop.seedItem, 1);
+    if (fert) removeItemFromState(s, fertilizerId, 1);
+    // 先计算时长：getCropDuration 会迁移旧存档并可能替换 plots 数组，不能嵌在 push 参数中。
+    const durationMs = getCropDuration(s, crop, fertilizerId);
+    s.cave.plots.push({ crop: cropId, plantedAt: now, durationMs, fertilizerId: fertilizerId || null });
+  }
+  s.cave.lastPlant = { cropId, fertilizerId: fertilizerId || null };
   autoSave();
-  return { ok: true, msg: `种下了${herb.name}` };
+  return { ok: true, msg: `种下 ${crop.name} ×${count}` };
 }
 
 // 收获某块田
@@ -783,19 +824,23 @@ function harvestPlot(s, index) {
   const c = getCaveInfo(s);
   const plot = c.plots[index];
   if (!plot) return { ok: false, msg: '没有这块田' };
-  const herb = HERBS[plot.herb];
+  const herb = FARM_CROPS[plot.crop];
+  if (!herb) return { ok: false, msg: '作物数据异常' };
   const now = Date.now();
-  if (now - plot.plantedAt < herb.growMs) {
-    const remain = Math.ceil((herb.growMs - (now - plot.plantedAt)) / 60000);
+  const duration = plot.durationMs || herb.growMs;
+  if (now - plot.plantedAt < duration) {
+    const remain = Math.ceil((duration - (now - plot.plantedAt)) / 60000);
     return { ok: false, msg: `${herb.name} 尚未成熟（约 ${remain} 分钟）` };
   }
   s.cave.plots.splice(index, 1);
-  const y = herb.yield;
-  let text = `收获 ${herb.name}：`;
-  if (y.stone) { s.stone += y.stone; text += `灵石 +${y.stone}`; }
-  if (y.item) { grantItem(s, y.item, y.count || 1); const it = ITEMS[y.item]; text += `${it ? it.name : '道具'} ×${y.count || 1}`; }
-  if (y.xp) { addXp(s, y.xp); text += `修为 +${y.xp}`; }
-  if (y.dao) { s.dao += y.dao; text += `道韵 +${y.dao}`; }
+  const multiplier = herb.growMs <= 30 * 60000 ? 2 : herb.growMs <= 2 * 3600000 ? 2.5 : herb.growMs <= 4 * 3600000 ? 3 : herb.growMs <= 8 * 3600000 ? 4 : 5;
+  const stones = Math.floor(herb.seedPrice * multiplier);
+  const fert = plot.fertilizerId && ITEMS[plot.fertilizerId] && ITEMS[plot.fertilizerId].fertilizer;
+  const baseCount = herb.type === 'alchemy' ? 2 : 1;
+  const count = Math.max(1, Math.floor(baseCount * (1 + (fert && fert.kind === 'yield' ? fert.bonus : 0))));
+  s.stone += stones;
+  grantItem(s, herb.harvestItem, count);
+  let text = `收获 ${herb.name}：灵石 +${stones}、${ITEMS[herb.harvestItem].name} ×${count}`;
   grantAchievement('cave_harvest');
   autoSave();
   return { ok: true, msg: text };
@@ -811,6 +856,7 @@ function upgradeCave(s) {
   s.cave.level = c.level + 1;
   if (s.cave.level >= 3) grantAchievement('cave_lv3');
   if (s.cave.level >= 7) grantAchievement('cave_lv7');
+  if (s.cave.level >= 30) grantAchievement('cave_lv30');
   autoSave();
   return { ok: true, msg: `洞府升到 ${s.cave.level} 级，灵田 +1，修炼加成提升` };
 }
@@ -1110,6 +1156,64 @@ function getTuntunshuDodgeRate(entry) {
   return Math.min(TUNTUNSHU_DODGE_CAP, TUNTUNSHU_DODGE_BASE + getPetStage(entry) * TUNTUNSHU_DODGE_PER_STAGE + (favor / PET_FAVOR_MAX) * TUNTUNSHU_DODGE_FAVOR_MAX);
 }
 
+function harvestAllCrops(s) {
+  const c = getCaveInfo(s);
+  let count = 0;
+  for (let i = c.plots.length - 1; i >= 0; i--) if (Date.now() - c.plots[i].plantedAt >= (c.plots[i].durationMs || FARM_CROPS[c.plots[i].crop].growMs)) { harvestPlot(s, i); count++; }
+  return { ok: count > 0, msg: count ? `一键收获完成，共收获 ${count} 块灵田` : '暂无成熟作物' };
+}
+
+function plantLastCrop(s) {
+  const last = s.cave && s.cave.lastPlant;
+  return last ? plantCrop(s, last.cropId, last.fertilizerId, getCaveInfo(s).maxPlots - getCaveInfo(s).plots.length) : { ok: false, msg: '尚无上次种植记录' };
+}
+
+function fertilizeAllCrops(s, fertilizerId) {
+  const fert = ITEMS[fertilizerId] && ITEMS[fertilizerId].fertilizer;
+  if (!fert) return { ok: false, msg: '请先选择肥料' };
+  const targets = getCaveInfo(s).plots.filter(p => !p.fertilizerId);
+  const count = Math.min(targets.length, s.bag[fertilizerId] || 0);
+  if (!count) return { ok: false, msg: targets.length ? '肥料不足' : '所有作物均已施肥' };
+  for (let i = 0; i < count; i++) {
+    const plot = targets[i]; const crop = FARM_CROPS[plot.crop];
+    removeItemFromState(s, fertilizerId, 1); plot.fertilizerId = fertilizerId;
+    plot.durationMs = getCropDuration(s, crop, fertilizerId);
+  }
+  autoSave(); return { ok: true, msg: `已为 ${count} 块灵田施用${ITEMS[fertilizerId].name}` };
+}
+
+function buyFarmGoods(s, itemId, requestedCount) {
+  const item = ITEMS[itemId];
+  if (!item || (!item.farmSeed && !item.fertilizer)) return { ok: false, msg: '未知商品' };
+  const count = Math.max(1, Math.floor(requestedCount || 1));
+  const crop = Object.values(FARM_CROPS).find(x => x.seedItem === itemId);
+  const today = new Date().toLocaleDateString('zh-CN');
+  if (item.farmSeed) {
+    if (s.cave.seedBuys.date !== today) s.cave.seedBuys = { date: today };
+    const bought = s.cave.seedBuys[itemId] || 0;
+    if (bought + count > 100) return { ok: false, msg: `每日每种种子限购100个，今日还可买 ${Math.max(0, 100 - bought)} 个` };
+  }
+  const unit = crop ? crop.seedPrice : ({ fert_yield_small: 100, fert_yield_mid: 300, fert_yield_high: 900, fert_time_small: 100, fert_time_mid: 300, fert_time_high: 900 }[itemId] || 100);
+  const cost = unit * count;
+  if ((s.stone || 0) < cost) return { ok: false, msg: `灵石不足（需 ${cost}）` };
+  s.stone -= cost; grantItem(s, itemId, count);
+  if (item.farmSeed) s.cave.seedBuys[itemId] = (s.cave.seedBuys[itemId] || 0) + count;
+  autoSave(); return { ok: true, msg: `购得 ${item.name} ×${count}` };
+}
+
+function buildOrUpgradeSpring(s) {
+  const c = getCaveInfo(s);
+  if (!s.cave.springBuilt) {
+    if (s.stone < 1000) return { ok: false, msg: '灵石不足（建造灵泉需1000）' };
+    s.stone -= 1000; s.cave.springBuilt = true; s.cave.springLevel = 1; autoSave(); return { ok: true, msg: '灵泉建成，已达1级' };
+  }
+  if (s.cave.springLevel >= 30 || s.cave.springLevel >= c.level) return { ok: false, msg: s.cave.springLevel >= 30 ? '灵泉已满级' : '灵泉等级不能超过洞府等级' };
+  const next = s.cave.springLevel + 1;
+  const cost = Math.floor(CAVE_LEVELS[next - 1].cost / 2);
+  if (s.stone < cost) return { ok: false, msg: `灵石不足（需 ${cost}）` };
+  s.stone -= cost; s.cave.springLevel = next; autoSave(); return { ok: true, msg: `灵泉升至 ${next} 级` };
+}
+
 // 终局 Boss 神藏与囤囤鼠偷取各自独立保底、独立重复保护。
 // 老存档的魔尊进度迁移到六位终局 Boss 共用的进度，避免更新后吃亏。
 function migrateFinalBossLoot(s) {
@@ -1259,7 +1363,8 @@ function feedPetTreat(s, petId, itemId) {
   entry.favorExp = favorExp;
   const up = favor - before;
   const tag = liked ? '（投其所好）' : '（不感兴趣）';
-  UI.showToast(`${pet.name} 收到 ${item.name}，好感 +${gain}${tag}${up > 0 ? `，好感提升至 ${favor} 级！` : ''}`);
+  const fertilizerText = tryGrantPetFertilizer(s, up > 0 ? 0.10 : 0.03);
+  UI.showToast(`${pet.name} 收到 ${item.name}，好感 +${gain}${tag}${up > 0 ? `，好感提升至 ${favor} 级！` : ''}${fertilizerText}`);
   autoSave(); UI.updateStats();
   return { gained: gain, favor, favorExp, liked, leveledUp: up };
 }
@@ -1315,6 +1420,14 @@ function rollPetOnce(s) {
 function petGachaDraw() {
   const result = petGachaDrawMany(1, '抽灵宠');
   return result ? result.list[0] : null;
+}
+
+function tryGrantPetFertilizer(s, chance = 0.03) {
+  if (Math.random() >= chance) return '';
+  const pool = ['fert_yield_small', 'fert_yield_mid', 'fert_yield_high', 'fert_time_small', 'fert_time_mid', 'fert_time_high'];
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  grantItem(s, id, 1);
+  return `，额外获得${ITEMS[id].name}×1！`;
 }
 
 function petGachaDrawMany(count, label) {
@@ -1458,7 +1571,7 @@ function feedPet(petId) {
   if (s.stone < need) { UI.showToast(`灵石不足（升1级需${need}灵石）`); return false; }
   s.stone -= need;
   addPetExp(entry, need);
-  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！`);
+  UI.showToast(`${pet.name} 提升至 ${entry.level} 级！${tryGrantPetFertilizer(s, 0.05)}`);
   autoSave();
   UI.updateStats();
   return true;
@@ -1483,7 +1596,7 @@ function feedPetByItem(petId, itemId, count) {
   const before = lv;
   addPetExp(entry, perExp * count);
   const leveled = entry.level - before;
-  UI.showToast(`${pet.name} 获得 ${perExp * count} 经验${leveled > 0 ? `，提升至 ${entry.level} 级` : ''}${leveled > 1 ? `（连升${leveled}级）` : ''}！`);
+  UI.showToast(`${pet.name} 获得 ${perExp * count} 经验${leveled > 0 ? `，提升至 ${entry.level} 级` : ''}${leveled > 1 ? `（连升${leveled}级）` : ''}！${tryGrantPetFertilizer(s, leveled > 0 ? 0.08 : 0.03)}`);
   autoSave();
   UI.updateStats();
   return true;
@@ -1992,6 +2105,25 @@ function useConsumableEffect(s, item) {
   else if (e === 'dao10') { s.dao += 10; UI.showToast(`你参悟了${item.name}，道韵+10`); }
   else { UI.showToast('此物品无法直接使用'); return false; }
   return true;
+}
+
+// 灵田资源作物售出：必得灵石，并按作物设定随机额外获得修为/道韵。
+function sellFarmResource(id) {
+  const s = Game.state;
+  const item = ITEMS[id];
+  if (!item || !item.farmResource || (s.bag[id] || 0) <= 0) return false;
+  const r = item.farmResource;
+  s.bag[id]--;
+  s.stone += r.stone;
+  const parts = [`灵石+${r.stone}`];
+  if (r.xpChance && Math.random() < r.xpChance) {
+    const before = s.xp;
+    addXp(s, r.xp);
+    parts.push(s.xp > before ? `修为+${r.xp}` : '修为奖励因渡劫瓶颈而消散');
+  }
+  if (r.daoChance && Math.random() < r.daoChance) { s.dao += r.dao; parts.push(`道韵+${r.dao}`); }
+  UI.showToast(`售出${item.name}，${parts.join('、')}`);
+  autoSave(); UI.updateStats(); UI.updateBag(); return true;
 }
 
 // 出售物品换取灵石

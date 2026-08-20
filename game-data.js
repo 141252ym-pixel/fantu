@@ -2,6 +2,21 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v42',
+    date: '2026-08-20',
+    title: '洞府灵田 · 灵泉养成',
+    items: [
+      '洞府等级上限开放至30级：每提升1级新增1块灵田，7级后的升级费用平缓递增；旧洞府等级与已种植作物均会自动迁移保留',
+      '灵田新增16种作物：10种炼丹材料与6种资源作物。所有种子开局即可在灵田商店购买，每种种子每日独立限购100个',
+      '收获所有作物均会返还种子价2～5倍灵石；炼丹材料可在合成坊直接炼制回血、回蓝等丹药，资源作物可在储物袋售出并随机额外获得修为或道韵',
+      '新增灵泉：花费1000灵石建造后为1级，最高30级且不超过洞府等级；灵泉每级减少1%作物成长时间，并使每次修炼回复更多气血与灵力',
+      '新增丰收肥、催生肥各三种品质：丰收肥提高作物材料产量，催生肥额外缩短成长时间；每块作物仅可施肥一次',
+      '灵田支持批量种满空田、一键收获、按上次配置补种、一键施肥；商店支持输入数量与一键填入最大可购买数量',
+      '宠物喂养、好感提升和升级时有低概率额外获得肥料；修复灵田种植与灵泉按钮的流程问题',
+      '删档重开与已有存档时的重新开始均改为游戏内二次确认，避免误触覆盖存档',
+    ],
+  },
+  {
     version: 'v41',
     date: '2026-08-20',
     title: '百炼神兵 · 千连寻缘 · 八折福利',
@@ -334,6 +349,46 @@ const ITEMS = {
   shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可为出战灵宠增加40经验', effect: 'pet_food1', sell: 40 },
   lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可为出战灵宠增加200经验', effect: 'pet_food3', sell: 200 },
 
+  // ===== 洞府灵田：种子、收获材料与肥料 =====
+  seed_huichun: { id: 'seed_huichun', name: '回春草种子', type: 'material', icon: '🌱', desc: '种入灵田可收获回春草，用于炼制回血丹药', sell: 0, farmSeed: true },
+  seed_ningling: { id: 'seed_ningling', name: '凝灵叶种子', type: 'material', icon: '🌿', desc: '种入灵田可收获凝灵叶，用于炼制回蓝丹药', sell: 0, farmSeed: true },
+  seed_chiyang: { id: 'seed_chiyang', name: '赤阳花种子', type: 'material', icon: '🌺', desc: '种入灵田可收获赤阳花，用于炼制中阶回血丹', sell: 0, farmSeed: true },
+  seed_yuehua: { id: 'seed_yuehua', name: '月华露种子', type: 'material', icon: '🌙', desc: '种入灵田可收获月华露，用于炼制中阶回蓝丹', sell: 0, farmSeed: true },
+  seed_xuelian: { id: 'seed_xuelian', name: '雪莲种子', type: 'material', icon: '❄️', desc: '种入灵田可收获雪莲，用于炼制高阶回血丹', sell: 0, farmSeed: true },
+  seed_zixiao: { id: 'seed_zixiao', name: '紫霄兰种子', type: 'material', icon: '🪻', desc: '种入灵田可收获紫霄兰，用于炼制高阶回蓝丹', sell: 0, farmSeed: true },
+  seed_longxue: { id: 'seed_longxue', name: '龙血藤种子', type: 'material', icon: '🩸', desc: '种入灵田可收获龙血藤，用于炼制燃血爆发丹药', sell: 0, farmSeed: true },
+  seed_xuanjia: { id: 'seed_xuanjia', name: '玄甲果种子', type: 'material', icon: '🛡️', desc: '种入灵田可收获玄甲果，用于炼制护体丹药', sell: 0, farmSeed: true },
+  seed_leiming: { id: 'seed_leiming', name: '雷鸣草种子', type: 'material', icon: '⚡', desc: '种入灵田可收获雷鸣草，用于炼制雷系增益丹药', sell: 0, farmSeed: true },
+  seed_jiuzhuan: { id: 'seed_jiuzhuan', name: '九转灵芝种子', type: 'material', icon: '🍄', desc: '种入灵田可收获九转灵芝，用于炼制顶级恢复丹药', sell: 0, farmSeed: true },
+  seed_linggu: { id: 'seed_linggu', name: '灵谷种子', type: 'material', icon: '🌾', desc: '种入灵田可收获灵谷，售出可得灵石并随机获得修为', sell: 0, farmSeed: true },
+  seed_ziyushen: { id: 'seed_ziyushen', name: '紫玉参种子', type: 'material', icon: '🥕', desc: '种入灵田可收获紫玉参，售出可得灵石并随机获得修为', sell: 0, farmSeed: true },
+  seed_jinluhua: { id: 'seed_jinluhua', name: '金露花种子', type: 'material', icon: '🌼', desc: '种入灵田可收获金露花，售出可得灵石并随机获得道韵', sell: 0, farmSeed: true },
+  seed_yunwenshu: { id: 'seed_yunwenshu', name: '云纹果种子', type: 'material', icon: '☁️', desc: '种入灵田可收获云纹果，售出可得灵石并随机获得修为或道韵', sell: 0, farmSeed: true },
+  seed_jiuqu: { id: 'seed_jiuqu', name: '九曲灵藤种子', type: 'material', icon: '🌿', desc: '种入灵田可收获九曲灵藤，售出可得高额灵石与随机奖励', sell: 0, farmSeed: true },
+  seed_xinghui: { id: 'seed_xinghui', name: '星辉果种子', type: 'material', icon: '🌟', desc: '种入灵田可收获星辉果，售出可得最高档灵石与随机奖励', sell: 0, farmSeed: true },
+  farm_huichun: { id: 'farm_huichun', name: '回春草', type: 'material', icon: '🌿', desc: '灵田药材：小回春丹的材料', sell: 0 },
+  farm_ningling: { id: 'farm_ningling', name: '凝灵叶', type: 'material', icon: '🍃', desc: '灵田药材：小回灵丹的材料', sell: 0 },
+  farm_chiyang: { id: 'farm_chiyang', name: '赤阳花', type: 'material', icon: '🌺', desc: '灵田药材：中阶回血丹的材料', sell: 0 },
+  farm_yuehua: { id: 'farm_yuehua', name: '月华露', type: 'material', icon: '🌙', desc: '灵田药材：中阶回蓝丹的材料', sell: 0 },
+  farm_xuelian: { id: 'farm_xuelian', name: '雪莲', type: 'material', icon: '❄️', desc: '灵田药材：高阶回血丹的材料', sell: 0 },
+  farm_zixiao: { id: 'farm_zixiao', name: '紫霄兰', type: 'material', icon: '🪻', desc: '灵田药材：高阶回蓝丹的材料', sell: 0 },
+  farm_longxue: { id: 'farm_longxue', name: '龙血藤', type: 'material', icon: '🩸', desc: '灵田药材：燃血爆发丹药的材料', sell: 0 },
+  farm_xuanjia: { id: 'farm_xuanjia', name: '玄甲果', type: 'material', icon: '🛡️', desc: '灵田药材：护体丹药的材料', sell: 0 },
+  farm_leiming: { id: 'farm_leiming', name: '雷鸣草', type: 'material', icon: '⚡', desc: '灵田药材：雷系增益丹药的材料', sell: 0 },
+  farm_jiuzhuan: { id: 'farm_jiuzhuan', name: '九转灵芝', type: 'material', icon: '🍄', desc: '灵田药材：顶级恢复丹药的材料', sell: 0 },
+  farm_linggu: { id: 'farm_linggu', name: '灵谷', type: 'material', icon: '🌾', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为', sell: 0, farmResource: { stone: 35, xpChance: 0.25, xp: 30 } },
+  farm_ziyushen: { id: 'farm_ziyushen', name: '紫玉参', type: 'material', icon: '🥕', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为', sell: 0, farmResource: { stone: 100, xpChance: 0.35, xp: 100 } },
+  farm_jinluhua: { id: 'farm_jinluhua', name: '金露花', type: 'material', icon: '🌼', desc: '灵田资源作物：售出获得灵石，并有概率额外获得道韵', sell: 0, farmResource: { stone: 240, daoChance: 0.35, dao: 2 } },
+  farm_yunwenshu: { id: 'farm_yunwenshu', name: '云纹果', type: 'material', icon: '☁️', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为或道韵', sell: 0, farmResource: { stone: 650, xpChance: 0.35, xp: 250, daoChance: 0.25, dao: 4 } },
+  farm_jiuqu: { id: 'farm_jiuqu', name: '九曲灵藤', type: 'material', icon: '🌿', desc: '灵田资源作物：售出获得高额灵石与随机奖励', sell: 0, farmResource: { stone: 1800, xpChance: 0.45, xp: 800, daoChance: 0.35, dao: 10 } },
+  farm_xinghui: { id: 'farm_xinghui', name: '星辉果', type: 'material', icon: '🌟', desc: '灵田资源作物：售出获得最高档灵石与随机奖励', sell: 0, farmResource: { stone: 5000, xpChance: 0.50, xp: 2500, daoChance: 0.45, dao: 30 } },
+  fert_yield_small: { id: 'fert_yield_small', name: '下品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+10%', sell: 20, fertilizer: { kind: 'yield', bonus: 0.10 } },
+  fert_yield_mid: { id: 'fert_yield_mid', name: '中品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+25%', sell: 60, fertilizer: { kind: 'yield', bonus: 0.25 } },
+  fert_yield_high: { id: 'fert_yield_high', name: '上品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+50%', sell: 150, fertilizer: { kind: 'yield', bonus: 0.50 } },
+  fert_time_small: { id: 'fert_time_small', name: '下品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×90%', sell: 20, fertilizer: { kind: 'time', bonus: 0.10 } },
+  fert_time_mid: { id: 'fert_time_mid', name: '中品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×75%', sell: 60, fertilizer: { kind: 'time', bonus: 0.25 } },
+  fert_time_high: { id: 'fert_time_high', name: '上品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×50%', sell: 150, fertilizer: { kind: 'time', bonus: 0.50 } },
+
   // ===== 灵宠零食（投其所好送对口味好感加倍） =====
   rougan:      { id: 'rougan',      name: '肉干',     type: 'misc', icon: '🍖', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'meat',  sell: 20 },
   xiangrou:    { id: 'xiangrou',    name: '香肉',     type: 'misc', icon: '🍗', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'meat',  sell: 60 },
@@ -505,7 +560,8 @@ const ACHIEVEMENTS = [
   // ===== 洞府 / 宗门 / 竞技 / 心魔玩法成就 =====
   { id: 'cave_harvest', name: '春华秋实',   desc: '首次收获洞府灵药',         icon: '🌿' },
   { id: 'cave_lv3',     name: '初具规模',   desc: '洞府升到 3 级',             icon: '🏠' },
-  { id: 'cave_lv7',     name: '仙府落成',   desc: '洞府升到满级 7 级',         icon: '🏯' },
+  { id: 'cave_lv7',     name: '仙府初成',   desc: '洞府升到 7 级',              icon: '🏠' },
+  { id: 'cave_lv30',    name: '仙府落成',   desc: '洞府升至满级 30 级',         icon: '🏯' },
   { id: 'sect_join',    name: '拜入山门',   desc: '加入一个宗门',               icon: '🏛️' },
   { id: 'sect_contrib', name: '中流砥柱',   desc: '宗门贡献达到 300',           icon: '🎖️' },
   { id: 'arena_win10',  name: '斗法新秀',   desc: '竞技斗法获胜 10 场',         icon: '⚔️' },
@@ -522,6 +578,13 @@ const RECIPES = [
   { id: 'r_tiebi',  name: '锻造铁笔',   icon: '✍️', result: 'tiebi',     cost: { lieyangshi: 2, fengyuteng: 2 } },
   { id: 'r_juqi',   name: '炼制聚气丹', icon: '🧪', result: 'juqi_pill', cost: { hanbingxue: 3 } },
   { id: 'r_daopei', name: '炼制道佩',   icon: '🔮', result: 'daopei',    cost: { yaowanggu_lingzhi: 1, hanbingxue: 1 } },
+  { id: 'r_farm_huiqi', name: '炼制回气丹', icon: '💊', result: 'huiqi_pill', cost: { farm_huichun: 2, farm_chiyang: 1 } },
+  { id: 'r_farm_huiling', name: '炼制回灵丹', icon: '🔹', result: 'huiling_pill', cost: { farm_ningling: 2, farm_yuehua: 1 } },
+  { id: 'r_farm_huichun', name: '炼制回春丹', icon: '💚', result: 'huichun_pill', cost: { farm_chiyang: 2, farm_xuelian: 1 } },
+  { id: 'r_farm_yuling', name: '炼制蕴灵丹', icon: '🔷', result: 'yuling_pill', cost: { farm_yuehua: 2, farm_zixiao: 1 } },
+  { id: 'r_farm_dahuan', name: '炼制大还丹', icon: '💛', result: 'dahuan_pill', cost: { farm_xuelian: 2, farm_xuanjia: 1 } },
+  { id: 'r_farm_dahuiling', name: '炼制大回灵丹', icon: '💎', result: 'dahuiling_pill', cost: { farm_zixiao: 2, farm_leiming: 1 } },
+  { id: 'r_farm_jiuzhuan', name: '炼制九转还魂丹', icon: '✨', result: 'jiuzhuan_pill', cost: { farm_longxue: 1, farm_jiuzhuan: 2 } },
 ];
 
 // ========== 炼丹炉（随机炼丹） ==========
@@ -785,7 +848,7 @@ const HERBS = {
 };
 
 // 洞府等级：等级越高，灵田越多、修炼加成越高
-const CAVE_LEVELS = [
+const LEGACY_CAVE_LEVELS = [
   { level: 1, plots: 1, cost: 0,     xpBonus: 0.00 },
   { level: 2, plots: 2, cost: 300,   xpBonus: 0.05 },
   { level: 3, plots: 3, cost: 800,   xpBonus: 0.10 },
@@ -794,6 +857,35 @@ const CAVE_LEVELS = [
   { level: 6, plots: 6, cost: 12000, xpBonus: 0.30 },
   { level: 7, plots: 7, cost: 30000, xpBonus: 0.40 },
 ];
+
+// 洞府灵田：种子种植、离线成长；全部作物成熟时返还种子价 2～5 倍灵石。
+const FARM_CROPS = {
+  huichun: { id: 'huichun', name: '回春草', icon: '🌿', type: 'alchemy', growMs: 20 * 60000, seedItem: 'seed_huichun', seedPrice: 30, harvestItem: 'farm_huichun', desc: '炼制小回春丹的基础材料' },
+  ningling: { id: 'ningling', name: '凝灵叶', icon: '🍃', type: 'alchemy', growMs: 20 * 60000, seedItem: 'seed_ningling', seedPrice: 30, harvestItem: 'farm_ningling', desc: '炼制小回灵丹的基础材料' },
+  chiyang: { id: 'chiyang', name: '赤阳花', icon: '🌺', type: 'alchemy', growMs: 60 * 60000, seedItem: 'seed_chiyang', seedPrice: 80, harvestItem: 'farm_chiyang', desc: '炼制中阶回血丹的材料' },
+  yuehua: { id: 'yuehua', name: '月华露', icon: '🌙', type: 'alchemy', growMs: 60 * 60000, seedItem: 'seed_yuehua', seedPrice: 80, harvestItem: 'farm_yuehua', desc: '炼制中阶回蓝丹的材料' },
+  xuelian: { id: 'xuelian', name: '雪莲', icon: '❄️', type: 'alchemy', growMs: 3 * 3600000, seedItem: 'seed_xuelian', seedPrice: 260, harvestItem: 'farm_xuelian', desc: '炼制高阶回血丹的材料' },
+  zixiao: { id: 'zixiao', name: '紫霄兰', icon: '🪻', type: 'alchemy', growMs: 3 * 3600000, seedItem: 'seed_zixiao', seedPrice: 260, harvestItem: 'farm_zixiao', desc: '炼制高阶回蓝丹的材料' },
+  longxue: { id: 'longxue', name: '龙血藤', icon: '🩸', type: 'alchemy', growMs: 6 * 3600000, seedItem: 'seed_longxue', seedPrice: 700, harvestItem: 'farm_longxue', desc: '炼制燃血爆发丹药的材料' },
+  xuanjia: { id: 'xuanjia', name: '玄甲果', icon: '🛡️', type: 'alchemy', growMs: 6 * 3600000, seedItem: 'seed_xuanjia', seedPrice: 700, harvestItem: 'farm_xuanjia', desc: '炼制护体丹药的材料' },
+  leiming: { id: 'leiming', name: '雷鸣草', icon: '⚡', type: 'alchemy', growMs: 8 * 3600000, seedItem: 'seed_leiming', seedPrice: 1200, harvestItem: 'farm_leiming', desc: '炼制雷系增益丹药的材料' },
+  jiuzhuan: { id: 'jiuzhuan', name: '九转灵芝', icon: '🍄', type: 'alchemy', growMs: 12 * 3600000, seedItem: 'seed_jiuzhuan', seedPrice: 2600, harvestItem: 'farm_jiuzhuan', desc: '炼制顶级恢复丹药的材料' },
+  linggu: { id: 'linggu', name: '灵谷', icon: '🌾', type: 'resource', growMs: 10 * 60000, seedItem: 'seed_linggu', seedPrice: 15, harvestItem: 'farm_linggu', desc: '售出后获得灵石，并有概率额外获得修为' },
+  ziyushen: { id: 'ziyushen', name: '紫玉参', icon: '🥕', type: 'resource', growMs: 30 * 60000, seedItem: 'seed_ziyushen', seedPrice: 50, harvestItem: 'farm_ziyushen', desc: '售出后获得灵石，并有概率额外获得修为' },
+  jinluhua: { id: 'jinluhua', name: '金露花', icon: '🌼', type: 'resource', growMs: 90 * 60000, seedItem: 'seed_jinluhua', seedPrice: 150, harvestItem: 'farm_jinluhua', desc: '售出后获得灵石，并有概率额外获得道韵' },
+  yunwenshu: { id: 'yunwenshu', name: '云纹果', icon: '☁️', type: 'resource', growMs: 3 * 3600000, seedItem: 'seed_yunwenshu', seedPrice: 420, harvestItem: 'farm_yunwenshu', desc: '售出后获得灵石，并有概率额外获得修为或道韵' },
+  jiuqu: { id: 'jiuqu', name: '九曲灵藤', icon: '🌿', type: 'resource', growMs: 6 * 3600000, seedItem: 'seed_jiuqu', seedPrice: 1100, harvestItem: 'farm_jiuqu', desc: '售出后获得高额灵石与随机奖励' },
+  xinghui: { id: 'xinghui', name: '星辉果', icon: '🌟', type: 'resource', growMs: 12 * 3600000, seedItem: 'seed_xinghui', seedPrice: 2600, harvestItem: 'farm_xinghui', desc: '售出后获得最高档灵石与随机奖励' },
+};
+
+const CAVE_LEVELS = Array.from({ length: 30 }, (_, i) => {
+  const level = i + 1;
+  const oldCosts = [0, 300, 800, 2000, 5000, 12000, 30000];
+  const cost = level <= 7 ? oldCosts[level - 1] : Math.floor(30000 * Math.pow(1.25, level - 7));
+  const oldBonus = [0, 0.05, 0.10, 0.15, 0.22, 0.30, 0.40];
+  const xpBonus = level <= 7 ? oldBonus[level - 1] : Math.min(0.98, 0.40 + (level - 7) * 0.025);
+  return { level, plots: level, cost, xpBonus };
+});
 
 // ========== 宗门系统 ==========
 // 宗门：加入后获得被动加成，可接宗门任务赚贡献、在贡献商店兑换
@@ -1034,7 +1126,8 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 20 + Math.floor(Math.random() * 15);
       addXp(s, gain);
-      setNodeText('修炼完毕，你感到体内灵气又充盈了几分。' + '（+' + gain + '修为）');
+      const vital = restoreCaveCultivationVital(s);
+      setNodeText(`修炼完毕，你感到体内灵气又充盈了几分。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
     },
     choices: [
       { label: '继续修炼', next: 'outer_cultivate_2' },
@@ -1048,7 +1141,8 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 25 + Math.floor(Math.random() * 20);
       addXp(s, gain);
-      setNodeText('这一次修炼比上次更有进益。' + '（+' + gain + '修为）');
+      const vital = restoreCaveCultivationVital(s);
+      setNodeText(`这一次修炼比上次更有进益。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
     },
     choices: [
       { label: '返回', next: 'qingyun_gate' },
@@ -1830,7 +1924,8 @@ const STORY_NODES = {
       const base = 80 + Math.floor(Math.random() * 40);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为）`);
+      const vital = restoreCaveCultivationVital(s);
+      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
     },
     choices: [
       { label: '继续修炼', next: 'inner_cultivate_2' },
@@ -1845,7 +1940,8 @@ const STORY_NODES = {
       const base = 100 + Math.floor(Math.random() * 60);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为）`);
+      const vital = restoreCaveCultivationVital(s);
+      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
     },
     choices: [
       { label: '返回', next: 'inner_gate' },
@@ -2598,7 +2694,7 @@ const STORY_NODES = {
     title: '洞府',
     dynamicText: (s) => {
       const c = getCaveInfo(s);
-      return `这是你的修行洞府（${c.level}级）。灵田 ${c.plots.length}/${c.plots} 块，修炼加成 +${Math.round(c.xpBonus * 100)}%。\n洞府等级越高，灵田越多、修炼越快。`;
+      return `这是你的修行洞府（${c.level}级）。灵田 ${c.plots.length}/${c.maxPlots} 块，灵泉 ${c.springLevel || 0}级。\n洞府等级越高，灵田越多、修炼越快。`;
     },
     choices: [
       { label: '闭关修炼', next: 'inner_cultivate' },
