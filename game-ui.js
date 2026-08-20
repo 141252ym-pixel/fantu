@@ -895,7 +895,9 @@ const UI = {
       this.els.gachaName.textContent = r.pet.name;
       this.els.gachaName.style.color = r.color;
       const b = r.pet.base;
-      const extra = `<br>已放入灵宠背包（重复灵宠可攒齐 3 只升星）`;
+      const extra = r.autoReleased
+        ? `<br>已按自动放生设置折算为 ${r.refund} 灵石`
+        : `<br>已放入灵宠背包（重复灵宠可攒齐 3 只升星）`;
       this.els.gachaDesc.innerHTML = `${r.pet.desc}<br>物攻+${b.atk} 法攻+${b.matk} 物抗+${b.def} 法抗+${b.mdef} 穿透+${b.pen}${extra}`;
     }
     this.els.gachaOverlay.classList.remove('hidden');
@@ -910,13 +912,15 @@ const UI = {
       div.className = 'gacha-ten-item';
       div.style.color = r.color;
       if (r.type === 'item') div.textContent = `${r.item.icon}${r.item.name}`;
-      else div.textContent = `${r.pet.icon}${r.pet.name}`;
+      else div.textContent = `${r.pet.icon}${r.pet.name}${r.autoReleased ? `（自动放生 +${r.refund}灵石）` : ''}`;
       list.appendChild(div);
     });
     const tip = document.createElement('div');
     tip.className = 'gacha-ten-item';
     tip.style.color = '#e6d3a0';
-    tip.textContent = '全部奖励已放入背包';
+    const autoReleased = res.list.filter(r => r.autoReleased);
+    const refund = autoReleased.reduce((sum, r) => sum + (r.refund || 0), 0);
+    tip.textContent = autoReleased.length ? `其余奖励已放入背包；${autoReleased.length} 只灵宠自动放生，获得 ${refund} 灵石` : '全部奖励已放入背包';
     list.appendChild(tip);
     this.els.gachaTenOverlay.classList.remove('hidden');
   },
@@ -948,13 +952,17 @@ const UI = {
           count: 0, color: r.color, rarity: r.rarity,
         };
       }
-      agg[key].count++;
+        agg[key].count++;
+        if (r.autoReleased) {
+          agg[key].autoReleased = (agg[key].autoReleased || 0) + 1;
+          agg[key].refund = (agg[key].refund || 0) + (r.refund || 0);
+        }
     });
     Object.values(agg).sort((a, b) => rareOrder.indexOf(a.rarity) - rareOrder.indexOf(b.rarity)).forEach(e => {
       const div = document.createElement('div');
       div.className = 'gacha-ten-item';
       div.style.color = e.color;
-      div.textContent = `${e.icon}${e.name} ×${e.count}`;
+      div.textContent = `${e.icon}${e.name} ×${e.count}${e.autoReleased ? `（自动放生×${e.autoReleased}，+${e.refund}灵石）` : ''}`;
       list.appendChild(div);
     });
     this.els.gachaHundredOverlay.classList.remove('hidden');
@@ -966,7 +974,7 @@ const UI = {
     const el = document.getElementById('pet-panel');
     if (!el) return;
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
-    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
+    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}<button class="ink-btn danger" onclick="UI.releaseSelectedPetQualities()">放生已选品质</button><small>立即放生会保留出战灵宠与神品。</small></div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
     (s.pets || []).forEach(p => {
       const pet = PETS[p.id];
@@ -1038,7 +1046,7 @@ const UI = {
     }).filter(p => filter === 'all' || (PETS[p.id] && PETS[p.id].quality === filter));
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
     html += `<div style="text-align:center;margin:8px 0"><button class="ink-btn" onclick="UI.openPetCodex()">📖 灵宠图鉴</button> <button class="ink-btn" onclick="UI.openGiftCodex()">📖 礼物图鉴</button></div>`;
-    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}</div>`;
+    html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}<button class="ink-btn danger" onclick="UI.releaseSelectedPetQualities()">放生已选品质</button><small>立即放生会保留出战灵宠与神品。</small></div>`;
     html += `<div class="pet-filter"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
     else if (pets.length === 0) html += `<div class="pet-empty">没有「${filter}」品质的灵宠。</div>`;
@@ -1077,7 +1085,7 @@ const UI = {
           </div>
           <div class="pet-stats">物攻+${getPetStatBonus(s, p, 'atk')} 法攻+${getPetStatBonus(s, p, 'matk')} 物抗+${getPetStatBonus(s, p, 'def')} 法抗+${getPetStatBonus(s, p, 'mdef')} 穿透+${getPetStatBonus(s, p, 'pen')}</div>
           ${pet.id === 'tuntunshu'
-            ? `<div class="pet-skill">技能【${pet.skill}】：闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 战后偷灵石/材料 · 0.001% 偷Boss掉落</div>`
+            ? `<div class="pet-skill">技能【${pet.skill}】：闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 战后偷灵石/材料 · 偷Boss专属装备 ${(getTuntunshuBossStealRate(p) * 100).toFixed(3)}%（再胜 ${Math.max(0, TUNTUNSHU_BOSS_STEAL_PITY - (p.bossStealMisses || 0))} 次保底）</div>`
             : `<div class="pet-skill">技能【${pet.skill}】：${chance}% 概率追加伤害（好感越高出手越勤）</div>`}
           ${trait ? `<div class="pet-trait">神品天赋【${trait.name}】：${trait.desc}</div>` : ''}
         </div>
@@ -1410,6 +1418,24 @@ const UI = {
     s.petAutoRelease[quality] = !!enabled;
     autoSave();
     this.showToast(`${quality}灵宠自动放生已${enabled ? '开启' : '关闭'}`);
+  },
+
+  releaseSelectedPetQualities() {
+    const s = Game.state;
+    const qualities = Object.keys(s.petAutoRelease || {}).filter(q => s.petAutoRelease[q] && q !== '神品');
+    if (!qualities.length) { this.showToast('请先勾选要放生的品质'); return; }
+    const preview = (s.pets || []).filter(p => {
+      const pet = PETS[p.id];
+      return pet && p.uid !== s.pet && pet.quality !== '神品' && qualities.includes(pet.quality);
+    });
+    if (!preview.length) { this.showToast('没有可放生的已选品质灵宠（出战灵宠与神品受保护）'); return; }
+    const refund = preview.reduce((sum, p) => sum + (PET_REFUND[PETS[p.id].quality] || 0), 0);
+    if (!confirm(`确认放生 ${preview.length} 只已选品质灵宠，获得 ${refund} 灵石？\n出战灵宠与神品不会被放生。`)) return;
+    const result = releasePetsByQualities(s, qualities);
+    this.showToast(`已批量放生 ${result.count} 只灵宠，获得 ${result.refund} 灵石`);
+    this.renderPetPanel();
+    this.renderPetOverlay();
+    this.updateStats();
   },
 
   // ========== 抽卡（藏宝阁） ==========

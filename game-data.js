@@ -70,7 +70,7 @@ const UPDATE_LOG = [
     date: '2026-08-20',
     title: '新神品灵宠 · 囤囤鼠',
     items: [
-      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料，极低概率(0.001%)偷走Boss私藏神装（专属掉落，仅囤囤鼠能偷）',
+      '新增神品灵宠「囤囤鼠」：战斗中概率带主人闪避，战后顺手偷灵石/材料；偷Boss私藏神装基础 0.02%、满培养约 0.1%，并有 2000 次保底（专属掉落，仅囤囤鼠能偷）',
       '囤囤鼠专注闪避与搜刮，靠「囤粮」慢慢变富，不参与普通技能追击',
     ],
   },
@@ -397,12 +397,12 @@ const ITEMS = {
   g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
   g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
 
-  // ===== 囤囤鼠私藏（仅能由囤囤鼠 0.001% 概率偷 Boss 获得，无其他获取途径） =====
-  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·攻击+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'atk600', sell: 8000, rarity: '神品' },
-  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法攻+600（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'matk600', sell: 8000, rarity: '神品' },
-  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·物抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'def360', sell: 8000, rarity: '神品' },
-  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·法抗+360（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'mdef360', sell: 8000, rarity: '神品' },
-  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·穿透+250（囤囤鼠偷自Boss的私藏，仅此途径）', effect: 'pen250', sell: 8000, rarity: '神品' },
+  // ===== 囤囤鼠/魔尊私藏（专属途径获得） =====
+  tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·物理攻击+10%；攻击时5%概率获得额外回合', effect: null, sell: 8000, rarity: '神品' },
+  tun_canglongqiang:{ id: 'tun_canglongqiang', name: '苍龙枪', type: 'weapon', icon: '🐉', desc: '神藏·法术攻击+10%；攻击时5%概率获得额外回合', effect: null, sell: 8000, rarity: '神品' },
+  tun_hunyuanjia: { id: 'tun_hunyuanjia', name: '混元圣甲', type: 'armor', slot: 'armor', icon: '🛡️', desc: '神藏·全伤害减免10%，受物理攻击时额外减免10%（乘算）', effect: null, sell: 8000, rarity: '神品' },
+  tun_tianxuanjia: { id: 'tun_tianxuanjia', name: '天玄法衣', type: 'armor', slot: 'armor', icon: '👘', desc: '神藏·全伤害减免10%，受法术攻击时额外减免10%（乘算）', effect: null, sell: 8000, rarity: '神品' },
+  tun_xinglongxue: { id: 'tun_xinglongxue', name: '星龙靴', type: 'armor', slot: 'shoes', icon: '👢', desc: '神藏·物理、法术穿透各10%', effect: null, sell: 8000, rarity: '神品' },
 
   // ===== 抽卡废品（抽空产物，只能卖几灵石） =====
   shuzhi:  { id: 'shuzhi',  name: '枯树枝', type: 'misc', icon: '🌿', desc: '路边捡的，没什么用', effect: null, sell: 3 },
@@ -634,7 +634,14 @@ const TUNTUNSHU_DODGE_FAVOR_MAX = 0.10;   // 满好感额外 +10%
 const TUNTUNSHU_DODGE_CAP = 0.30;         // 闪避率封顶
 const TUNTUNSHU_STEAL_CHANCE = 0.40;      // 战后偷灵石/材料的概率
 const TUNTUNSHU_STEAL_STONE_PCT = 0.30;   // 偷取本场灵石的 30%
-const TUNTUNSHU_BOSS_STEAL_CHANCE = 0.00001; // 偷 Boss 掉落装备的概率（0.001%，极稀有）
+// 囤囤鼠偷取 Boss 专属装备：基础 0.02%，等级/进阶/好感满培养合计约 0.1%。
+const TUNTUNSHU_BOSS_STEAL_BASE_CHANCE = 0.0002;
+const TUNTUNSHU_BOSS_STEAL_LEVEL_MAX_BONUS = 0.00035;
+const TUNTUNSHU_BOSS_STEAL_STAGE_MAX_BONUS = 0.00025;
+const TUNTUNSHU_BOSS_STEAL_FAVOR_MAX_BONUS = 0.00020;
+const TUNTUNSHU_BOSS_STEAL_PITY = 2000;
+const DEMON_LORD_LOOT_CHANCE = 0.001;
+const DEMON_LORD_LOOT_PITY = 2000;
 // 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
 const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
 // 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
@@ -891,7 +898,8 @@ const ENEMIES = {
   lei_jie_1:   { id: 'lei_jie_1',  name: '筑基天劫·一重', hp: 1, atk: 0, def: 0, xp: 500, stone: [100,100], drops: [], untouchable: true, boss: true, tribDmg: 0.15 },
 
   // 魔尊：化神大圆满前不可力敌的终局强敌
-  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 230000, atk: 5600, def: 1200, matk: 7800, mdef: 1500, xp: 22000, stone: [12000,18000], drops: [], boss: true, special: { name: '魔神叩关', type: 'percent', pct: 0.10, chance: 0.24, cd: 4 } },
+  // 魔尊保留动态成长与机制压迫感，但基础面板下调，避免终局战只靠硬磨。
+  demon_lord:  { id: 'demon_lord', name: '魔尊',       hp: 150000, atk: 5600, def: 850, matk: 7800, mdef: 1000, xp: 22000, stone: [12000,18000], drops: [], boss: true, demonLord: true, demonHitPct: 0.08, demonDoubleChance: 0.15 },
 
   // 秘境过渡敌人（20~29层爬塔用，填平 6400→75000 的数值断层）
   mijing_yuling:   { id: 'mijing_yuling',   name: '秘境妖灵', hp: 9000,  atk: 620,  def: 140, matk: 760,  mdef: 180, xp: 2800,  stone: [1400, 2000], drops: [{id:'juqi_pill',chance:0.5}], boss: true },
@@ -2780,12 +2788,22 @@ const STORY_NODES = {
 //   dao   : 道韵
 //   fame  : 名望
 //   item  : { id: '物品ID', count: 数量 }  物品ID见上方 ITEMS 定义
+//   repeatable: true  可重复使用（仅限内部测试码）
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
   'Q7K2MX9T': { stone: 100000 },
   'JZYHQQS4': { stone: 1000000 },
   'SOMETHINGFORNOTHING': { tribulationBlessing: true },
+  // 策划测试码：可重复使用，便于快速验证数值与流程。
+  '63924817': { stone: 500000, xp: 500000, repeatable: true },
+  '80571346': { items: [
+    { id: 'tun_tushenjian', count: 1 },
+    { id: 'tun_canglongqiang', count: 1 },
+    { id: 'tun_hunyuanjia', count: 1 },
+    { id: 'tun_tianxuanjia', count: 1 },
+    { id: 'tun_xinglongxue', count: 1 },
+  ] },
 };
 
 // ========== 签到与日常 ==========
