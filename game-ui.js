@@ -1762,7 +1762,10 @@ const UI = {
     this.els.battleMpVal.textContent = `${Math.max(0, Math.round(s.mp))}/${Math.round(s.maxMp)}`;
 
     // 攻防属性（物攻/法攻/物抗/法抗）
-    this.els.battlePlayerStats.innerHTML = `物攻 <b>${Math.round(s.atk)}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b>`;
+    const atkBoost = Game.battle.attackBoost || 0;
+    const atkShow = atkBoost > 0 ? Math.round(s.atk * (1 + atkBoost)) : Math.round(s.atk);
+    const atkLabel = atkBoost > 0 ? `（+${Math.round(atkBoost * 100)}%）` : '';
+    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b>`;
     this.els.battleEnemyStats.innerHTML = `物攻 <b>${Math.round(e.atk)}</b> · 法攻 <b>${Math.round(e.matk)}</b> · 物抗 <b>${Math.round(e.def)}</b> · 法抗 <b>${Math.round(e.mdef)}</b>`;
     // Boss 挑战推荐（天劫按百分比结算，不给攻防建议）
     if (e.boss && !e.untouchable) {
@@ -1785,6 +1788,7 @@ const UI = {
     if (Game.battle.poisonTurns > 0) statuses.push(`我·中毒 ${Game.battle.poisonTurns}回合`);
     if (Game.battle.playerWeakenTurns > 0) statuses.push(`我·虚弱 ${Math.max(1, Game.battle.playerWeakenTurns - 1)}回合`);
     if (Game.battle.playerStunnedTurns > 0) statuses.push('我·眩晕（下回合跳过）');
+    if (Game.battle.attackBoost > 0) statuses.push(`我·攻击+${Math.round(Game.battle.attackBoost * 100)}%（剩${Game.battle.attackBoostTurns}回合）`);
     if (Game.battle.enemySpecialCd > 0 && e.special) statuses.push(`敌·${e.special.name}冷却${Game.battle.enemySpecialCd}`);
     this.els.battleStatus.textContent = statuses.length ? `状态：${statuses.join(' ｜ ')}` : '状态：无';
 

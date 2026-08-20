@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v42',
+    date: '2026-08-20',
+    title: '修复：血煞燃元术增益显示 · 上古魔君削弱',
+    items: [
+      '血煞燃元术：战斗面板与状态栏现在会显示攻击增益（如「攻击+100% 剩3回合」），增益一直有生效，此前只是没显示出来',
+      '上古魔君削弱：每回合固定扣血 10%→7%，双连击概率 18%→12%，基础血量 75万→65万，让终局 Boss 不再难以挑战',
+    ],
+  },
+  {
     version: 'v41',
     date: '2026-08-20',
     title: '百炼神兵 · 千连寻缘 · 八折福利',
@@ -950,7 +959,7 @@ const ENEMIES = {
   fei_sheng_jie:{ id:'fei_sheng_jie',name:'飞升天劫·九重',hp: 1, atk: 0, def: 0, xp: 8000, stone: [2000,2000], drops: [], untouchable: true, boss: true, tribDmg: 0.22 },
   // 仙人级强敌：基础数值覆盖人仙期，仙帝后继续按动态 Boss 规则增长
   tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1, finalBoss: true, finalHitPct: 0.09, finalDoubleChance: 0.16, finalSkill: '蚀魂魔焰' },
-  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, finalBoss: true, noEscape: true, finalHitPct: 0.10, finalDoubleChance: 0.18, finalSkill: '太古魔威' },
+  mojun:           { id:'mojun',           name:'上古魔君',   hp: 650000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, finalBoss: true, noEscape: true, finalHitPct: 0.07, finalDoubleChance: 0.12, finalSkill: '太古魔威' },
   honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5, finalBoss: true, finalHitPct: 0.11, finalDoubleChance: 0.20, finalSkill: '洪荒践踏' },
   tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8, finalBoss: true, finalHitPct: 0.12, finalDoubleChance: 0.22, finalSkill: '天罚湮灭' },
   chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1, finalBoss: true, finalHitPct: 0.14, finalDoubleChance: 0.25, finalSkill: '归墟终焉' },
