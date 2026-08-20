@@ -254,6 +254,8 @@ function loadGame(slot = 0) {
 
 function autoSave() {
   saveGame(0);
+  // 天机榜：内部自带「未登榜不上传 / 数据没变不上传 / 60 秒节流 / 战斗中跳过」，绝大多数调用会直接返回
+  if (window.LB) LB.onSave();
 }
 
 // ========== 玩家编号 ==========
@@ -652,6 +654,12 @@ const EQUIP_FIRST_HALF_LEVELS = 50;
 const EQUIP_FIRST_HALF_RATE = 0.02;
 const EQUIP_SECOND_HALF_RATE = 0.03;
 
+// 暴击（来自装备法宝加成）
+const CRIT_RATE_BASE = 0.05;   // 基础暴击率
+const CRIT_RATE_CAP = 0.60;    // 暴击率上限
+const CRIT_DMG_BASE = 2.0;     // 基础暴击伤害倍率
+const CRIT_DMG_CAP = 3.0;      // 暴击伤害倍率上限
+
 function getEquipFlatAttribute(item) {
   if (!item || !item.effect) return null;
   const match = item.effect.match(/^(atk|matk|def|mdef|pen)(\d+)$/);
@@ -697,6 +705,39 @@ function getEquipBonus(s, slot, prefix) {
 
 function getAllEquipBonus(s, prefix) {
   return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => total + getEquipBonus(s, slot, prefix), 0);
+}
+
+// 暴击：读取装备法宝中的 crit（暴击率%）与 critDmg（暴击伤害%）加成
+function getEquipCritBonus(s) {
+  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    return total + (it && it.crit ? it.crit : 0);
+  }, 0);
+}
+
+function getEquipCritDmgBonus(s) {
+  return ['weapon', 'armor', 'artifact', 'shoes'].reduce((total, slot) => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    return total + (it && it.critDmg ? it.critDmg : 0);
+  }, 0);
+}
+
+function getCritRate(s) {
+  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + getEquipCritBonus(s) / 100);
+}
+
+function getCritDmg(s) {
+  return Math.min(CRIT_DMG_CAP, CRIT_DMG_BASE + getEquipCritDmgBonus(s) / 100);
+}
+
+// 判定一次是否暴击；暴击则返回放大后的伤害
+function applyCrit(s, dmg) {
+  if (Math.random() < getCritRate(s)) {
+    return { dmg: Math.floor(dmg * getCritDmg(s)), isCrit: true };
+  }
+  return { dmg, isCrit: false };
 }
 
 // ========== 灵宠 ==========
@@ -1791,14 +1832,18 @@ function playerCastGongfa(id) {
       return;
     }
     s.hp -= hpCost;
-    const dmg = Math.max(1, Math.floor(s.atk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, false) + (s.pen || 0));
+    let dmg = Math.max(1, Math.floor(s.atk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, false) + (s.pen || 0));
+    const cr = applyCrit(s, dmg);
+    if (cr.isCrit) dmg = cr.dmg;
     dealtDamage = dealDamageToEnemy(e, dmg);
-    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，血焰贯穿 ${e.name}，造成 ${dealtDamage} 点伤害！`, 'player');
+    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，血焰贯穿 ${e.name}，${cr.isCrit ? '暴击！' : ''}造成 ${dealtDamage} 点伤害！`, 'player');
   } else {
-    const dmg = Math.max(1, Math.floor(s.matk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, true) + (s.pen || 0));
+    let dmg = Math.max(1, Math.floor(s.matk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, true) + (s.pen || 0));
+    const cr = applyCrit(s, dmg);
+    if (cr.isCrit) dmg = cr.dmg;
     dealtDamage = dealDamageToEnemy(e, dmg);
     logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
-    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} 造成 ${dealtDamage} 点伤害！`, 'player');
+    logBattle(`【${g.name}】消耗 ${manaCost} 灵力，对 ${e.name} ${cr.isCrit ? '打出暴击，' : ''}造成 ${dealtDamage} 点伤害！`, 'player');
   }
   checkBattleEnd();
   if (!Game.battle.ended) petAssist(dealtDamage);
@@ -2691,10 +2736,11 @@ function playerAttack() {
   const s = Game.state;
   const e = Game.battle.enemy;
   const rawDamage = Math.max(1, Math.floor(s.atk * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, false) + (s.pen || 0) + Math.floor(Math.random() * 5));
-  const dmg = dealDamageToEnemy(e, rawDamage);
+  const cr = applyCrit(s, rawDamage);
+  const dmg = dealDamageToEnemy(e, cr.dmg);
   playBattleHitSound();
   logBattle(`你身形一动，法器在手，全力向 ${e.name} 攻去！`, 'player');
-  logBattle(`命中要害，造成 ${dmg} 点伤害。`, 'player');
+  logBattle(cr.isCrit ? `暴击！造成 ${dmg} 点伤害！` : `命中要害，造成 ${dmg} 点伤害。`, 'player');
   // 战斗彩蛋：出手独白（普通小怪与 Boss，天劫除外）
   if (!e.untouchable) {
     const atkEgg = rollEasterEgg(EASTER_EGG_PLAYER_ATK, 0.15);
@@ -2770,6 +2816,14 @@ function playerSkill() {
     }
     Game.battle.metalReflect = 0.35;
     extraText = isFinalBoss(e) ? `${e.name}免疫破甲，并反震下一击35%伤害` : `敌方防御降低 ${e.armorBreak}，并反震下一击35%伤害`;
+  }
+  // 通用暴击（雷灵根自带专属暴击，跳过）
+  if (s.linggen !== 'thunder') {
+    const cr = applyCrit(s, dmg);
+    if (cr.isCrit) {
+      dmg = cr.dmg;
+      extraText = (extraText ? extraText + '，' : '') + '暴击！';
+    }
   }
   dmg = Math.max(1, Math.floor(dmg * (1 - getPlayerWeakenRate())));
   dmg = dealDamageToEnemy(e, dmg);

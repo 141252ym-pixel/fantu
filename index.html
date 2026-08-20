@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=28" />
+  <link rel="stylesheet" href="styles.css?v=29" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -48,6 +48,7 @@
         <button id="bgm-toggle" class="icon-btn" onclick="toggleBgm()" title="音乐：开">🎵</button>
         <button class="icon-btn" onclick="UI.openPetOverlay()" title="灵宠">🐾</button>
         <button id="announce-btn" class="icon-btn" onclick="UI.openAnnounce()" title="更新公告">📢</button>
+        <button id="lb-btn" class="icon-btn" onclick="LB.open()" title="天机榜">👑</button>
       </div>
     </header>
 
@@ -269,6 +270,35 @@
       </div>
     </div>
 
+    <!-- 天机榜（全球排行榜） -->
+    <div id="lb-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card codex-card lb-card">
+        <div class="gacha-name">👑 天机榜</div>
+        <div id="lb-tabs" class="pet-filter lb-tabs">
+          <button class="pet-filter-btn active" data-board="realm" onclick="LB.switchTab('realm')">境界榜</button>
+          <button class="pet-filter-btn" data-board="power" onclick="LB.switchTab('power')">战力榜</button>
+          <button class="pet-filter-btn" data-board="mijing" onclick="LB.switchTab('mijing')">秘境榜</button>
+        </div>
+        <div id="lb-body" class="codex-list lb-list"></div>
+        <div id="lb-foot" class="lb-foot"></div>
+        <button class="ink-btn" onclick="LB.close()">关闭</button>
+      </div>
+    </div>
+
+    <!-- 登榜留名（自定义输入弹窗，避开 WebView 原生 prompt） -->
+    <div id="lb-nick-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card count-card">
+        <div class="gacha-name">登榜留名</div>
+        <div class="gacha-desc">此名将展示于天机榜，可随时更改</div>
+        <div class="count-box">
+          <input id="lb-nick-input" class="count-input" type="text" maxlength="12" placeholder="请取一个名号" />
+        </div>
+        <div class="count-max">最多 12 个字</div>
+        <button class="ink-btn" onclick="LB.confirmNick()">确认登榜</button>
+        <button class="ink-btn danger" onclick="LB.closeNick()">再想想</button>
+      </div>
+    </div>
+
     <!-- 侧边面板 -->
     <div id="panel-mask" class="panel-mask" onclick="UI.closeSidePanel()"></div>
     <aside id="side-panel" class="side-panel">
@@ -369,17 +399,19 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=48"></script>
-  <script src="game-engine.js?v=39"></script>
-  <script src="game-ui.js?v=39"></script>
+  <script src="game-data.js?v=50"></script>
+  <script src="game-engine.js?v=41"></script>
+  <script src="game-ui.js?v=40"></script>
+  <script src="leaderboard.js?v=1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
+      if (window.LB) LB.init();
     });
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=14').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=15').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {

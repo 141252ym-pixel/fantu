@@ -1765,7 +1765,8 @@ const UI = {
     const atkBoost = Game.battle.attackBoost || 0;
     const atkShow = atkBoost > 0 ? Math.round(s.atk * (1 + atkBoost)) : Math.round(s.atk);
     const atkLabel = atkBoost > 0 ? `（+${Math.round(atkBoost * 100)}%）` : '';
-    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b>`;
+    const critRate = Math.round(getCritRate(s) * 100);
+    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b> · 暴击 <b>${critRate}%</b>`;
     this.els.battleEnemyStats.innerHTML = `物攻 <b>${Math.round(e.atk)}</b> · 法攻 <b>${Math.round(e.matk)}</b> · 物抗 <b>${Math.round(e.def)}</b> · 法抗 <b>${Math.round(e.mdef)}</b>`;
     // Boss 挑战推荐（天劫按百分比结算，不给攻防建议）
     if (e.boss && !e.untouchable) {
@@ -2408,6 +2409,8 @@ UI.renderStatDetail = function() {
   const totalMatk = getTotalMatk(s);
   const totalMdef = getTotalMdef(s);
   const totalPen = getTotalPen(s);
+  const critRate = getCritRate(s);
+  const critDmg = getCritDmg(s);
   const sect = s.sect && SECTS[s.sect];
   const identity = sect ? `${sect.icon} ${sect.name}弟子` : '云游散修';
 
@@ -2422,6 +2425,8 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">物抗</span><span class="value">${totalDef}</span></div>
     <div class="stat-line"><span class="label">法抗</span><span class="value">${totalMdef}</span></div>
     <div class="stat-line"><span class="label">穿透</span><span class="value">${totalPen}</span></div>
+    <div class="stat-line"><span class="label">暴击率</span><span class="value">${Math.round(critRate * 100)}%</span></div>
+    <div class="stat-line"><span class="label">暴击伤害</span><span class="value">${critDmg.toFixed(1)}x</span></div>
     <div class="stat-line"><span class="label">灵石</span><span class="value">${s.stone}</span></div>
     <div class="stat-line"><span class="label">名望</span><span class="value">${s.fame}</span></div>
     <div class="stat-line"><span class="label">道韵</span><span class="value">${s.dao}</span></div>

@@ -2,6 +2,27 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v44',
+    date: '2026-08-20',
+    title: '暴击率玩法 · 藏宝阁暴击法宝',
+    items: [
+      '新增暴击系统：普通攻击、灵根技能与主动功法均有机会触发暴击，造成更高伤害',
+      '藏宝阁新增4件暴击法宝（会心符/天星珠/诛心符/灭世珠），装备于法宝栏，提供暴击率与暴击伤害加成',
+      '属性面板与战斗面板新增「暴击率」「暴击伤害」显示，暴击触发时战斗日志会高亮提示',
+    ],
+  },
+  {
+    version: 'v43',
+    date: '2026-08-20',
+    title: '天机榜 · 全球排行榜',
+    items: [
+      '顶栏新增「👑 天机榜」：可查看全球前 100 位道友的排名，以及自己的名次',
+      '三榜并立：境界榜（按转世次数、境界、修为）、战力榜（五维属性之和）、秘境榜（试炼秘境最高层）',
+      '首次点「登榜留名」取一个名号后才会上榜，不登榜则不会上传任何数据；名号可随时更改',
+      '断网也能照常修行：离线期间的成绩会暂存本地，联网后自动同步上榜',
+    ],
+  },
+  {
     version: 'v42',
     date: '2026-08-20',
     title: '修复：血煞燃元术增益显示 · 上古魔君削弱',
@@ -411,6 +432,12 @@ const ITEMS = {
   g_fuxiqin:     { id: 'g_fuxiqin', name: '伏羲琴', type: 'artifact', slot: 'artifact', icon: '🎼', desc: '神品·令敌方下次攻击失效（冷却8回合）', effect: null, special: 'weaken', specialCd: 8, sell: 8000, rarity: '神品' },
   g_shennongding:{ id: 'g_shennongding', name: '神农鼎', type: 'artifact', slot: 'artifact', icon: '⚗️', desc: '神品·回复50%气血（冷却10回合）', effect: null, special: 'heal', specialCd: 10, sell: 8000, rarity: '神品' },
 
+  // ===== 暴击法宝：装备于法宝栏，被动提供暴击率与暴击伤害 =====
+  g_huixinfu:    { id: 'g_huixinfu',     name: '会心符', type: 'artifact', slot: 'artifact', icon: '📿', desc: '良品·攻击+30，暴击率+3%，暴击伤害+20%', effect: 'atk30',  crit: 3,  critDmg: 20, sell: 70,   rarity: '良品' },
+  g_tianxingzhu: { id: 'g_tianxingzhu',  name: '天星珠', type: 'artifact', slot: 'artifact', icon: '🔮', desc: '中品·攻击+60，暴击率+5%，暴击伤害+35%', effect: 'atk60',  crit: 5,  critDmg: 35, sell: 180,  rarity: '中品' },
+  g_zhuxinfu:    { id: 'g_zhuxinfu',     name: '诛心符', type: 'artifact', slot: 'artifact', icon: '🎴', desc: '上品·攻击+120，暴击率+8%，暴击伤害+50%', effect: 'atk120', crit: 8,  critDmg: 50, sell: 450,  rarity: '上品' },
+  g_mieshizhu:   { id: 'g_mieshizhu',    name: '灭世珠', type: 'artifact', slot: 'artifact', icon: '⚫', desc: '极品·攻击+240，暴击率+12%，暴击伤害+70%', effect: 'atk240', crit: 12, critDmg: 70, sell: 1100, rarity: '极品' },
+
   // ===== 抽卡装备（第四批：法攻/法抗/穿透） =====
   g_xuanmuzhang: { id: 'g_xuanmuzhang', name: '玄木杖',  type: 'weapon', icon: '🪄', desc: '中品·法攻+58',   effect: 'matk58',  sell: 180,  rarity: '中品' },
   g_yanlingzhu:  { id: 'g_yanlingzhu',  name: '炎灵珠',  type: 'weapon', icon: '🔮', desc: '上品·法攻+115',  effect: 'matk115', sell: 450,  rarity: '上品' },
@@ -459,22 +486,22 @@ const GACHA_POOL = [
     { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
-    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue',
+    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue', 'g_huixinfu',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue',
+    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_tianxingzhu',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue',
+    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_zhuxinfu',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue',
+    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_mieshizhu',
     { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [

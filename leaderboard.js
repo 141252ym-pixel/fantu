@@ -1,0 +1,350 @@
+// ========== 天机榜 · 全球排行榜 ==========
+// 后端为 Supabase（建表脚本见 supabase-setup.sql）。
+// 前端不直连数据表，只调 fantu_submit / fantu_board 两个数据库函数，
+// 数值上限、写入频率、成绩归属都由服务端把关。
+//
+// 设计约定：
+//   · 玩家没填过榜单昵称 ⇒ 一个字节都不上传（不主动登榜 = 不联网）
+//   · 上传是覆盖式 upsert ⇒ 离线时只留最新一份快照，不需要队列
+//   · 战斗过程中 s.atk 会被临时改写成总攻击，此时跳过上传，避免战力翻倍
+
+const LB = {
+  // ↓↓↓ 建好 Supabase 项目后，把这两行换成你自己的值 ↓↓↓
+  URL: 'PASTE_YOUR_PROJECT_URL',   // 形如 https://abcdefgh.supabase.co
+  KEY: 'PASTE_YOUR_PUBLISHABLE_KEY', // 形如 sb_publishable_xxx（老项目是 anon key）
+  // ↑↑↑ 这个 key 设计上就是公开的，数据安全靠服务端 RLS + 函数网关 ↑↑↑
+
+  BOARDS: [
+    { id: 'realm', name: '境界榜', hint: '以转世次数、境界、修为论道' },
+    { id: 'power', name: '战力榜', hint: '以物攻法攻物抗法抗穿透之和论道' },
+    { id: 'mijing', name: '秘境榜', hint: '以试炼秘境最高层数论道' },
+  ],
+
+  SUBMIT_INTERVAL: 60000, // 本地上传节流（服务端另有 20 秒硬限制）
+  TIMEOUT: 8000,
+
+  _board: 'realm',
+  _lastSig: '',
+  _loading: false,
+
+  // ---------- 小工具 ----------
+  configured() {
+    return this.URL.indexOf('http') === 0 && this.KEY.indexOf('PASTE_') !== 0;
+  },
+
+  ls(key, val) {
+    try {
+      if (val === undefined) return localStorage.getItem(key);
+      localStorage.setItem(key, val);
+    } catch (e) { /* 隐私模式可能禁用存储 */ }
+    return null;
+  },
+
+  lsDel(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* 同上 */ }
+  },
+
+  esc(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  },
+
+  // 大数字转「万 / 亿」，与游戏内其它数值展示习惯一致
+  fmt(n) {
+    n = Math.floor(Number(n) || 0);
+    if (n >= 100000000) {
+      const t = (n / 100000000).toFixed(2);
+      return (t.endsWith('.00') ? t.slice(0, -3) : t) + '亿';
+    }
+    if (n >= 10000) {
+      const t = (n / 10000).toFixed(1);
+      return (t.endsWith('.0') ? t.slice(0, -2) : t) + '万';
+    }
+    return String(n);
+  },
+
+  realmName(idx) {
+    try { return getRealm(Math.max(0, Number(idx) || 0)).name; } catch (e) { return '—'; }
+  },
+
+  getNick() { return this.ls('fantu_lb_nick') || ''; },
+
+  // ---------- 数据 ----------
+  // 从当前存档提取一份可上传的快照
+  snapshot() {
+    const s = (typeof Game !== 'undefined') && Game.state;
+    if (!s) return null;
+    let realm = s.realmIndex;
+    if (realm == null) { try { realm = getRealmIndex(s); } catch (e) { realm = 0; } }
+    return {
+      pid: getPlayerId(),
+      nick: this.getNick(),
+      realm: Math.max(0, Math.floor(realm || 0)),
+      xp: Math.max(0, Math.floor(s.xp || 0)),
+      power: this.calcPower(s),
+      mijing: Math.max(0, Math.floor((s.mijing && s.mijing.best) || 0)),
+      rein: Math.max(0, Math.floor(s.reincarnation || 0)),
+      title: s.title || null,
+    };
+  },
+
+  calcPower(s) {
+    try {
+      return Math.max(0, Math.floor(
+        getTotalAtk(s) + getTotalMatk(s) + getTotalDef(s) + getTotalMdef(s) + getTotalPen(s)
+      ));
+    } catch (e) { return 0; }
+  },
+
+  sig(snap) {
+    return snap ? [snap.nick, snap.realm, snap.xp, snap.power, snap.mijing, snap.rein, snap.title].join('|') : '';
+  },
+
+  stash(snap) { if (snap) this.ls('fantu_lb_pending', JSON.stringify(snap)); },
+  unstash() { this.lsDel('fantu_lb_pending'); },
+
+  // ---------- 网络 ----------
+  async rpc(fn, body) {
+    if (!this.configured()) throw new Error('unconfigured');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), this.TIMEOUT);
+    try {
+      const res = await fetch(this.URL.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        headers: {
+          'apikey': this.KEY,
+          'Authorization': 'Bearer ' + this.KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
+  // 存档钩子：由 autoSave() 调用，绝大多数情况下会在这里直接返回
+  onSave() {
+    if (!this.configured()) return;
+    if (!this.getNick()) return;                                  // 没登榜就不上传
+    if (typeof Game === 'undefined' || !Game.state) return;
+    if (Game.battle && !Game.battle.ended) return;                // 战斗中属性被临时改写
+    const snap = this.snapshot();
+    if (!snap || this.sig(snap) === this._lastSig) return;        // 数据没变化
+    if (Date.now() - Number(this.ls('fantu_lb_last') || 0) < this.SUBMIT_INTERVAL) {
+      this.stash(snap);                                           // 节流期内先攒着
+      return;
+    }
+    this.submit(snap);
+  },
+
+  async submit(snap) {
+    if (!this.configured()) return { ok: false, error: 'unconfigured' };
+    snap = snap || this.snapshot();
+    if (!snap || !snap.nick) return { ok: false, error: 'no_nick' };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      this.stash(snap);
+      return { ok: false, error: 'offline' };
+    }
+    try {
+      const res = await this.rpc('fantu_submit', {
+        p_pid: snap.pid,
+        p_secret: this.ls('fantu_lb_secret') || '',
+        p_nick: snap.nick,
+        p_realm: snap.realm,
+        p_xp: snap.xp,
+        p_power: snap.power,
+        p_mijing: snap.mijing,
+        p_rein: snap.rein,
+        p_title: snap.title,
+      });
+      if (res && res.ok) {
+        if (res.secret) this.ls('fantu_lb_secret', res.secret);
+        if (!res.throttled) {
+          this.ls('fantu_lb_last', String(Date.now()));
+          this._lastSig = this.sig(snap);
+        }
+        this.unstash();
+      }
+      return res || { ok: false };
+    } catch (e) {
+      this.stash(snap);   // 网络问题：留到下次联网补传
+      return { ok: false, error: 'network' };
+    }
+  },
+
+  // 联网后补传：直接用当前最新数据，比暂存的快照更准
+  async flushPending() {
+    if (!this.configured() || !this.getNick()) return;
+    if (!this.ls('fantu_lb_pending')) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    await this.submit(this.snapshot());
+  },
+
+  // ---------- 界面 ----------
+  open() {
+    const el = document.getElementById('lb-overlay');
+    if (!el) return;
+    el.classList.remove('hidden');
+    this.syncTabs();
+    this.load(true);
+  },
+
+  close() {
+    const el = document.getElementById('lb-overlay');
+    if (el) el.classList.add('hidden');
+  },
+
+  switchTab(board) {
+    if (this._loading || board === this._board) return;
+    this._board = board;
+    this.syncTabs();
+    this.load(false);
+  },
+
+  syncTabs() {
+    const row = document.getElementById('lb-tabs');
+    if (!row) return;
+    row.querySelectorAll('.pet-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-board') === this._board);
+    });
+  },
+
+  // submitFirst：打开榜单时顺便把自己的最新成绩推上去
+  async load(submitFirst) {
+    const body = document.getElementById('lb-body');
+    const foot = document.getElementById('lb-foot');
+    if (!body) return;
+
+    if (!this.configured()) {
+      body.innerHTML = '<div class="lb-hint">天机榜尚未开启，请稍候。</div>';
+      if (foot) foot.innerHTML = '';
+      return;
+    }
+
+    this._loading = true;
+    body.innerHTML = '<div class="lb-hint">正在推演天机…</div>';
+    if (foot) foot.innerHTML = '';
+
+    try {
+      if (submitFirst && this.getNick()) await this.submit();
+      const res = await this.rpc('fantu_board', { p_board: this._board, p_pid: getPlayerId() });
+      if (!res || !res.ok) throw new Error('bad_response');
+      this.renderList(res);
+    } catch (e) {
+      const offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+      body.innerHTML = '<div class="lb-hint">' +
+        (offline ? '当前离线，成绩会在联网后自动同步。' : '天机推演失败，请稍后再试。') +
+        '</div><div class="lb-hint"><button class="ink-btn" onclick="LB.load(false)">重新推演</button></div>';
+    } finally {
+      this._loading = false;
+    }
+  },
+
+  renderList(res) {
+    const body = document.getElementById('lb-body');
+    const foot = document.getElementById('lb-foot');
+    const board = this._board;
+    const list = res.top || [];
+    const me = res.me || null;
+    const myPid = getPlayerId();
+
+    if (!list.length) {
+      body.innerHTML = '<div class="lb-hint">榜上无名，此刻天下修士皆未登榜。<br>你可以做第一个。</div>';
+    } else {
+      let html = '';
+      list.forEach(row => {
+        const rank = Number(row.rank) || 0;
+        const rankCls = rank <= 3 ? ' lb-rank-' + rank : '';
+        const isMe = row.player_id === myPid;
+        let main, sub;
+        if (board === 'power') {
+          main = this.fmt(row.power);
+          sub = this.realmName(row.realm_index);
+        } else if (board === 'mijing') {
+          main = '第 ' + (Number(row.mijing_best) || 0) + ' 层';
+          sub = this.realmName(row.realm_index);
+        } else {
+          main = this.realmName(row.realm_index);
+          sub = (Number(row.reincarnation) > 0 ? '转世 ' + row.reincarnation + ' 次' : '初世');
+        }
+        html += '<div class="lb-row' + (isMe ? ' lb-me' : '') + '">' +
+          '<span class="lb-rank' + rankCls + '">' + rank + '</span>' +
+          '<span class="lb-name">' + this.esc(row.nickname) +
+            (row.title ? '<em class="lb-title">' + this.esc(row.title) + '</em>' : '') +
+          '</span>' +
+          '<span class="lb-score">' + this.esc(main) + '<em class="lb-sub">' + this.esc(sub) + '</em></span>' +
+        '</div>';
+      });
+      body.innerHTML = html;
+    }
+
+    if (!foot) return;
+    const total = Number(res.total) || 0;
+    if (!this.getNick()) {
+      foot.innerHTML = '<span class="lb-foot-txt">共 ' + total + ' 位道友在榜</span>' +
+        '<button class="ink-btn" onclick="LB.openNick()">登榜留名</button>';
+    } else if (me) {
+      foot.innerHTML = '<span class="lb-foot-txt">你的名次 <b class="lb-myrank">#' + (Number(me.rank) || 0) +
+        '</b> / 共 ' + total + ' 位道友</span>' +
+        '<button class="ink-btn" onclick="LB.openNick()">改名</button>';
+    } else {
+      foot.innerHTML = '<span class="lb-foot-txt">共 ' + total + ' 位道友在榜 · 你的成绩正在同步</span>' +
+        '<button class="ink-btn" onclick="LB.load(true)">刷新</button>';
+    }
+  },
+
+  // ---------- 登榜昵称（自定义弹窗，不用原生 prompt） ----------
+  openNick() {
+    const el = document.getElementById('lb-nick-overlay');
+    const input = document.getElementById('lb-nick-input');
+    if (!el || !input) return;
+    const cur = this.getNick();
+    input.value = cur || ((typeof Game !== 'undefined' && Game.state && Game.state.name) || '');
+    el.classList.remove('hidden');
+    setTimeout(() => { try { input.focus(); input.select(); } catch (e) { /* 移动端可能拒绝 */ } }, 50);
+  },
+
+  closeNick() {
+    const el = document.getElementById('lb-nick-overlay');
+    if (el) el.classList.add('hidden');
+  },
+
+  async confirmNick() {
+    const input = document.getElementById('lb-nick-input');
+    if (!input) return;
+    const nick = String(input.value || '').replace(/[<>]/g, '').trim().slice(0, 12);
+    if (!nick) { UI.showToast('请先取个名号'); return; }
+
+    this.ls('fantu_lb_nick', nick);
+    this.closeNick();
+    UI.showToast('正在登榜…');
+
+    const res = await this.submit();
+    if (res && res.ok) {
+      UI.showToast(res.throttled ? '登榜成功' : '登榜成功，道号已录天机');
+    } else if (res && res.error === 'offline') {
+      UI.showToast('当前离线，联网后自动登榜');
+    } else if (res && res.error === 'bad_secret') {
+      UI.showToast('登榜凭证有误，请联系作者');
+    } else {
+      UI.showToast('登榜失败，稍后会自动重试');
+    }
+    this.load(false);
+  },
+
+  // ---------- 启动 ----------
+  init() {
+    if (!this.configured()) return;
+    // 补传上次离线时攒下的成绩
+    this.flushPending();
+    window.addEventListener('online', () => this.flushPending());
+  },
+};
+
+// const 声明不会挂到 window 上，这里显式导出，供 autoSave() 钩子与 HTML 的 onclick 使用
+window.LB = LB;

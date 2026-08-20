@@ -1199,3 +1199,89 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .pet-filter-btn:hover { border-color: #8b6b3d; background: rgba(139, 107, 61, 0.3); }
 .pet-filter-btn.active { border-color: #ffd54f; color: #ffd54f; background: rgba(255, 213, 79, 0.15); }
+
+/* ========== 天机榜（全球排行榜） ========== */
+.lb-tabs { margin: 10px 0 4px; }
+.lb-list {
+  gap: 0;
+  max-height: 56vh;
+  border: 1px solid #8b6b3d;
+  border-radius: 8px;
+  background: #1a120a;
+  padding: 4px 10px;
+}
+.lb-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px dashed #3a2c18;
+}
+.lb-row:first-child { border-top: none; }
+.lb-rank {
+  flex: 0 0 30px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a08c5a;
+}
+.lb-rank-1 { color: #ffe49a; font-size: 15px; }
+.lb-rank-2 { color: #d8d8d8; font-size: 14px; }
+.lb-rank-3 { color: #d9a06a; font-size: 14px; }
+.lb-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  color: #f0e4c2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-title {
+  font-style: normal;
+  font-size: 11px;
+  color: #c9a962;
+  margin-left: 5px;
+}
+.lb-title::before { content: '「'; }
+.lb-title::after { content: '」'; }
+.lb-score {
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: 13px;
+  color: #d4c08a;
+}
+.lb-sub {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: #a08c5a;
+}
+.lb-me {
+  background: rgba(255, 213, 79, 0.10);
+  border-radius: 4px;
+  margin: 0 -6px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.lb-me .lb-name { color: #ffd54f; }
+.lb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: #a08c5a;
+}
+.lb-foot .ink-btn { width: auto; flex: 0 0 auto; padding: 4px 14px; font-size: 12px; }
+.lb-foot-txt { flex: 1 1 auto; text-align: left; }
+.lb-myrank { color: #ffd54f; font-size: 14px; }
+.lb-hint {
+  padding: 18px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: #a08c5a;
+  line-height: 1.8;
+}
