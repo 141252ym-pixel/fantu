@@ -2347,16 +2347,37 @@ function applyDivinePetBattleStart(s) {
   const entry = getEquippedPet(s);
   const trait = getPetTrait(entry);
   if (!trait) return;
-  const stage = getPetStage(entry);
   if (trait.id === 'shield') {
+    const stage = getPetStage(entry);
     const shield = Math.max(1, Math.floor(s.maxHp * (0.08 + stage * 0.04)));
     Game.battle.petShield = shield;
     logBattle(`【${PETS[entry.id].name}·${trait.name}】为你展开 ${shield} 点护盾。`, 'player');
-  } else if (trait.id === 'mana') {
-    const gain = Math.max(1, Math.floor(s.maxMp * (0.08 + stage * 0.04)));
-    s.mp = Math.min(s.maxMp, s.mp + gain);
-    logBattle(`【${PETS[entry.id].name}·${trait.name}】助你回复 ${gain} 点灵力。`, 'player');
   }
+}
+
+function getDivinePetManaRecovery(entry) {
+  const stage = getPetStage(entry);
+  return {
+    chance: Math.min(0.40, 0.20 + stage * 0.01),
+    manaPct: Math.min(0.35, 0.15 + stage * 0.01),
+  };
+}
+
+function tryDivinePetManaRecovery(s) {
+  const entry = getEquippedPet(s);
+  const trait = getPetTrait(entry);
+  if (!entry || !trait || trait.id !== 'mana') return false;
+  if ((Game.battle.petManaTraitCd || 0) > 0) {
+    Game.battle.petManaTraitCd--;
+    return false;
+  }
+  const recovery = getDivinePetManaRecovery(entry);
+  if (Math.random() >= recovery.chance) return false;
+  const gain = Math.max(1, Math.floor(s.maxMp * recovery.manaPct));
+  s.mp = Math.min(s.maxMp, s.mp + gain);
+  Game.battle.petManaTraitCd = 3;
+  logBattle(`【${PETS[entry.id].name}·${trait.name}】灵息回潮，恢复 ${gain} 点灵力（${Math.round(recovery.manaPct * 100)}%）！`, 'player');
+  return true;
 }
 
 function applyPetIncomingDamage(s, dmg) {
@@ -3056,6 +3077,7 @@ function enemyTurn() {
       decrementSpecialCd();
       const manaGain = restoreBattleMana(s);
       logBattle(`灵气回流，恢复 ${manaGain} 点灵力。`, 'sys');
+      tryDivinePetManaRecovery(s);
       if (Game.battle.playerStunnedTurns > 0) {
         Game.battle.playerStunnedTurns--;
         logBattle('你仍陷在眩晕之中，本次行动被迫跳过！', 'enemy');

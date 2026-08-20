@@ -704,7 +704,7 @@ const PET_QUALITY_GROWTH = {
 // 神品灵宠出生时随机获得一个天赋；天赋数值仅在每十级进阶时提高。
 const DIVINE_PET_TRAITS = {
   shield: { id: 'shield', name: '护主灵盾', desc: '战斗开始时为主人施加护盾' },
-  mana: { id: 'mana', name: '灵息回潮', desc: '战斗开始时为主人回复灵力' },
+  mana: { id: 'mana', name: '灵息回潮', desc: '每回合20%概率回复15%灵力；每次进阶概率、回复量各+1%，上限40%/35%' },
   follow: { id: 'follow', name: '神兽协攻', desc: '主人攻击后有概率追加一击' },
   resist: { id: 'resist', name: '神佑护体', desc: '主人受到的伤害降低' },
 };

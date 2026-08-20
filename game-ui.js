@@ -1879,11 +1879,11 @@ const UI = {
     setTimeout(() => {
       const s = Game.state;
       if (s) {
-        const hpGain = Math.max(1, Math.floor(s.maxHp * 0.30));
-        const mpGain = Math.max(1, Math.floor(s.maxMp * 0.30));
+        const hpGain = Math.max(1, Math.floor(s.maxHp * 0.20));
+        const mpGain = Math.max(1, Math.floor(s.maxMp * 0.20));
         s.hp = Math.min(s.maxHp, s.hp + hpGain);
         s.mp = Math.min(s.maxMp, s.mp + mpGain);
-        this.showToast('战后调息：气血与灵力各回复30%');
+        this.showToast('战后调息：气血与灵力各回复20%');
       }
       Game.battle = null;
       this.updateStats();
