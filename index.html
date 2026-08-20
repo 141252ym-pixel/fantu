@@ -294,16 +294,16 @@
       </div>
     </div>
 
-    <!-- 登榜留名（自定义输入弹窗，避开 WebView 原生 prompt） -->
+    <!-- 改名（自定义输入弹窗，避开 WebView 原生 prompt） -->
     <div id="lb-nick-overlay" class="gacha-overlay hidden">
       <div class="gacha-card count-card">
-        <div class="gacha-name">登榜留名</div>
+        <div class="gacha-name">更改名号</div>
         <div class="gacha-desc">此名将展示于天机榜，可随时更改</div>
         <div class="count-box">
-          <input id="lb-nick-input" class="count-input" type="text" maxlength="12" placeholder="请取一个名号" />
+          <input id="lb-nick-input" class="count-input" type="text" maxlength="12" placeholder="请输入名号" />
         </div>
         <div class="count-max">最多 12 个字</div>
-        <button class="ink-btn" onclick="LB.confirmNick()">确认登榜</button>
+        <button class="ink-btn" onclick="LB.confirmNick()">确认</button>
         <button class="ink-btn danger" onclick="LB.closeNick()">再想想</button>
       </div>
     </div>
@@ -420,7 +420,7 @@
   <script src="game-data.js?v=51"></script>
   <script src="game-engine.js?v=43"></script>
   <script src="game-ui.js?v=42"></script>
-  <script src="leaderboard.js?v=2"></script>
+  <script src="leaderboard.js?v=3"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
@@ -429,13 +429,13 @@
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=15').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=16').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {
             if (!worker || !navigator.serviceWorker.controller || updatePromptShown) return;
             updatePromptShown = true;
-            if (window.Game && Game.state && typeof saveGame === 'function') saveGame();
+            if (typeof Game !== 'undefined' && Game.state && typeof saveGame === 'function') saveGame();
             if (window.confirm('发现新版本，当前存档已自动保存。立即刷新更新吗？')) {
               worker.postMessage({ type: 'SKIP_WAITING' });
             }

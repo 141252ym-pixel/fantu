@@ -4,7 +4,7 @@
 // 数值上限、写入频率、成绩归属都由服务端把关。
 //
 // 设计约定：
-//   · 玩家没填过榜单昵称 ⇒ 一个字节都不上传（不主动登榜 = 不联网）
+//   · 所有人默认上榜：没填过榜单昵称时，沿用当前道号作为默认名（可随时改名）
 //   · 上传是覆盖式 upsert ⇒ 离线时只留最新一份快照，不需要队列
 //   · 战斗过程中 s.atk 会被临时改写成总攻击，此时跳过上传，避免战力翻倍
 
@@ -71,6 +71,18 @@ const LB = {
 
   getNick() { return this.ls('fantu_lb_nick') || ''; },
 
+  // 取榜单名：玩家没手动改名时，沿用当前道号作为默认名，并固化下来避免每次重算
+  resolveNick() {
+    const saved = this.getNick();
+    if (saved) return saved;
+    let name = '';
+    try { name = (typeof Game !== 'undefined' && Game.state && Game.state.name) || ''; } catch (e) { /* 忽略 */ }
+    name = String(name || '').replace(/[<>]/g, '').trim().slice(0, 12);
+    if (!name) name = '无名道友';
+    this.ls('fantu_lb_nick', name);
+    return name;
+  },
+
   // ---------- 数据 ----------
   // 从当前存档提取一份可上传的快照
   snapshot() {
@@ -80,7 +92,7 @@ const LB = {
     if (realm == null) { try { realm = getRealmIndex(s); } catch (e) { realm = 0; } }
     return {
       pid: getPlayerId(),
-      nick: this.getNick(),
+      nick: this.resolveNick(),
       realm: Math.max(0, Math.floor(realm || 0)),
       xp: Math.max(0, Math.floor(s.xp || 0)),
       power: this.calcPower(s),
@@ -131,7 +143,6 @@ const LB = {
   // 存档钩子：由 autoSave() 调用，绝大多数情况下会在这里直接返回
   onSave() {
     if (!this.configured()) return;
-    if (!this.getNick()) return;                                  // 没登榜就不上传
     if (typeof Game === 'undefined' || !Game.state) return;
     if (Game.battle && !Game.battle.ended) return;                // 战斗中属性被临时改写
     const snap = this.snapshot();
@@ -180,7 +191,7 @@ const LB = {
 
   // 联网后补传：直接用当前最新数据，比暂存的快照更准
   async flushPending() {
-    if (!this.configured() || !this.getNick()) return;
+    if (!this.configured()) return;
     if (!this.ls('fantu_lb_pending')) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     await this.submit(this.snapshot());
@@ -232,7 +243,7 @@ const LB = {
     if (foot) foot.innerHTML = '';
 
     try {
-      if (submitFirst && this.getNick()) await this.submit();
+      if (submitFirst) await this.submit();
       const res = await this.rpc('fantu_board', { p_board: this._board, p_pid: getPlayerId() });
       if (!res || !res.ok) throw new Error('bad_response');
       this.renderList(res);
@@ -286,16 +297,13 @@ const LB = {
 
     if (!foot) return;
     const total = Number(res.total) || 0;
-    if (!this.getNick()) {
-      foot.innerHTML = '<span class="lb-foot-txt">共 ' + total + ' 位道友在榜</span>' +
-        '<button class="ink-btn" onclick="LB.openNick()">登榜留名</button>';
-    } else if (me) {
+    if (me) {
       foot.innerHTML = '<span class="lb-foot-txt">你的名次 <b class="lb-myrank">#' + (Number(me.rank) || 0) +
         '</b> / 共 ' + total + ' 位道友</span>' +
         '<button class="ink-btn" onclick="LB.openNick()">改名</button>';
     } else {
       foot.innerHTML = '<span class="lb-foot-txt">共 ' + total + ' 位道友在榜 · 你的成绩正在同步</span>' +
-        '<button class="ink-btn" onclick="LB.load(true)">刷新</button>';
+        '<button class="ink-btn" onclick="LB.openNick()">改名</button>';
     }
   },
 
@@ -304,8 +312,7 @@ const LB = {
     const el = document.getElementById('lb-nick-overlay');
     const input = document.getElementById('lb-nick-input');
     if (!el || !input) return;
-    const cur = this.getNick();
-    input.value = cur || ((typeof Game !== 'undefined' && Game.state && Game.state.name) || '');
+    input.value = this.resolveNick();
     el.classList.remove('hidden');
     setTimeout(() => { try { input.focus(); input.select(); } catch (e) { /* 移动端可能拒绝 */ } }, 50);
   },
@@ -323,17 +330,17 @@ const LB = {
 
     this.ls('fantu_lb_nick', nick);
     this.closeNick();
-    UI.showToast('正在登榜…');
+    UI.showToast('正在更新名号…');
 
     const res = await this.submit();
     if (res && res.ok) {
-      UI.showToast(res.throttled ? '登榜成功' : '登榜成功，道号已录天机');
+      UI.showToast('名号已更新');
     } else if (res && res.error === 'offline') {
-      UI.showToast('当前离线，联网后自动登榜');
+      UI.showToast('当前离线，联网后自动同步');
     } else if (res && res.error === 'bad_secret') {
-      UI.showToast('登榜凭证有误，请联系作者');
+      UI.showToast('更新失败，请联系作者');
     } else {
-      UI.showToast('登榜失败，稍后会自动重试');
+      UI.showToast('更新失败，稍后会自动重试');
     }
     this.load(false);
   },
