@@ -93,7 +93,6 @@ function continueGame() {
   migrateEquipment(Game.state);
   migrateMana(Game.state);
   migrateGacha(Game.state);
-  migrateFinalBossLoot(Game.state);
   if (!Game.state.tribulations) Game.state.tribulations = {};
   migratePets(Game.state);
   migrateGongfa(Game.state);
@@ -1182,15 +1181,6 @@ function getTuntunshuDodgeRate(entry) {
   return Math.min(TUNTUNSHU_DODGE_CAP, TUNTUNSHU_DODGE_BASE + getPetStage(entry) * TUNTUNSHU_DODGE_PER_STAGE + (favor / PET_FAVOR_MAX) * TUNTUNSHU_DODGE_FAVOR_MAX);
 }
 
-// 终局 Boss 神藏与囤囤鼠偷取各自独立保底、独立重复保护。
-// 老存档的魔尊进度迁移到六位终局 Boss 共用的进度，避免更新后吃亏。
-function migrateFinalBossLoot(s) {
-  const legacyMisses = Math.max(0, s.demonLordLootMisses || 0);
-  const legacyDuplicateStreak = Math.max(0, s.demonLordLootDuplicateStreak || 0);
-  s.finalBossLootMisses = Math.max(0, s.finalBossLootMisses ?? legacyMisses);
-  s.finalBossLootDuplicateStreak = Math.max(0, s.finalBossLootDuplicateStreak ?? legacyDuplicateStreak);
-}
-
 // 囤囤鼠偷 Boss 专属装备：等级、十级进阶和好感共同成长，满培养为 0.1%。
 function getTuntunshuBossStealRate(entry) {
   const maxLevel = Math.max(1, getPetMaxLevel(entry));
@@ -1257,29 +1247,6 @@ function tuntunshuSteal(s, e, stoneGain) {
     }
   }
   return parts.length ? `囤囤鼠${parts.join('，')}！` : '';
-}
-
-function tryFinalBossLoot(s, e) {
-  if (!isFinalBoss(e)) return '';
-  // 神藏只能由囤囤鼠偷取；未出战囤囤鼠时，终局 Boss 不再独立掉落神藏。
-  const pet = getEquippedPet(s);
-  if (!pet || pet.id !== 'tuntunshu') return '';
-  const misses = Math.max(0, s.finalBossLootMisses || 0);
-  const guaranteed = misses >= FINAL_BOSS_LOOT_PITY - 1;
-  if (!guaranteed && Math.random() >= FINAL_BOSS_LOOT_CHANCE) {
-    s.finalBossLootMisses = misses + 1;
-    return '';
-  }
-  const missingLoot = TUNTUNSHU_BOSS_LOOT.filter(id => !ownsTuntunshuLoot(s, id));
-  const protectDuplicates = (s.finalBossLootDuplicateStreak || 0) >= 4 && missingLoot.length > 0;
-  const pool = protectDuplicates ? missingLoot : TUNTUNSHU_BOSS_LOOT;
-  const itemId = pool[Math.floor(Math.random() * pool.length)];
-  const duplicate = ownsTuntunshuLoot(s, itemId);
-  s.finalBossLootMisses = 0;
-  s.finalBossLootDuplicateStreak = duplicate ? (s.finalBossLootDuplicateStreak || 0) + 1 : 0;
-  grantItem(s, itemId, 1);
-  if (typeof UI !== 'undefined' && UI.showBossLootCelebration) UI.showBossLootCelebration(ITEMS[itemId], e.name);
-  return `${e.name}遗落了一件${ITEMS[itemId].name}！${guaranteed ? '（2000 次保底）' : ''}${protectDuplicates ? '（重复保护）' : ''}`;
 }
 
 function getEquipStoneDropChance(s) {
@@ -3270,10 +3237,9 @@ function checkBattleEnd() {
       });
     }
     const equipStoneText = tryEquipStoneDrop(s, e);
-    const finalBossLootText = tryFinalBossLoot(s, e);
     const stealText = tuntunshuSteal(s, e, stoneGain);
     const rewardBoostText = Game.battle.rewardBoost ? ` 燃血夺宝生效：奖励提高${Math.round(Game.battle.rewardBoost * 100)}%。` : '';
-    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${equipStoneText ? ' ' + equipStoneText : ''}${finalBossLootText ? ' ' + finalBossLootText : ''}${rewardBoostText}${stealText ? ' ' + stealText : ''}`, 'sys');
+    logBattle(`你战胜了 ${e.name}！获得 ${xpGain} 修为、${stoneGain} 灵石${fameGain ? `、${fameGain} 名望` : ''}。${dropText ? '掉落：' + dropText : ''}${equipStoneText ? ' ' + equipStoneText : ''}${rewardBoostText}${stealText ? ' ' + stealText : ''}`, 'sys');
     playWinSound();
     setTimeout(() => {
       Game.battle.winCallback && Game.battle.winCallback();

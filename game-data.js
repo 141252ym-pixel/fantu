@@ -732,9 +732,6 @@ const TUNTUNSHU_BOSS_STEAL_LEVEL_MAX_BONUS = 0.00035;
 const TUNTUNSHU_BOSS_STEAL_STAGE_MAX_BONUS = 0.00025;
 const TUNTUNSHU_BOSS_STEAL_FAVOR_MAX_BONUS = 0.00020;
 const TUNTUNSHU_BOSS_STEAL_PITY = 2000;
-// 六位终局 Boss 共用的神藏掉落：每次击败均有 0.1%，保底和重复保护全局共享。
-const FINAL_BOSS_LOOT_CHANCE = 0.001;
-const FINAL_BOSS_LOOT_PITY = 2000;
 // 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
 const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
 // 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
