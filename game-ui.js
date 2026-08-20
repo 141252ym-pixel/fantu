@@ -2420,6 +2420,8 @@ UI.renderStatDetail = function() {
   const totalPen = getTotalPen(s);
   const critRate = getCritRate(s);
   const critDmg = getCritDmg(s);
+  const mcritRate = getMCritRate(s);
+  const mcritDmg = getMCritDmg(s);
   const sect = s.sect && SECTS[s.sect];
   const identity = sect ? `${sect.icon} ${sect.name}弟子` : '云游散修';
 
@@ -2434,8 +2436,10 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">物抗</span><span class="value">${totalDef}</span></div>
     <div class="stat-line"><span class="label">法抗</span><span class="value">${totalMdef}</span></div>
     <div class="stat-line"><span class="label">穿透</span><span class="value">${totalPen}</span></div>
-    <div class="stat-line"><span class="label">暴击率</span><span class="value">${Math.round(critRate * 100)}%</span></div>
-    <div class="stat-line"><span class="label">暴击伤害</span><span class="value">${critDmg.toFixed(1)}x</span></div>
+    <div class="stat-line"><span class="label">物理暴击率</span><span class="value">${Math.round(critRate * 100)}%</span></div>
+    <div class="stat-line"><span class="label">物理暴击伤害</span><span class="value">${critDmg.toFixed(1)}x</span></div>
+    <div class="stat-line"><span class="label">法术暴击率</span><span class="value">${Math.round(mcritRate * 100)}%</span></div>
+    <div class="stat-line"><span class="label">法术暴击伤害</span><span class="value">${mcritDmg.toFixed(1)}x</span></div>
     <div class="stat-line"><span class="label">灵石</span><span class="value">${s.stone}</span></div>
     <div class="stat-line"><span class="label">名望</span><span class="value">${s.fame}</span></div>
     <div class="stat-line"><span class="label">道韵</span><span class="value">${s.dao}</span></div>
@@ -2522,14 +2526,18 @@ UI.renderLoadout = function() {
   const pen = getAllEquipBonus(s, 'pen');
   const crit = getEquipCritBonus(s);
   const critDmg = getEquipCritDmgBonus(s);
+  const mcrit = getEquipMCritBonus(s);
+  const mcritDmg = getEquipMCritDmgBonus(s);
   this.els.loadoutStats.innerHTML = `
     <div class="loadout-stat"><span class="ls-label">物攻</span><b>+${atk}</b></div>
     <div class="loadout-stat"><span class="ls-label">法攻</span><b>+${matk}</b></div>
     <div class="loadout-stat"><span class="ls-label">物抗</span><b>+${def}</b></div>
     <div class="loadout-stat"><span class="ls-label">法抗</span><b>+${mdef}</b></div>
     <div class="loadout-stat"><span class="ls-label">穿透</span><b>+${pen}</b></div>
-    <div class="loadout-stat"><span class="ls-label">暴击率</span><b>+${crit}%</b></div>
-    <div class="loadout-stat"><span class="ls-label">暴击伤害</span><b>+${critDmg}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">物理暴击率</span><b>+${crit}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">物理暴击伤害</span><b>+${critDmg}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">法术暴击率</span><b>+${mcrit}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">法术暴击伤害</span><b>+${mcritDmg}%</b></div>
   `;
 
   // 套装效果：展示每套收集进度与激活加成
@@ -2537,7 +2545,7 @@ UI.renderLoadout = function() {
     const equipped = new Set(Object.values(s.equipment || {}).filter(Boolean));
     const bonusKeys = [
       ['atkPct', '物攻'], ['matkPct', '法攻'], ['defPct', '物抗'], ['mdefPct', '法抗'],
-      ['penPct', '穿透'], ['crit', '暴击率'], ['critDmg', '暴击伤害'],
+      ['penPct', '穿透'], ['crit', '物理暴击率'], ['critDmg', '物理暴击伤害'], ['mcrit', '法术暴击率'], ['mcritDmg', '法术暴击伤害'],
     ];
     const fmtBonus = b => `${b.need}件：${bonusKeys.filter(([k]) => b[k]).map(([k, label]) => `${label}+${b[k]}%`).join('，')}`;
     this.els.loadoutSets.innerHTML = Object.keys(EQUIP_SETS).map(key => {

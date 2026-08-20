@@ -756,7 +756,7 @@ function getEquipCritDmgBonus(s) {
 
 // 套装加成：统计已装备件数，累加达到阈值的加成
 function getActiveSetBonuses(s) {
-  const bonus = { atkPct: 0, matkPct: 0, defPct: 0, mdefPct: 0, penPct: 0, crit: 0, critDmg: 0 };
+  const bonus = { atkPct: 0, matkPct: 0, defPct: 0, mdefPct: 0, penPct: 0, crit: 0, critDmg: 0, mcrit: 0, mcritDmg: 0 };
   if (typeof EQUIP_SETS === 'undefined' || !s || !s.equipment) return bonus;
   const equipped = new Set(Object.values(s.equipment).filter(Boolean));
   for (const key in EQUIP_SETS) {
@@ -783,6 +783,39 @@ function getCritDmg(s) {
 function applyCrit(s, dmg) {
   if (Math.random() < getCritRate(s)) {
     return { dmg: Math.floor(dmg * getCritDmg(s)), isCrit: true };
+  }
+  return { dmg, isCrit: false };
+}
+
+// 法术暴击：读取装备法宝中的 mcrit（法术暴击率%）与 mcritDmg（法术暴击伤害%）加成
+function getEquipMCritBonus(s) {
+  return EQUIP_SLOTS.reduce((total, slot) => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    return total + (it && it.mcrit ? it.mcrit : 0);
+  }, 0);
+}
+
+function getEquipMCritDmgBonus(s) {
+  return EQUIP_SLOTS.reduce((total, slot) => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    return total + (it && it.mcritDmg ? it.mcritDmg : 0);
+  }, 0);
+}
+
+function getMCritRate(s) {
+  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + (getEquipMCritBonus(s) + getActiveSetBonuses(s).mcrit) / 100);
+}
+
+function getMCritDmg(s) {
+  return Math.min(CRIT_DMG_CAP, CRIT_DMG_BASE + (getEquipMCritDmgBonus(s) + getActiveSetBonuses(s).mcritDmg) / 100);
+}
+
+// 判定一次是否法术暴击；暴击则返回放大后的伤害
+function applyMCrit(s, dmg) {
+  if (Math.random() < getMCritRate(s)) {
+    return { dmg: Math.floor(dmg * getMCritDmg(s)), isCrit: true };
   }
   return { dmg, isCrit: false };
 }
@@ -1862,7 +1895,7 @@ function playerCastGongfa(id) {
     logBattle(`【${g.name}】燃去 ${hpCost} 点气血，血焰贯穿 ${e.name}，${cr.isCrit ? '暴击！' : ''}造成 ${dealtDamage} 点伤害！`, 'player');
   } else {
     let dmg = Math.max(1, Math.floor(s.matk * combat.mult * (1 + (Game.battle.attackBoost || 0)) * (1 - getPlayerWeakenRate())) - getEnemyDefense(e, true) + (s.pen || 0));
-    const cr = applyCrit(s, dmg);
+    const cr = applyMCrit(s, dmg);
     if (cr.isCrit) dmg = cr.dmg;
     dealtDamage = dealDamageToEnemy(e, dmg);
     logBattle(`你催动【${g.name}】，天地变色，一击轰出！`, 'player');
@@ -2856,7 +2889,7 @@ function playerSkill() {
   }
   // 通用暴击（雷灵根自带专属暴击，跳过）
   if (s.linggen !== 'thunder') {
-    const cr = applyCrit(s, dmg);
+    const cr = applyMCrit(s, dmg);
     if (cr.isCrit) {
       dmg = cr.dmg;
       extraText = (extraText ? extraText + '，' : '') + '暴击！';
