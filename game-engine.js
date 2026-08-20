@@ -1261,6 +1261,9 @@ function tuntunshuSteal(s, e, stoneGain) {
 
 function tryFinalBossLoot(s, e) {
   if (!isFinalBoss(e)) return '';
+  // 神藏只能由囤囤鼠偷取；未出战囤囤鼠时，终局 Boss 不再独立掉落神藏。
+  const pet = getEquippedPet(s);
+  if (!pet || pet.id !== 'tuntunshu') return '';
   const misses = Math.max(0, s.finalBossLootMisses || 0);
   const guaranteed = misses >= FINAL_BOSS_LOOT_PITY - 1;
   if (!guaranteed && Math.random() >= FINAL_BOSS_LOOT_CHANCE) {
