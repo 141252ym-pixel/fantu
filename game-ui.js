@@ -2147,23 +2147,31 @@ const UI = {
   updateBag(cat = 'all') {
     const s = Game.state;
     if (!s) return;
+    migrateEquipment(s);
     let items = [];
-    // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
+    // 已装备实例单独列在最前，显示自身强化等级。
     for (const slot of EQUIP_SLOTS) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
         const it = ITEMS[eqId];
         if (cat === 'all' || it.type === cat) {
-          items.push({ id: eqId, ...it, count: 1, _equipped: true });
+          const meta = getEquippedMeta(s, slot);
+          items.push({ id: eqId, ...it, count: 1, _equipped: true, _slot: slot, _uid: meta && meta.uid, _level: meta ? meta.level : 0 });
         }
       }
     }
+    // 背包中的强化实例独立成行，避免与同 ID 普通副本混淆。
+    for (const meta of (s.bagMeta || [])) {
+      const it = ITEMS[meta.id];
+      if (it && meta.level > 0 && (cat === 'all' || it.type === cat)) {
+        items.push({ id: meta.id, ...it, count: 1, _uid: meta.uid, _level: meta.level, _strengthened: true });
+      }
+    }
     for (const id in s.bag) {
-      if (s.bag[id] > 0 && ITEMS[id]) {
+      const ordinaryCount = Math.max(0, (s.bag[id] || 0) - (s.bagMeta || []).filter(meta => meta.id === id).length);
+      if (ordinaryCount > 0 && ITEMS[id]) {
         const it = ITEMS[id];
-        if (cat === 'all' || it.type === cat) {
-          items.push({ id, ...it, count: s.bag[id] });
-        }
+        if (cat === 'all' || it.type === cat) items.push({ id, ...it, count: ordinaryCount });
       }
     }
     if (items.length === 0) {
@@ -2173,8 +2181,10 @@ const UI = {
     this.els.bagList.innerHTML = '';
     items.forEach(item => {
       const equipped = item._equipped === true;
-      const lv = (s.equipLevel && s.equipLevel[item.id]) || 0;
-      const enhance = getEquipEnhanceSummary(s, item);
+      const lv = item._level || 0;
+      const enhance = (equipped || item._strengthened)
+        ? getEquipEnhanceSummary(s, item, item._slot || null, item._uid || null)
+        : null;
       const usable = !!getItemSlot(item) || item.type === 'pill'
         || !!((item.type === 'material' || item.type === 'misc') && item.effect);
 
@@ -2219,7 +2229,7 @@ const UI = {
       }
       useBtn.addEventListener('click', () => {
         playClickSound();
-        useItem(item.id);
+        useItem(item.id, item._uid || null);
         UI.updateBag(cat);
         UI.updateStats();
         UI.renderStatDetail();
@@ -2238,7 +2248,7 @@ const UI = {
         }
         strBtn.addEventListener('click', () => {
           playClickSound();
-          if (strengthenItem(item.id)) {
+          if (strengthenItem(item.id, item._uid || null)) {
             UI.updateBag(cat);
             UI.updateStats();
             UI.renderStatDetail();
@@ -2247,7 +2257,7 @@ const UI = {
         actions.appendChild(strBtn);
       }
 
-      if (!equipped && getItemSlot(item) && (lv > 0 || item.rarity === '仙品' || item.rarity === '神品')) {
+      if (!equipped && item._strengthened && getItemSlot(item) && lv > 0) {
         const dismantleBtn = document.createElement('button');
         const refundInfo = getEquipDismantleRefund(item, lv);
         dismantleBtn.className = 'item-sell';
@@ -2256,7 +2266,7 @@ const UI = {
           const rarityText = refundInfo.rarityRefund ? `（含${item.rarity}装备基础返还×${refundInfo.rarityRefund}）` : '';
           if (!confirm(`确定分解已强化的${item.name} +${lv}？\n将返还装备强化石×${refundInfo.total}${rarityText}，已消耗灵石不返还。`)) return;
           playClickSound();
-          const result = dismantleStrengthenedItem(item.id);
+          const result = dismantleStrengthenedItem(item._uid);
           this.showToast(result.ok ? `分解成功，返还装备强化石×${result.refund}` : result.msg);
           if (result.ok) {
             UI.updateBag(cat);
@@ -2270,7 +2280,7 @@ const UI = {
       const sellBtn = document.createElement('button');
       sellBtn.className = 'item-sell';
       sellBtn.textContent = '出售';
-      if (!item.sell || item.sell <= 0 || equipped) {
+      if (!item.sell || item.sell <= 0 || equipped || item._strengthened) {
         sellBtn.disabled = true;
         sellBtn.style.opacity = '0.4';
       }
@@ -2572,7 +2582,8 @@ UI.renderLoadout = function() {
   const slotHtml = EQUIP_SLOTS.map(slot => {
     const id = s.equipment && s.equipment[slot];
     const it = id && ITEMS[id];
-    const lv = (s.equipLevel && s.equipLevel[id]) || 0;
+    const meta = getEquippedMeta(s, slot);
+    const lv = meta ? meta.level : 0;
     let inner;
     if (it) {
       let nameStyle = '';
@@ -2659,21 +2670,31 @@ UI.openEquipPick = function(slot) {
   _loadoutPickSlot = slot;
   this.els.equipPickTitle.textContent = `选择装备 · ${LOADOUT_SLOT_NAMES[slot] || slot}`;
 
-  // 候选：背包中可装入该槽的 + 其他槽已装备的（可移动过来，排除本槽自身）
+  // 候选携带 uid：强化实例与同 ID 普通副本必须保持可区分。
   const seen = new Set();
   const candidates = [];
   EQUIP_SLOTS.forEach(sl => {
     if (sl === slot) return;
     const id = s.equipment && s.equipment[sl];
-    if (id && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
-      seen.add(id);
-      candidates.push({ id, source: sl });
+    const meta = id && getEquippedMeta(s, sl);
+    const key = meta ? `uid:${meta.uid}` : `id:${id}`;
+    if (id && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(key)) {
+      seen.add(key);
+      candidates.push({ id, uid: meta && meta.uid, source: sl, level: meta ? meta.level : 0 });
     }
   });
+  for (const meta of (s.bagMeta || [])) {
+    const key = `uid:${meta.uid}`;
+    if (ITEMS[meta.id] && meta.level > 0 && canEquipToSlot(ITEMS[meta.id], slot) && !seen.has(key)) {
+      seen.add(key);
+      candidates.push({ id: meta.id, uid: meta.uid, level: meta.level });
+    }
+  }
   for (const id in s.bag) {
-    if (s.bag[id] > 0 && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
-      seen.add(id);
-      candidates.push({ id });
+    const key = `id:${id}`;
+    if (s.bag[id] > 0 && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(key)) {
+      seen.add(key);
+      candidates.push({ id, level: 0 });
     }
   }
 
@@ -2682,14 +2703,14 @@ UI.openEquipPick = function(slot) {
   } else {
     this.els.equipPickList.innerHTML = candidates.map(c => {
       const it = ITEMS[c.id];
-      const lv = (s.equipLevel && s.equipLevel[c.id]) || 0;
+      const lv = c.level || 0;
       let nameStyle = '';
       if (it.rarity) {
         const tier = GACHA_POOL.find(t => t.rarity === it.rarity);
         if (tier) nameStyle = ` style="color:${tier.color}"`;
       }
       return `
-        <div class="loadout-pick-item" onclick="UI.pickEquipSlot('${c.id}')">
+        <div class="loadout-pick-item" onclick="UI.pickEquipSlot('${c.id}', '${c.uid || ''}')">
           <span class="loadout-item-icon">${it.icon}</span>
           <div class="loadout-item-info">
             <div class="loadout-item-name"${nameStyle}>${it.name}${lv > 0 ? ` +${lv}` : ''}</div>
@@ -2707,10 +2728,10 @@ UI.closeEquipPick = function() {
   _loadoutPickSlot = null;
 };
 
-UI.pickEquipSlot = function(id) {
+UI.pickEquipSlot = function(id, uid = '') {
   const slot = _loadoutPickSlot;
   if (!slot) return;
-  const res = equipToSlot(id, slot);
+  const res = equipToSlot(id, slot, uid || null);
   this.showToast(res.ok ? '已装备' : res.msg);
   this.closeEquipPick();
   this.renderLoadout();

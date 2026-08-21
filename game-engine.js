@@ -129,6 +129,9 @@ function newGame() {
     bag: { huiqi_pill: 2 },
     equipment: { weapon: null, armor: null, artifact: null, shoes: null, extra1: null, extra2: null },
     equipLevel: {},
+    equipmentMeta: {},
+    bagMeta: [],
+    equipmentMetaSeq: 0,
     achievements: [],
     titles: [],
     title: null,
@@ -533,49 +536,133 @@ function canEquipToSlot(item, slot) {
   return !!getItemSlot(item);
 }
 
-// 卸下指定槽位的装备回背包（空槽返回 false）
-function unequipSlot(slot) {
-  const s = Game.state;
+function nextEquipmentUid(s) {
+  s.equipmentMetaSeq = Math.max(0, Math.floor(Number(s.equipmentMetaSeq) || 0)) + 1;
+  return `equip-${s.equipmentMetaSeq}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function clampEquipLevel(level) {
+  return Math.max(0, Math.min(EQUIP_MAX_LEVEL, Math.floor(Number(level) || 0)));
+}
+
+function normalizeEquipmentMeta(s) {
+  if (!s.equipmentMeta || typeof s.equipmentMeta !== 'object' || Array.isArray(s.equipmentMeta)) s.equipmentMeta = {};
+  if (!Array.isArray(s.bagMeta)) s.bagMeta = [];
+  s.bagMeta = s.bagMeta.filter(meta => meta && ITEMS[meta.id] && meta.uid)
+    .map(meta => ({ uid: String(meta.uid), id: meta.id, level: clampEquipLevel(meta.level) }));
+  const used = new Set(s.bagMeta.map(meta => meta.uid));
+  for (const slot of EQUIP_SLOTS) {
+    const id = s.equipment[slot];
+    const meta = s.equipmentMeta[slot];
+    if (!id || !ITEMS[id]) {
+      s.equipmentMeta[slot] = null;
+      continue;
+    }
+    if (!meta || meta.id !== id || !meta.uid || used.has(meta.uid)) {
+      s.equipmentMeta[slot] = createEquipmentMeta(s, id, 0);
+      used.add(s.equipmentMeta[slot].uid);
+      continue;
+    }
+    s.equipmentMeta[slot] = { uid: String(meta.uid), id, level: clampEquipLevel(meta.level) };
+    used.add(String(meta.uid));
+  }
+}
+
+function getEquippedMeta(s, slot) {
+  if (!s || !s.equipment || !s.equipment[slot]) return null;
+  const id = s.equipment[slot];
+  const meta = s.equipmentMeta && s.equipmentMeta[slot];
+  return meta && meta.id === id ? meta : null;
+}
+
+function findBagMeta(s, uid) {
+  return (s.bagMeta || []).find(meta => meta.uid === uid) || null;
+}
+
+function findBagMetaById(s, id) {
+  return (s.bagMeta || []).find(meta => meta.id === id) || null;
+}
+
+function createEquipmentMeta(s, id, level = 0) {
+  return { uid: nextEquipmentUid(s), id, level: clampEquipLevel(level) };
+}
+
+function putEquippedInBag(s, slot) {
   const id = s.equipment && s.equipment[slot];
   if (!id) return false;
+  const meta = getEquippedMeta(s, slot);
   s.equipment[slot] = null;
+  s.equipmentMeta[slot] = null;
   grantItem(s, id, 1);
+  if (meta && meta.level > 0) s.bagMeta.push({ ...meta });
   return true;
 }
 
-// 将装备穿戴到指定槽位（供备战页面选装备弹窗）；内置「不重复」校验。
-// 若该装备已装备在其他槽，则先卸下再装入目标槽（即「移动」而非复制）。
-function equipToSlot(id, targetSlot) {
+function takeBagEquipment(s, id, uid = null) {
+  if (uid) {
+    const meta = findBagMeta(s, uid);
+    if (!meta || meta.id !== id) return null;
+    s.bagMeta = s.bagMeta.filter(entry => entry.uid !== meta.uid);
+    if (!removeItemFromState(s, id, 1)) return null;
+    return { ...meta };
+  }
+  const ordinaryCount = Math.max(0, (s.bag[id] || 0) - (s.bagMeta || []).filter(meta => meta.id === id).length);
+  if (ordinaryCount <= 0 || !removeItemFromState(s, id, 1)) return null;
+  return createEquipmentMeta(s, id, 0);
+}
+
+// 卸下指定槽位的装备回背包（空槽返回 false）。强化实例会保留 uid 与等级。
+function unequipSlot(slot) {
   const s = Game.state;
+  if (!s || !EQUIP_SLOTS.includes(slot) || !s.equipment[slot]) return false;
+  putEquippedInBag(s, slot);
+  return true;
+}
+
+// 将装备穿戴到指定槽位；uid 可用于从背包选择具体强化实例。
+function equipToSlot(id, targetSlot, uid = null) {
+  const s = Game.state;
+  migrateEquipment(s);
   const item = ITEMS[id];
   if (!item || !canEquipToSlot(item, targetSlot)) return { ok: false, msg: '该装备无法放入此槽位' };
-  const occupied = EQUIP_SLOTS.find(slot => s.equipment[slot] === id);
+  const occupied = EQUIP_SLOTS.find(slot => s.equipment[slot] === id && (!uid || getEquippedMeta(s, slot)?.uid === uid));
   if (occupied && occupied === targetSlot) return { ok: false, msg: '该装备已在此槽位' };
-  if (!hasItem(id) && !occupied) return { ok: false, msg: '背包中没有这件装备' };
-  // 已装备在其他槽：先卸下回背包
-  if (occupied) {
-    s.equipment[occupied] = null;
-    grantItem(s, id, 1);
-  }
-  // 目标槽已有装备，先放回背包
-  if (s.equipment[targetSlot]) grantItem(s, s.equipment[targetSlot], 1);
+  if (uid && !findBagMeta(s, uid) && !occupied) return { ok: false, msg: '背包中没有这件装备' };
+  if (!uid && !hasItem(id) && !occupied) return { ok: false, msg: '背包中没有这件装备' };
+  if (!occupied && EQUIP_SLOTS.some(sl => s.equipment[sl] === id)) return { ok: false, msg: '同一装备不能重复装备' };
+  const movingMeta = occupied ? getEquippedMeta(s, occupied) : null;
+  const movingUid = movingMeta && movingMeta.level > 0 ? movingMeta.uid : uid;
+  if (occupied) putEquippedInBag(s, occupied);
+  if (s.equipment[targetSlot]) putEquippedInBag(s, targetSlot);
+  const meta = takeBagEquipment(s, id, movingUid);
+  if (!meta) return { ok: false, msg: '背包中没有这件装备' };
   s.equipment[targetSlot] = id;
-  removeItemFromState(s, id, 1);
-  return { ok: true };
+  s.equipmentMeta[targetSlot] = meta;
+  return { ok: true, uid: meta.uid };
 }
 
 function migrateEquipment(s) {
-  if (!s.bag || typeof s.bag !== 'object') s.bag = {};
+  if (!s.bag || typeof s.bag !== 'object' || Array.isArray(s.bag)) s.bag = {};
   if (!s.equipment || typeof s.equipment !== 'object') s.equipment = {};
   if (!s.equipLevel || typeof s.equipLevel !== 'object') s.equipLevel = {};
-  for (const slot of EQUIP_SLOTS) {
-    if (s.equipment[slot] == null) s.equipment[slot] = null;
+  if (!s.equipmentMetaSeq) s.equipmentMetaSeq = 0;
+  for (const slot of EQUIP_SLOTS) if (s.equipment[slot] == null) s.equipment[slot] = null;
+  Object.keys(s.equipLevel).forEach(id => { s.equipLevel[id] = clampEquipLevel(s.equipLevel[id]); });
+  normalizeEquipmentMeta(s);
+
+  // 首次迁移旧的按 ID 强化记录：优先归属已装备副本，否则从背包扣出一件作为强化实例。
+  for (const id of Object.keys(s.equipLevel)) {
+    const level = s.equipLevel[id];
+    if (level <= 0 || (s.bagMeta || []).some(meta => meta.id === id && meta.level > 0) ||
+        EQUIP_SLOTS.some(slot => getEquippedMeta(s, slot)?.id === id && getEquippedMeta(s, slot).level > 0)) continue;
+    const equippedSlot = EQUIP_SLOTS.find(slot => s.equipment[slot] === id);
+    if (equippedSlot) {
+      s.equipmentMeta[equippedSlot] = createEquipmentMeta(s, id, level);
+    } else if (removeItemFromState(s, id, 1)) {
+      s.bagMeta.push(createEquipmentMeta(s, id, level));
+    }
   }
-  // 旧存档强化等级原样保留；仅修正异常值，避免更新后装备等级丢失或超出新上限。
-  Object.keys(s.equipLevel).forEach(id => {
-    const level = Math.floor(Number(s.equipLevel[id]) || 0);
-    s.equipLevel[id] = Math.max(0, Math.min(EQUIP_MAX_LEVEL, level));
-  });
+  normalizeEquipmentMeta(s);
 }
 
 function getMaxMp(s) {
@@ -706,10 +793,20 @@ function getEquipStrengthenStoneSpent(level) {
   return total;
 }
 
-function getEquipEnhanceSummary(s, item) {
+function getEquipLevel(s, item, slot = null, uid = null) {
+  if (!s || !item) return 0;
+  if (slot) return clampEquipLevel(getEquippedMeta(s, slot)?.level || 0);
+  if (uid) return clampEquipLevel(findBagMeta(s, uid)?.level || 0);
+  const equippedSlot = EQUIP_SLOTS.find(sl => s.equipment && s.equipment[sl] === item.id);
+  if (equippedSlot) return clampEquipLevel(getEquippedMeta(s, equippedSlot)?.level || 0);
+  const bagMeta = (s.bagMeta || []).find(meta => meta.id === item.id && meta.level > 0);
+  return clampEquipLevel(bagMeta?.level || 0);
+}
+
+function getEquipEnhanceSummary(s, item, slot = null, uid = null) {
   const attr = getEquipFlatAttribute(item);
   if (!attr) return null;
-  const level = Math.max(0, Math.min(EQUIP_MAX_LEVEL, (s.equipLevel && s.equipLevel[item.id]) || 0));
+  const level = getEquipLevel(s, item, slot, uid);
   const earlyGain = Math.max(1, Math.floor(attr.base * EQUIP_FIRST_HALF_RATE));
   const lateGain = Math.max(1, Math.floor(attr.base * EQUIP_SECOND_HALF_RATE));
   const earlyLevels = Math.min(level, EQUIP_FIRST_HALF_LEVELS);
@@ -729,7 +826,7 @@ function getEquipBonus(s, slot, prefix) {
   const id = s.equipment && s.equipment[slot];
   if (!id) return 0;
   const it = ITEMS[id];
-  const info = getEquipEnhanceSummary(s, it);
+  const info = getEquipEnhanceSummary(s, it, slot);
   return !info || info.prefix !== prefix ? 0 : info.total;
 }
 
@@ -2199,14 +2296,15 @@ function removeItemFromState(s, id, count = 1) {
   return true;
 }
 
-function useItem(id) {
+function useItem(id, uid = null) {
   const s = Game.state;
+  migrateEquipment(s);
   const item = ITEMS[id];
   if (!item) return false;
   // 已装备的武器/防具可卸下，此时不在背包里，跳过 hasItem 检查
   const slot = getItemSlot(item);
-  const equippedSlot = slot ? EQUIP_SLOTS.find(sl => s.equipment[sl] === id) : null;
-  if (!hasItem(id) && !equippedSlot) return false;
+  const equippedSlot = slot ? EQUIP_SLOTS.find(sl => s.equipment[sl] === id && (!uid || getEquippedMeta(s, sl)?.uid === uid)) : null;
+  if (!hasItem(id) && !equippedSlot && !findBagMeta(s, uid)) return false;
 
   // 喂养灵宠道具：兽粮 +40 经验，灵兽丹 +200 经验
   if (item.effect === 'pet_food1' || item.effect === 'pet_food3') {
@@ -2237,9 +2335,8 @@ function useItem(id) {
   } else if (slot) {
     // 装备/卸下
     if (equippedSlot) {
-      // 卸下：装备放回背包
-      s.equipment[equippedSlot] = null;
-      grantItem(s, id, 1);
+      // 卸下：装备实例放回背包，保留强化等级
+      putEquippedInBag(s, equippedSlot);
       UI.showToast(`卸下${item.name}`);
     } else {
       // 确定目标槽位：6 槽全通用，装到第一个空槽
@@ -2253,12 +2350,11 @@ function useItem(id) {
         UI.showToast('同一装备不能重复装备');
         return false;
       }
-      // 装备（旧的放回背包）
-      if (s.equipment[targetSlot]) {
-        grantItem(s, s.equipment[targetSlot], 1);
-      }
+      // 装备背包中的具体实例，普通副本仍按数量处理
+      const meta = takeBagEquipment(s, id, uid);
+      if (!meta) return false;
       s.equipment[targetSlot] = id;
-      removeItemFromState(s, id, 1);
+      s.equipmentMeta[targetSlot] = meta;
       UI.showToast(`装备${item.name}`);
     }
   } else if (item.type === 'material' || item.type === 'misc') {
@@ -2315,7 +2411,8 @@ function sellItem(id) {
   const s = Game.state;
   const item = ITEMS[id];
   if (!item) return false;
-  if (!hasItem(id)) return false;
+  const ordinaryCount = Math.max(0, (s.bag[id] || 0) - (s.bagMeta || []).filter(meta => meta.id === id).length);
+  if (ordinaryCount <= 0) return false;
   if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
     UI.showToast('请先卸下装备');
     return false;
@@ -2325,7 +2422,6 @@ function sellItem(id) {
     return false;
   }
   removeItemFromState(s, id, 1);
-  if (s.equipLevel) delete s.equipLevel[id];
   s.stone += item.sell;
   UI.showToast(`出售${item.name}，获得${item.sell}灵石`);
   autoSave();
@@ -2337,7 +2433,7 @@ function sellItem(id) {
 function sellItemBatch(id) {
     const s = Game.state;
     const item = ITEMS[id];
-    const count = s.bag[id] || 0;
+    const count = Math.max(0, (s.bag[id] || 0) - (s.bagMeta || []).filter(meta => meta.id === id).length);
     if (!item || count <= 0) return false;
     if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
         UI.showToast('已装备的物品无法出售');
@@ -2349,7 +2445,6 @@ function sellItemBatch(id) {
     }
 
     removeItemFromState(s, id, count);
-    if (s.equipLevel) delete s.equipLevel[id];
     const gain = item.sell * count;
     s.stone += gain;
     UI.showToast(`批量出售${item.name}×${count}，获得${gain}灵石`);
@@ -2499,16 +2594,19 @@ function alchemy(recipeId) {
 }
 
 // 强化已装备的武器/防具/鞋履；仅增强固定基础属性，百分比词条与特殊效果不参与强化。
-function strengthenItem(id) {
+function strengthenItem(id, uid = null) {
   const s = Game.state;
+  migrateEquipment(s);
   const item = ITEMS[id];
   if (!item) return false;
   const slot = getItemSlot(item);
   if (!slot || slot === 'artifact') { UI.showToast('该物品无法强化'); return false; }
-  const isEquipped = EQUIP_SLOTS.some(sl => s.equipment[sl] === id);
-  if (!isEquipped) { UI.showToast('请先装备再强化'); return false; }
+  const equippedSlot = EQUIP_SLOTS.find(sl => s.equipment[sl] === id && (!uid || getEquippedMeta(s, sl)?.uid === uid));
+  if (!equippedSlot) { UI.showToast('请先装备再强化'); return false; }
+  const meta = getEquippedMeta(s, equippedSlot);
+  if (!meta) { UI.showToast('装备实例状态异常，请重新装备'); return false; }
 
-  const lv = (s.equipLevel && s.equipLevel[id]) || 0;
+  const lv = clampEquipLevel(meta.level);
   if (lv >= EQUIP_MAX_LEVEL) { UI.showToast('已达到最高强化等级'); return false; }
 
   const costStone = (lv + 1) * 20;
@@ -2518,8 +2616,10 @@ function strengthenItem(id) {
 
   removeItemFromState(s, 'equip_stone', strengthenStoneCost);
   s.stone -= costStone;
+  meta.level = lv + 1;
+  // 旧字段保留为兼容镜像，不再作为实例间的权威等级。
   if (!s.equipLevel) s.equipLevel = {};
-  s.equipLevel[id] = lv + 1;
+  s.equipLevel[id] = meta.level;
   UI.showToast(`强化成功！${item.name} +${lv + 1}（消耗强化石×${strengthenStoneCost}、灵石×${costStone}）`);
   incDailyTask('strengthen');
   autoSave();
@@ -2534,18 +2634,28 @@ function getEquipDismantleRefund(item, level) {
   return { strengthenRefund, rarityRefund, total: strengthenRefund + rarityRefund };
 }
 
-// 分解未装备的强化装备：返还累计消耗强化石的一半，小数直接舍弃；仙品/神品额外返还强化石，灵石不返还。
-function dismantleStrengthenedItem(id) {
+// 分解未装备的强化实例：按 uid 定位，避免误伤同 ID 的普通副本。
+function dismantleStrengthenedItem(uidOrId) {
   const s = Game.state;
-  const item = ITEMS[id];
+  migrateEquipment(s);
+  let meta = findBagMeta(s, uidOrId);
+  if (!meta) {
+    const candidates = (s.bagMeta || []).filter(entry => entry.id === uidOrId && entry.level > 0);
+    if (candidates.length !== 1) return { ok: false, msg: '该装备无法分解' };
+    meta = candidates[0];
+  }
+  const item = ITEMS[meta.id];
   const slot = getItemSlot(item);
-  const level = (s.equipLevel && s.equipLevel[id]) || 0;
+  const level = clampEquipLevel(meta.level);
   const refundInfo = getEquipDismantleRefund(item, level);
-  if (!item || !slot || refundInfo.total <= 0 || !hasItem(id)) return { ok: false, msg: '该装备无法分解' };
-  if (s.equipment && EQUIP_SLOTS.some(sl => s.equipment[sl] === id)) return { ok: false, msg: '请先卸下装备再分解' };
+  if (!item || !slot || level <= 0 || refundInfo.total <= 0 || !hasItem(meta.id)) return { ok: false, msg: '该装备无法分解' };
+  if (EQUIP_SLOTS.some(sl => getEquippedMeta(s, sl)?.uid === meta.uid)) return { ok: false, msg: '请先卸下装备再分解' };
   const refund = refundInfo.total;
-  removeItemFromState(s, id, 1);
-  delete s.equipLevel[id];
+  if (!removeItemFromState(s, meta.id, 1)) return { ok: false, msg: '该装备无法分解' };
+  s.bagMeta = s.bagMeta.filter(entry => entry.uid !== meta.uid);
+  // 将旧镜像置零，避免下一次迁移把已分解实例重新生成。
+  if (!s.equipLevel) s.equipLevel = {};
+  s.equipLevel[meta.id] = 0;
   if (refund > 0) grantItem(s, 'equip_stone', refund);
   autoSave();
   UI.updateStats();
