@@ -70,6 +70,12 @@ const UI = {
       redeemResult: document.getElementById('redeem-result'),
       dailySignin: document.getElementById('daily-signin'),
       dailyTasks: document.getElementById('daily-tasks'),
+      loadoutSlots: document.getElementById('loadout-slots'),
+      loadoutStats: document.getElementById('loadout-stats'),
+      loadoutSets: document.getElementById('loadout-sets'),
+      equipPickOverlay: document.getElementById('equip-pick-overlay'),
+      equipPickTitle: document.getElementById('equip-pick-title'),
+      equipPickList: document.getElementById('equip-pick-list'),
     };
     this.updateStats();
     updateSoundIcon();
@@ -1800,7 +1806,11 @@ const UI = {
     this.els.battleMpVal.textContent = `${Math.max(0, Math.round(s.mp))}/${Math.round(s.maxMp)}`;
 
     // 攻防属性（物攻/法攻/物抗/法抗）
-    this.els.battlePlayerStats.innerHTML = `物攻 <b>${Math.round(s.atk)}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b>`;
+    const atkBoost = Game.battle.attackBoost || 0;
+    const atkShow = atkBoost > 0 ? Math.round(s.atk * (1 + atkBoost)) : Math.round(s.atk);
+    const atkLabel = atkBoost > 0 ? `（+${Math.round(atkBoost * 100)}%）` : '';
+    const critRate = Math.round(getCritRate(s) * 100);
+    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b> · 暴击 <b>${critRate}%</b>`;
     this.els.battleEnemyStats.innerHTML = `物攻 <b>${Math.round(e.atk)}</b> · 法攻 <b>${Math.round(e.matk)}</b> · 物抗 <b>${Math.round(e.def)}</b> · 法抗 <b>${Math.round(e.mdef)}</b>`;
     // Boss 挑战推荐（天劫按百分比结算，不给攻防建议）
     if (e.boss && !e.untouchable) {
@@ -1823,6 +1833,7 @@ const UI = {
     if (Game.battle.poisonTurns > 0) statuses.push(`我·中毒 ${Game.battle.poisonTurns}回合`);
     if (Game.battle.playerWeakenTurns > 0) statuses.push(`我·虚弱 ${Math.max(1, Game.battle.playerWeakenTurns - 1)}回合`);
     if (Game.battle.playerStunnedTurns > 0) statuses.push('我·眩晕（下回合跳过）');
+    if (Game.battle.attackBoost > 0) statuses.push(`我·攻击+${Math.round(Game.battle.attackBoost * 100)}%（剩${Game.battle.attackBoostTurns}回合）`);
     if (Game.battle.enemySpecialCd > 0 && e.special) statuses.push(`敌·${e.special.name}冷却${Game.battle.enemySpecialCd}`);
     this.els.battleStatus.textContent = statuses.length ? `状态：${statuses.join(' ｜ ')}` : '状态：无';
 
@@ -1899,14 +1910,16 @@ const UI = {
         this.els.battleActions.appendChild(btn);
       });
 
-      // 法宝按钮：装备了特效法宝（如混沌钟）才显示
-      const specialId = s.equipment && ['artifact', 'weapon'].map(slot => s.equipment[slot]).find(id => id && ITEMS[id] && ITEMS[id].special);
-      if (specialId && ITEMS[specialId] && ITEMS[specialId].special) {
+      // 法宝按钮：装备了特效法宝（如乾坤鼎）才显示；6 槽全通用，逐件遍历
+      for (const slot of EQUIP_SLOTS) {
+        const specialId = s.equipment && s.equipment[slot];
+        const specialItem = specialId && ITEMS[specialId];
+        if (!specialItem || !specialItem.special) continue;
         const cd = (Game.battle.specialCd && Game.battle.specialCd[specialId]) || 0;
         const btn = document.createElement('button');
         btn.className = cd > 0 ? 'ink-btn disabled' : 'ink-btn';
         btn.disabled = cd > 0;
-        btn.textContent = cd > 0 ? `法宝·${ITEMS[specialId].name}（冷却${cd}回合）` : `法宝·${ITEMS[specialId].name}`;
+        btn.textContent = cd > 0 ? `法宝·${specialItem.name}（冷却${cd}回合）` : `法宝·${specialItem.name}`;
         btn.addEventListener('click', () => {
           playClickSound();
           playerUseSpecial(specialId);
@@ -2016,6 +2029,7 @@ const UI = {
     });
     if (name === 'bag') this.updateBag('all');
     if (name === 'stats') this.renderStatDetail();
+    if (name === 'loadout') this.renderLoadout();
     if (name === 'achievements') this.updateAchievements();
     if (name === 'daily') this.renderDaily();
     if (name === 'save') this.updateSaveSlots();
@@ -2098,7 +2112,7 @@ const UI = {
     if (!s) return;
     let items = [];
     // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
-    for (const slot of ['weapon', 'armor', 'artifact', 'shoes']) {
+    for (const slot of EQUIP_SLOTS) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
         const it = ITEMS[eqId];
@@ -2448,6 +2462,10 @@ UI.renderStatDetail = function() {
   const totalMatk = getTotalMatk(s);
   const totalMdef = getTotalMdef(s);
   const totalPen = getTotalPen(s);
+  const critRate = getCritRate(s);
+  const critDmg = getCritDmg(s);
+  const mcritRate = getMCritRate(s);
+  const mcritDmg = getMCritDmg(s);
   const sect = s.sect && SECTS[s.sect];
   const identity = sect ? `${sect.icon} ${sect.name}弟子` : '云游散修';
 
@@ -2462,6 +2480,10 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">物抗</span><span class="value">${totalDef}</span></div>
     <div class="stat-line"><span class="label">法抗</span><span class="value">${totalMdef}</span></div>
     <div class="stat-line"><span class="label">穿透</span><span class="value">${totalPen}</span></div>
+    <div class="stat-line"><span class="label">物理暴击率</span><span class="value">${Math.round(critRate * 100)}%</span></div>
+    <div class="stat-line"><span class="label">物理暴击伤害</span><span class="value">${critDmg.toFixed(1)}x</span></div>
+    <div class="stat-line"><span class="label">法术暴击率</span><span class="value">${Math.round(mcritRate * 100)}%</span></div>
+    <div class="stat-line"><span class="label">法术暴击伤害</span><span class="value">${mcritDmg.toFixed(1)}x</span></div>
     <div class="stat-line"><span class="label">灵石</span><span class="value">${s.stone}</span></div>
     <div class="stat-line"><span class="label">名望</span><span class="value">${s.fame}</span></div>
     <div class="stat-line"><span class="label">道韵</span><span class="value">${s.dao}</span></div>
@@ -2497,6 +2519,178 @@ UI.renderStatDetail = function() {
     <div class="stat-line"><span class="label">击杀</span><span class="value">${st.enemiesKilled || 0}</span></div>
     <div class="stat-line"><span class="label">成就</span><span class="value">${(s.achievements || []).length}/${ACHIEVEMENTS.length}</span></div>
   `;
+};
+
+// ========== 装备备战页面 ==========
+const LOADOUT_SLOT_NAMES = {
+  weapon: '装备槽 · 壹', armor: '装备槽 · 贰', artifact: '装备槽 · 叁', shoes: '装备槽 · 肆',
+  extra1: '装备槽 · 伍', extra2: '装备槽 · 陆',
+};
+let _loadoutPickSlot = null;
+
+UI.renderLoadout = function() {
+  const s = Game.state;
+  if (!s || !this.els.loadoutSlots) return;
+
+  const slotHtml = EQUIP_SLOTS.map(slot => {
+    const id = s.equipment && s.equipment[slot];
+    const it = id && ITEMS[id];
+    const lv = (s.equipLevel && s.equipLevel[id]) || 0;
+    let inner;
+    if (it) {
+      let nameStyle = '';
+      if (it.rarity) {
+        const tier = GACHA_POOL.find(t => t.rarity === it.rarity);
+        if (tier) nameStyle = ` style="color:${tier.color}"`;
+      }
+      inner = `
+        <span class="loadout-item-icon">${it.icon}</span>
+        <div class="loadout-item-info">
+          <div class="loadout-item-name"${nameStyle}>${it.name}${lv > 0 ? ` +${lv}` : ''}</div>
+          <div class="loadout-item-desc">${it.desc || ''}</div>
+        </div>
+        <div class="loadout-item-remove" onclick="event.stopPropagation();UI.unequipLoadoutSlot('${slot}')">卸</div>
+      `;
+    } else {
+      inner = `<span class="loadout-empty">— 空 —</span>`;
+    }
+    return `
+      <div class="loadout-slot" onclick="UI.openEquipPick('${slot}')">
+        <div class="loadout-slot-name">${LOADOUT_SLOT_NAMES[slot]}</div>
+        <div class="loadout-slot-body">${inner}</div>
+      </div>
+    `;
+  }).join('');
+  this.els.loadoutSlots.innerHTML = slotHtml;
+
+  const atk = getAllEquipBonus(s, 'atk');
+  const matk = getAllEquipBonus(s, 'matk');
+  const def = getAllEquipBonus(s, 'def');
+  const mdef = getAllEquipBonus(s, 'mdef');
+  const pen = getAllEquipBonus(s, 'pen');
+  const crit = getEquipCritBonus(s);
+  const critDmg = getEquipCritDmgBonus(s);
+  const mcrit = getEquipMCritBonus(s);
+  const mcritDmg = getEquipMCritDmgBonus(s);
+  this.els.loadoutStats.innerHTML = `
+    <div class="loadout-stat"><span class="ls-label">物攻</span><b>+${atk}</b></div>
+    <div class="loadout-stat"><span class="ls-label">法攻</span><b>+${matk}</b></div>
+    <div class="loadout-stat"><span class="ls-label">物抗</span><b>+${def}</b></div>
+    <div class="loadout-stat"><span class="ls-label">法抗</span><b>+${mdef}</b></div>
+    <div class="loadout-stat"><span class="ls-label">穿透</span><b>+${pen}</b></div>
+    <div class="loadout-stat"><span class="ls-label">物理暴击率</span><b>+${crit}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">物理暴击伤害</span><b>+${critDmg}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">法术暴击率</span><b>+${mcrit}%</b></div>
+    <div class="loadout-stat"><span class="ls-label">法术暴击伤害</span><b>+${mcritDmg}%</b></div>
+  `;
+
+  // 套装效果：展示每套收集进度与激活加成
+  if (this.els.loadoutSets && typeof EQUIP_SETS !== 'undefined') {
+    const equipped = new Set(Object.values(s.equipment || {}).filter(Boolean));
+    const bonusKeys = [
+      ['atkPct', '物攻'], ['matkPct', '法攻'], ['defPct', '物抗'], ['mdefPct', '法抗'],
+      ['penPct', '穿透'], ['crit', '物理暴击率'], ['critDmg', '物理暴击伤害'], ['mcrit', '法术暴击率'], ['mcritDmg', '法术暴击伤害'],
+    ];
+    const fmtBonus = b => `${b.need}件：${bonusKeys.filter(([k]) => b[k]).map(([k, label]) => `${label}+${b[k]}%`).join('，')}`;
+    this.els.loadoutSets.innerHTML = Object.keys(EQUIP_SETS).map(key => {
+      const set = EQUIP_SETS[key];
+      const count = set.members.filter(id => equipped.has(id)).length;
+      const first = ITEMS[set.members[0]];
+      const tier = first && GACHA_POOL.find(t => t.rarity === first.rarity);
+      const active = set.bonuses.some(b => count >= b.need);
+      return `
+        <div class="loadout-set${active ? ' active' : ''}">
+          <div class="loadout-set-head">
+            <span class="loadout-set-name" style="color:${tier ? tier.color : 'inherit'}">${set.name}</span>
+            <span class="loadout-set-count">${count}/${set.members.length}</span>
+          </div>
+          <div class="loadout-set-members">${set.members.map(id => {
+            const it = ITEMS[id];
+            const own = equipped.has(id);
+            return `<span class="loadout-set-member${own ? ' owned' : ''}" title="${it ? it.name : id}">${it ? it.icon : '?'}</span>`;
+          }).join('')}</div>
+          <div class="loadout-set-bonus">${set.bonuses.map(fmtBonus).join('　')}</div>
+        </div>
+      `;
+    }).join('');
+  }
+};
+
+UI.openEquipPick = function(slot) {
+  const s = Game.state;
+  if (!s || !this.els.equipPickOverlay) return;
+  _loadoutPickSlot = slot;
+  this.els.equipPickTitle.textContent = `选择装备 · ${LOADOUT_SLOT_NAMES[slot] || slot}`;
+
+  // 候选：背包中可装入该槽的 + 其他槽已装备的（可移动过来，排除本槽自身）
+  const seen = new Set();
+  const candidates = [];
+  EQUIP_SLOTS.forEach(sl => {
+    if (sl === slot) return;
+    const id = s.equipment && s.equipment[sl];
+    if (id && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
+      seen.add(id);
+      candidates.push({ id, source: sl });
+    }
+  });
+  for (const id in s.bag) {
+    if (s.bag[id] > 0 && ITEMS[id] && canEquipToSlot(ITEMS[id], slot) && !seen.has(id)) {
+      seen.add(id);
+      candidates.push({ id });
+    }
+  }
+
+  if (candidates.length === 0) {
+    this.els.equipPickList.innerHTML = '<div class="loadout-empty">没有可放入此槽的装备</div>';
+  } else {
+    this.els.equipPickList.innerHTML = candidates.map(c => {
+      const it = ITEMS[c.id];
+      const lv = (s.equipLevel && s.equipLevel[c.id]) || 0;
+      let nameStyle = '';
+      if (it.rarity) {
+        const tier = GACHA_POOL.find(t => t.rarity === it.rarity);
+        if (tier) nameStyle = ` style="color:${tier.color}"`;
+      }
+      return `
+        <div class="loadout-pick-item" onclick="UI.pickEquipSlot('${c.id}')">
+          <span class="loadout-item-icon">${it.icon}</span>
+          <div class="loadout-item-info">
+            <div class="loadout-item-name"${nameStyle}>${it.name}${lv > 0 ? ` +${lv}` : ''}</div>
+            <div class="loadout-item-desc">${it.desc || ''}${c.source ? '（已装备，将移动）' : ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  this.els.equipPickOverlay.classList.remove('hidden');
+};
+
+UI.closeEquipPick = function() {
+  if (this.els.equipPickOverlay) this.els.equipPickOverlay.classList.add('hidden');
+  _loadoutPickSlot = null;
+};
+
+UI.pickEquipSlot = function(id) {
+  const slot = _loadoutPickSlot;
+  if (!slot) return;
+  const res = equipToSlot(id, slot);
+  this.showToast(res.ok ? '已装备' : res.msg);
+  this.closeEquipPick();
+  this.renderLoadout();
+  this.updateStats();
+  this.updateBag('all');
+};
+
+UI.unequipLoadoutSlot = function(slot) {
+  const s = Game.state;
+  const id = s.equipment && s.equipment[slot];
+  if (!id) return;
+  const name = ITEMS[id] ? ITEMS[id].name : '装备';
+  unequipSlot(slot);
+  this.showToast(`已卸下${name}`);
+  this.renderLoadout();
+  this.updateStats();
+  this.updateBag('all');
 };
 
 // ========== 音效系统（Web Audio 合成） ==========

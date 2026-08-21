@@ -2,18 +2,65 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v48',
+    date: '2026-08-21',
+    title: '法术暴击 · 物理/法术分家',
+    items: [
+      '暴击系统拆分：物理暴击（普通攻击/血焰功法）与法术暴击（灵根技能/法术功法）各自独立计算',
+      '新增 4 件法术暴击法宝（灵纹符/星辰珠/摄魂符/寂灭珠），法攻+法术暴击，加入藏宝阁奖池',
+      '凤羽佩、太极玉佩改为法术暴击伤害；五罗套 3 件加成改为法术暴击伤害',
+      '属性页/备战页可分别查看物理暴击与法术暴击：物理流堆暴击，法术流堆法术暴击',
+    ],
+  },
+  {
+    version: 'v47',
+    date: '2026-08-20',
+    title: '装备套装 · 物理/法术双流派',
+    items: [
+      '新增「装备套装」：集齐同主题 3 件装备（武器+防具+鞋）即可触发额外百分比加成',
+      '物理流 6 套（青锋/精钢/灵纹/玄铁/赤霄/诛仙）、法术流 4 套（玄素/炎云/五罗/太清），各有不同流派加成',
+      '新增 4 件法抗鞋（冰蚕靴/霜纹靴/玄冥靴/太阴靴），加入藏宝阁奖池',
+      '备战页可查看各套装的收集进度与激活效果；成套低稀有度也能反超散件神品，多种搭配取舍',
+    ],
+  },
+  {
+    version: 'v46',
+    date: '2026-08-20',
+    title: '天机榜 · 实时全球排行榜',
+    items: [
+      '顶栏新增「👑 天机榜」，实时查看全球道友排名与自己的名次',
+      '三榜并立：境界榜（转世·境界·修为）、战力榜（五维属性之和）、秘境榜（试炼最高层）',
+      '打开游戏即自动上榜，默认沿用你的道号；想改个响亮名号，点榜单底部「改名」即可',
+      '断网也能照常修行：离线成绩暂存本地，联网后自动同步上榜',
+    ],
+  },
+  {
+    version: 'v45',
+    date: '2026-08-20',
+    title: '装备备战 · 六件装备 · 通用饰品槽',
+    items: [
+      '新增「备战」页面：可配带 6 件装备（武器/防具/法宝/鞋履 + 2 个通用饰品槽），装备不能重复',
+      '新增一批饰品（铜戒/银环/金乌环/龙纹戒/混沌指环等），加入藏宝阁奖池，可装进通用饰品槽',
+      '备战页下方实时统计 6 件装备的总加成（物攻/法攻/物抗/法抗/穿透/暴击率/暴击伤害）',
+    ],
+  },
+  {
+    version: 'v44',
+    date: '2026-08-20',
+    title: '暴击率玩法 · 藏宝阁暴击法宝',
+    items: [
+      '新增暴击系统：普通攻击、灵根技能与主动功法均有机会触发暴击，造成更高伤害',
+      '藏宝阁新增4件暴击法宝（会心符/天星珠/诛心符/灭世珠），装备于法宝栏，提供暴击率与暴击伤害加成',
+      '属性面板与战斗面板新增「暴击率」「暴击伤害」显示，暴击触发时战斗日志会高亮提示',
+    ],
+  },
+  {
     version: 'v42',
     date: '2026-08-20',
-    title: '洞府灵田 · 灵泉养成',
+    title: '修复：血煞燃元术增益显示 · 上古魔君削弱',
     items: [
-      '洞府等级上限开放至30级：每提升1级新增1块灵田，7级后的升级费用平缓递增；旧洞府等级与已种植作物均会自动迁移保留',
-      '灵田新增16种作物：10种炼丹材料与6种资源作物。所有种子开局即可在灵田商店购买，每种种子每日独立限购100个',
-      '收获所有作物均会返还种子价2～5倍灵石；炼丹材料可在合成坊直接炼制回血、回蓝等丹药，资源作物可在储物袋售出并随机额外获得修为或道韵',
-      '新增灵泉：花费1000灵石建造后为1级，最高30级且不超过洞府等级；灵泉每级减少1%作物成长时间，并使每次修炼回复更多气血与灵力',
-      '新增丰收肥、催生肥各三种品质：丰收肥提高作物材料产量，催生肥额外缩短成长时间；每块作物仅可施肥一次',
-      '灵田支持批量种满空田、一键收获、按上次配置补种、一键施肥；商店支持输入数量与一键填入最大可购买数量',
-      '宠物喂养、好感提升和升级时有低概率额外获得肥料；修复灵田种植与灵泉按钮的流程问题',
-      '删档重开与已有存档时的重新开始均改为游戏内二次确认，避免误触覆盖存档',
+      '血煞燃元术：战斗面板与状态栏现在会显示攻击增益（如「攻击+100% 剩3回合」），增益一直有生效，此前只是没显示出来',
+      '上古魔君削弱：每回合固定扣血 10%→7%，双连击概率 18%→12%，基础血量 75万→65万，让终局 Boss 不再难以挑战',
     ],
   },
   {
@@ -349,46 +396,6 @@ const ITEMS = {
   shouliang:    { id: 'shouliang',    name: '兽粮',       type: 'misc',     icon: '🥩', desc: '灵宠的口粮，使用可为出战灵宠增加40经验', effect: 'pet_food1', sell: 40 },
   lingshou_dan: { id: 'lingshou_dan', name: '灵兽丹',     type: 'misc',     icon: '💊', desc: '蕴含灵气的丹药，使用可为出战灵宠增加200经验', effect: 'pet_food3', sell: 200 },
 
-  // ===== 洞府灵田：种子、收获材料与肥料 =====
-  seed_huichun: { id: 'seed_huichun', name: '回春草种子', type: 'material', icon: '🌱', desc: '种入灵田可收获回春草，用于炼制回血丹药', sell: 0, farmSeed: true },
-  seed_ningling: { id: 'seed_ningling', name: '凝灵叶种子', type: 'material', icon: '🌿', desc: '种入灵田可收获凝灵叶，用于炼制回蓝丹药', sell: 0, farmSeed: true },
-  seed_chiyang: { id: 'seed_chiyang', name: '赤阳花种子', type: 'material', icon: '🌺', desc: '种入灵田可收获赤阳花，用于炼制中阶回血丹', sell: 0, farmSeed: true },
-  seed_yuehua: { id: 'seed_yuehua', name: '月华露种子', type: 'material', icon: '🌙', desc: '种入灵田可收获月华露，用于炼制中阶回蓝丹', sell: 0, farmSeed: true },
-  seed_xuelian: { id: 'seed_xuelian', name: '雪莲种子', type: 'material', icon: '❄️', desc: '种入灵田可收获雪莲，用于炼制高阶回血丹', sell: 0, farmSeed: true },
-  seed_zixiao: { id: 'seed_zixiao', name: '紫霄兰种子', type: 'material', icon: '🪻', desc: '种入灵田可收获紫霄兰，用于炼制高阶回蓝丹', sell: 0, farmSeed: true },
-  seed_longxue: { id: 'seed_longxue', name: '龙血藤种子', type: 'material', icon: '🩸', desc: '种入灵田可收获龙血藤，用于炼制燃血爆发丹药', sell: 0, farmSeed: true },
-  seed_xuanjia: { id: 'seed_xuanjia', name: '玄甲果种子', type: 'material', icon: '🛡️', desc: '种入灵田可收获玄甲果，用于炼制护体丹药', sell: 0, farmSeed: true },
-  seed_leiming: { id: 'seed_leiming', name: '雷鸣草种子', type: 'material', icon: '⚡', desc: '种入灵田可收获雷鸣草，用于炼制雷系增益丹药', sell: 0, farmSeed: true },
-  seed_jiuzhuan: { id: 'seed_jiuzhuan', name: '九转灵芝种子', type: 'material', icon: '🍄', desc: '种入灵田可收获九转灵芝，用于炼制顶级恢复丹药', sell: 0, farmSeed: true },
-  seed_linggu: { id: 'seed_linggu', name: '灵谷种子', type: 'material', icon: '🌾', desc: '种入灵田可收获灵谷，售出可得灵石并随机获得修为', sell: 0, farmSeed: true },
-  seed_ziyushen: { id: 'seed_ziyushen', name: '紫玉参种子', type: 'material', icon: '🥕', desc: '种入灵田可收获紫玉参，售出可得灵石并随机获得修为', sell: 0, farmSeed: true },
-  seed_jinluhua: { id: 'seed_jinluhua', name: '金露花种子', type: 'material', icon: '🌼', desc: '种入灵田可收获金露花，售出可得灵石并随机获得道韵', sell: 0, farmSeed: true },
-  seed_yunwenshu: { id: 'seed_yunwenshu', name: '云纹果种子', type: 'material', icon: '☁️', desc: '种入灵田可收获云纹果，售出可得灵石并随机获得修为或道韵', sell: 0, farmSeed: true },
-  seed_jiuqu: { id: 'seed_jiuqu', name: '九曲灵藤种子', type: 'material', icon: '🌿', desc: '种入灵田可收获九曲灵藤，售出可得高额灵石与随机奖励', sell: 0, farmSeed: true },
-  seed_xinghui: { id: 'seed_xinghui', name: '星辉果种子', type: 'material', icon: '🌟', desc: '种入灵田可收获星辉果，售出可得最高档灵石与随机奖励', sell: 0, farmSeed: true },
-  farm_huichun: { id: 'farm_huichun', name: '回春草', type: 'material', icon: '🌿', desc: '灵田药材：小回春丹的材料', sell: 0 },
-  farm_ningling: { id: 'farm_ningling', name: '凝灵叶', type: 'material', icon: '🍃', desc: '灵田药材：小回灵丹的材料', sell: 0 },
-  farm_chiyang: { id: 'farm_chiyang', name: '赤阳花', type: 'material', icon: '🌺', desc: '灵田药材：中阶回血丹的材料', sell: 0 },
-  farm_yuehua: { id: 'farm_yuehua', name: '月华露', type: 'material', icon: '🌙', desc: '灵田药材：中阶回蓝丹的材料', sell: 0 },
-  farm_xuelian: { id: 'farm_xuelian', name: '雪莲', type: 'material', icon: '❄️', desc: '灵田药材：高阶回血丹的材料', sell: 0 },
-  farm_zixiao: { id: 'farm_zixiao', name: '紫霄兰', type: 'material', icon: '🪻', desc: '灵田药材：高阶回蓝丹的材料', sell: 0 },
-  farm_longxue: { id: 'farm_longxue', name: '龙血藤', type: 'material', icon: '🩸', desc: '灵田药材：燃血爆发丹药的材料', sell: 0 },
-  farm_xuanjia: { id: 'farm_xuanjia', name: '玄甲果', type: 'material', icon: '🛡️', desc: '灵田药材：护体丹药的材料', sell: 0 },
-  farm_leiming: { id: 'farm_leiming', name: '雷鸣草', type: 'material', icon: '⚡', desc: '灵田药材：雷系增益丹药的材料', sell: 0 },
-  farm_jiuzhuan: { id: 'farm_jiuzhuan', name: '九转灵芝', type: 'material', icon: '🍄', desc: '灵田药材：顶级恢复丹药的材料', sell: 0 },
-  farm_linggu: { id: 'farm_linggu', name: '灵谷', type: 'material', icon: '🌾', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为', sell: 0, farmResource: { stone: 35, xpChance: 0.25, xp: 30 } },
-  farm_ziyushen: { id: 'farm_ziyushen', name: '紫玉参', type: 'material', icon: '🥕', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为', sell: 0, farmResource: { stone: 100, xpChance: 0.35, xp: 100 } },
-  farm_jinluhua: { id: 'farm_jinluhua', name: '金露花', type: 'material', icon: '🌼', desc: '灵田资源作物：售出获得灵石，并有概率额外获得道韵', sell: 0, farmResource: { stone: 240, daoChance: 0.35, dao: 2 } },
-  farm_yunwenshu: { id: 'farm_yunwenshu', name: '云纹果', type: 'material', icon: '☁️', desc: '灵田资源作物：售出获得灵石，并有概率额外获得修为或道韵', sell: 0, farmResource: { stone: 650, xpChance: 0.35, xp: 250, daoChance: 0.25, dao: 4 } },
-  farm_jiuqu: { id: 'farm_jiuqu', name: '九曲灵藤', type: 'material', icon: '🌿', desc: '灵田资源作物：售出获得高额灵石与随机奖励', sell: 0, farmResource: { stone: 1800, xpChance: 0.45, xp: 800, daoChance: 0.35, dao: 10 } },
-  farm_xinghui: { id: 'farm_xinghui', name: '星辉果', type: 'material', icon: '🌟', desc: '灵田资源作物：售出获得最高档灵石与随机奖励', sell: 0, farmResource: { stone: 5000, xpChance: 0.50, xp: 2500, daoChance: 0.45, dao: 30 } },
-  fert_yield_small: { id: 'fert_yield_small', name: '下品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+10%', sell: 20, fertilizer: { kind: 'yield', bonus: 0.10 } },
-  fert_yield_mid: { id: 'fert_yield_mid', name: '中品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+25%', sell: 60, fertilizer: { kind: 'yield', bonus: 0.25 } },
-  fert_yield_high: { id: 'fert_yield_high', name: '上品丰收肥', type: 'material', icon: '🧺', desc: '施于一块灵田，使作物材料产量+50%', sell: 150, fertilizer: { kind: 'yield', bonus: 0.50 } },
-  fert_time_small: { id: 'fert_time_small', name: '下品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×90%', sell: 20, fertilizer: { kind: 'time', bonus: 0.10 } },
-  fert_time_mid: { id: 'fert_time_mid', name: '中品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×75%', sell: 60, fertilizer: { kind: 'time', bonus: 0.25 } },
-  fert_time_high: { id: 'fert_time_high', name: '上品催生肥', type: 'material', icon: '⏳', desc: '施于一块灵田，使作物成长时间额外×50%', sell: 150, fertilizer: { kind: 'time', bonus: 0.50 } },
-
   // ===== 灵宠零食（投其所好送对口味好感加倍） =====
   rougan:      { id: 'rougan',      name: '肉干',     type: 'misc', icon: '🍖', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 6,  cat: 'food', taste: 'meat',  sell: 20 },
   xiangrou:    { id: 'xiangrou',    name: '香肉',     type: 'misc', icon: '🍗', desc: '灵宠零食·肉食，投其所好好感加倍', favor: 14, cat: 'food', taste: 'meat',  sell: 60 },
@@ -457,6 +464,31 @@ const ITEMS = {
   g_fuxiqin:     { id: 'g_fuxiqin', name: '伏羲琴', type: 'artifact', slot: 'artifact', icon: '🎼', desc: '神品·令敌方下次攻击失效（冷却8回合）', effect: null, special: 'weaken', specialCd: 8, sell: 8000, rarity: '神品' },
   g_shennongding:{ id: 'g_shennongding', name: '神农鼎', type: 'artifact', slot: 'artifact', icon: '⚗️', desc: '神品·回复50%气血（冷却10回合）', effect: null, special: 'heal', specialCd: 10, sell: 8000, rarity: '神品' },
 
+  // ===== 暴击法宝：装备于法宝栏，被动提供暴击率与暴击伤害 =====
+  g_huixinfu:    { id: 'g_huixinfu',     name: '会心符', type: 'artifact', slot: 'artifact', icon: '📿', desc: '良品·攻击+30，暴击率+3%，暴击伤害+20%', effect: 'atk30',  crit: 3,  critDmg: 20, sell: 70,   rarity: '良品' },
+  g_tianxingzhu: { id: 'g_tianxingzhu',  name: '天星珠', type: 'artifact', slot: 'artifact', icon: '🔮', desc: '中品·攻击+60，暴击率+5%，暴击伤害+35%', effect: 'atk60',  crit: 5,  critDmg: 35, sell: 180,  rarity: '中品' },
+  g_zhuxinfu:    { id: 'g_zhuxinfu',     name: '诛心符', type: 'artifact', slot: 'artifact', icon: '🎴', desc: '上品·攻击+120，暴击率+8%，暴击伤害+50%', effect: 'atk120', crit: 8,  critDmg: 50, sell: 450,  rarity: '上品' },
+  g_mieshizhu:   { id: 'g_mieshizhu',    name: '灭世珠', type: 'artifact', slot: 'artifact', icon: '⚫', desc: '极品·攻击+240，暴击率+12%，暴击伤害+70%', effect: 'atk240', crit: 12, critDmg: 70, sell: 1100, rarity: '极品' },
+
+  // ===== 法术暴击法宝：装备于法宝栏，被动提供法术暴击率与法术暴击伤害 =====
+  g_lingwenfu:   { id: 'g_lingwenfu',   name: '灵纹符', type: 'artifact', slot: 'artifact', icon: '🪬', desc: '良品·法攻+30，法术暴击率+3%，法术暴击伤害+20%', effect: 'matk30',  mcrit: 3,  mcritDmg: 20, sell: 70,   rarity: '良品' },
+  g_xingchenzhu: { id: 'g_xingchenzhu', name: '星辰珠', type: 'artifact', slot: 'artifact', icon: '✨', desc: '中品·法攻+60，法术暴击率+5%，法术暴击伤害+35%', effect: 'matk60',  mcrit: 5,  mcritDmg: 35, sell: 180,  rarity: '中品' },
+  g_shehunfu:    { id: 'g_shehunfu',    name: '摄魂符', type: 'artifact', slot: 'artifact', icon: '👁️', desc: '上品·法攻+120，法术暴击率+8%，法术暴击伤害+50%', effect: 'matk120', mcrit: 8,  mcritDmg: 50, sell: 450,  rarity: '上品' },
+  g_jimiezhu:    { id: 'g_jimiezhu',    name: '寂灭珠', type: 'artifact', slot: 'artifact', icon: '🕳️', desc: '极品·法攻+240，法术暴击率+12%，法术暴击伤害+70%', effect: 'matk240', mcrit: 12, mcritDmg: 70, sell: 1100, rarity: '极品' },
+
+  // ===== 饰品：装备于两个通用饰品槽（备战页），不占武器/防具/法宝/鞋履栏 =====
+  s_tongjie:       { id: 's_tongjie',       name: '铜戒',     type: 'artifact', slot: 'trinket', icon: '💍', desc: '良品·物抗+20',  effect: 'def20',  sell: 70,   rarity: '良品' },
+  s_muzhulian:     { id: 's_muzhulian',     name: '木珠链',   type: 'artifact', slot: 'trinket', icon: '📿', desc: '良品·法抗+18',  effect: 'mdef18', sell: 70,   rarity: '良品' },
+  s_yinhuan:       { id: 's_yinhuan',       name: '银环',     type: 'artifact', slot: 'trinket', icon: '⭕', desc: '中品·攻击+55',  effect: 'atk55',  sell: 180,  rarity: '中品' },
+  s_yuzhui:        { id: 's_yuzhui',        name: '玉坠',     type: 'artifact', slot: 'trinket', icon: '🧿', desc: '中品·法攻+50',  effect: 'matk50', sell: 180,  rarity: '中品' },
+  s_jinwuhuan:     { id: 's_jinwuhuan',     name: '金乌环',   type: 'artifact', slot: 'trinket', icon: '☀️', desc: '上品·攻击+110', effect: 'atk110', sell: 450,  rarity: '上品' },
+  s_xuanguipei:    { id: 's_xuanguipei',    name: '玄龟佩',   type: 'artifact', slot: 'trinket', icon: '🐢', desc: '上品·物抗+75',  effect: 'def75',  sell: 450,  rarity: '上品' },
+  s_pojunzhihuan:  { id: 's_pojunzhihuan',  name: '破军指环', type: 'artifact', slot: 'trinket', icon: '💫', desc: '上品·穿透+50',  effect: 'pen50',  sell: 450,  rarity: '上品' },
+  s_longwenjie:    { id: 's_longwenjie',    name: '龙纹戒',   type: 'artifact', slot: 'trinket', icon: '🐉', desc: '极品·攻击+220，暴击率+5%', effect: 'atk220', crit: 5,  sell: 1100, rarity: '极品' },
+  s_fengyupei:     { id: 's_fengyupei',     name: '凤羽佩',   type: 'artifact', slot: 'trinket', icon: '🪶', desc: '极品·法攻+210，法术暴击伤害+25%', effect: 'matk210', mcritDmg: 25, sell: 1100, rarity: '极品' },
+  s_hundunzhihuan: { id: 's_hundunzhihuan', name: '混沌指环', type: 'artifact', slot: 'trinket', icon: '🌌', desc: '仙品·攻击+450，暴击率+8%', effect: 'atk450', crit: 8,  sell: 2500, rarity: '仙品' },
+  s_taijiyupei:    { id: 's_taijiyupei',    name: '太极玉佩', type: 'artifact', slot: 'trinket', icon: '☯️', desc: '仙品·法抗+280，法术暴击伤害+30%', effect: 'mdef280', mcritDmg: 30, sell: 2500, rarity: '仙品' },
+
   // ===== 抽卡装备（第四批：法攻/法抗/穿透） =====
   g_xuanmuzhang: { id: 'g_xuanmuzhang', name: '玄木杖',  type: 'weapon', icon: '🪄', desc: '中品·法攻+58',   effect: 'matk58',  sell: 180,  rarity: '中品' },
   g_yanlingzhu:  { id: 'g_yanlingzhu',  name: '炎灵珠',  type: 'weapon', icon: '🔮', desc: '上品·法攻+115',  effect: 'matk115', sell: 450,  rarity: '上品' },
@@ -475,6 +507,10 @@ const ITEMS = {
   g_liuyunxue:  { id: 'g_liuyunxue',   name: '流云靴',  type: 'armor', slot: 'shoes', icon: '👞', desc: '上品·穿透+50',  effect: 'pen50',   sell: 450,  rarity: '上品' },
   g_fengxingxue:{ id: 'g_fengxingxue', name: '风行靴',  type: 'armor', slot: 'shoes', icon: '🥿', desc: '极品·穿透+95',  effect: 'pen95',   sell: 1100, rarity: '极品' },
   g_shenxingxue:{ id: 'g_shenxingxue', name: '神行靴',  type: 'armor', slot: 'shoes', icon: '👟', desc: '仙品·穿透+130', effect: 'pen130',  sell: 2500, rarity: '仙品' },
+  g_bingcanxue:   { id: 'g_bingcanxue',   name: '冰蚕靴', type: 'armor', slot: 'shoes', icon: '❄️', desc: '中品·法抗+30',  effect: 'mdef30',  sell: 180,  rarity: '中品' },
+  g_shuangwenxue: { id: 'g_shuangwenxue', name: '霜纹靴', type: 'armor', slot: 'shoes', icon: '🧊', desc: '上品·法抗+62',  effect: 'mdef62',  sell: 450,  rarity: '上品' },
+  g_xuanmingxue:  { id: 'g_xuanmingxue',  name: '玄冥靴', type: 'armor', slot: 'shoes', icon: '🌑', desc: '极品·法抗+115', effect: 'mdef115', sell: 1100, rarity: '极品' },
+  g_taiyinxue:    { id: 'g_taiyinxue',    name: '太阴靴', type: 'armor', slot: 'shoes', icon: '🌙', desc: '仙品·法抗+240', effect: 'mdef240', sell: 2500, rarity: '仙品' },
 
   // ===== 囤囤鼠/魔尊私藏（专属途径获得） =====
   tun_tushenjian: { id: 'tun_tushenjian', name: '屠神剑', type: 'weapon', icon: '⚔️', desc: '神藏·物攻+500，提高物理攻击10%；攻击时5%概率获得额外回合', effect: 'atk500', sell: 8000, rarity: '神品' },
@@ -505,34 +541,56 @@ const GACHA_POOL = [
     { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
-    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue',
+    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue', 'g_huixinfu', 'g_lingwenfu',
+    's_tongjie', 's_muzhulian',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue',
+    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_bingcanxue', 'g_tianxingzhu', 'g_xingchenzhu',
+    's_yinhuan', 's_yuzhui',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue',
+    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_shuangwenxue', 'g_zhuxinfu', 'g_shehunfu',
+    's_jinwuhuan', 's_xuanguipei', 's_pojunzhihuan',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue',
+    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_xuanmingxue', 'g_mieshizhu', 'g_jimiezhu',
+    's_longwenjie', 's_fengyupei',
     { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
     'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
-    'g_zhuxianzhui', 'g_shenxingxue',
+    'g_zhuxianzhui', 'g_shenxingxue', 'g_taiyinxue',
+    's_hundunzhihuan', 's_taijiyupei',
     { id: 'jiuzhuan_pill', count: 3 }, { id: 'jiuzhuanling_pill', count: 3 },
   ]},
   { rarity: '神品', weight: 0.05, color: '#ffd54f', items: [
     'g_hundunzhong', 'g_qiankunding', 'g_fuxiqin', 'g_shennongding',
   ]},
 ];
+
+// ========== 装备套装（集齐多件触发额外加成） ==========
+// 一件装备只属于一个套装；神品（神藏/特效法宝）不参与套装，保持「散件神品」定位。
+const EQUIP_SETS = {
+  // ===== 物理流：武器+防具+鞋（凡品~仙品） =====
+  qingfeng: { name: '青锋套', members: ['g_qingfeng', 'g_qingbu', 'g_cubu'], bonuses: [{ need: 2, atkPct: 6 }, { need: 3, defPct: 6 }] },
+  jinggang: { name: '精钢套', members: ['g_jinggang', 'g_suozijia', 'g_niupixue'], bonuses: [{ need: 2, atkPct: 7 }, { need: 3, defPct: 7 }] },
+  lingwen:  { name: '灵纹套', members: ['g_lingwen', 'g_lingwenjia', 'g_lupixue'], bonuses: [{ need: 2, atkPct: 8 }, { need: 3, crit: 5 }] },
+  xuantie:  { name: '玄铁套', members: ['g_xuantie', 'g_xuantiejia', 'g_liuyunxue'], bonuses: [{ need: 2, atkPct: 10 }, { need: 3, penPct: 6 }] },
+  chixiao:  { name: '赤霄套', members: ['g_chixiao', 'g_chiyanjia', 'g_fengxingxue'], bonuses: [{ need: 2, atkPct: 12 }, { need: 3, critDmg: 15 }] },
+  zhuxian:  { name: '诛仙套', members: ['g_zhuxian', 'g_xianlingjia', 'g_shenxingxue'], bonuses: [{ need: 2, atkPct: 15 }, { need: 3, penPct: 8 }] },
+  // ===== 法术流：法杖+法袍+法抗鞋（中品~仙品） =====
+  xuansu:   { name: '玄素套', members: ['g_xuanmuzhang', 'g_susefapao', 'g_bingcanxue'], bonuses: [{ need: 2, matkPct: 8 }, { need: 3, mdefPct: 8 }] },
+  yanyun:   { name: '炎云套', members: ['g_yanlingzhu', 'g_yunwenfapao', 'g_shuangwenxue'], bonuses: [{ need: 2, matkPct: 10 }, { need: 3, mdefPct: 8 }] },
+  wuluo:    { name: '五罗套', members: ['g_wuleizhu', 'g_tianluofapao', 'g_xuanmingxue'], bonuses: [{ need: 2, matkPct: 12 }, { need: 3, mcritDmg: 15 }] },
+  taiqing:  { name: '太清套', members: ['g_dashenbian', 'g_taijitu', 'g_taiyinxue'], bonuses: [{ need: 2, matkPct: 15 }, { need: 3, mdefPct: 10 }] },
+};
 
 // ========== 成就设定 ==========
 const ACHIEVEMENTS = [
@@ -560,8 +618,7 @@ const ACHIEVEMENTS = [
   // ===== 洞府 / 宗门 / 竞技 / 心魔玩法成就 =====
   { id: 'cave_harvest', name: '春华秋实',   desc: '首次收获洞府灵药',         icon: '🌿' },
   { id: 'cave_lv3',     name: '初具规模',   desc: '洞府升到 3 级',             icon: '🏠' },
-  { id: 'cave_lv7',     name: '仙府初成',   desc: '洞府升到 7 级',              icon: '🏠' },
-  { id: 'cave_lv30',    name: '仙府落成',   desc: '洞府升至满级 30 级',         icon: '🏯' },
+  { id: 'cave_lv7',     name: '仙府落成',   desc: '洞府升到满级 7 级',         icon: '🏯' },
   { id: 'sect_join',    name: '拜入山门',   desc: '加入一个宗门',               icon: '🏛️' },
   { id: 'sect_contrib', name: '中流砥柱',   desc: '宗门贡献达到 300',           icon: '🎖️' },
   { id: 'arena_win10',  name: '斗法新秀',   desc: '竞技斗法获胜 10 场',         icon: '⚔️' },
@@ -578,13 +635,6 @@ const RECIPES = [
   { id: 'r_tiebi',  name: '锻造铁笔',   icon: '✍️', result: 'tiebi',     cost: { lieyangshi: 2, fengyuteng: 2 } },
   { id: 'r_juqi',   name: '炼制聚气丹', icon: '🧪', result: 'juqi_pill', cost: { hanbingxue: 3 } },
   { id: 'r_daopei', name: '炼制道佩',   icon: '🔮', result: 'daopei',    cost: { yaowanggu_lingzhi: 1, hanbingxue: 1 } },
-  { id: 'r_farm_huiqi', name: '炼制回气丹', icon: '💊', result: 'huiqi_pill', cost: { farm_huichun: 2, farm_chiyang: 1 } },
-  { id: 'r_farm_huiling', name: '炼制回灵丹', icon: '🔹', result: 'huiling_pill', cost: { farm_ningling: 2, farm_yuehua: 1 } },
-  { id: 'r_farm_huichun', name: '炼制回春丹', icon: '💚', result: 'huichun_pill', cost: { farm_chiyang: 2, farm_xuelian: 1 } },
-  { id: 'r_farm_yuling', name: '炼制蕴灵丹', icon: '🔷', result: 'yuling_pill', cost: { farm_yuehua: 2, farm_zixiao: 1 } },
-  { id: 'r_farm_dahuan', name: '炼制大还丹', icon: '💛', result: 'dahuan_pill', cost: { farm_xuelian: 2, farm_xuanjia: 1 } },
-  { id: 'r_farm_dahuiling', name: '炼制大回灵丹', icon: '💎', result: 'dahuiling_pill', cost: { farm_zixiao: 2, farm_leiming: 1 } },
-  { id: 'r_farm_jiuzhuan', name: '炼制九转还魂丹', icon: '✨', result: 'jiuzhuan_pill', cost: { farm_longxue: 1, farm_jiuzhuan: 2 } },
 ];
 
 // ========== 炼丹炉（随机炼丹） ==========
@@ -731,9 +781,6 @@ const TUNTUNSHU_BOSS_STEAL_LEVEL_MAX_BONUS = 0.00035;
 const TUNTUNSHU_BOSS_STEAL_STAGE_MAX_BONUS = 0.00025;
 const TUNTUNSHU_BOSS_STEAL_FAVOR_MAX_BONUS = 0.00020;
 const TUNTUNSHU_BOSS_STEAL_PITY = 2000;
-// 六位终局 Boss 共用的神藏掉落：每次击败均有 0.1%，保底和重复保护全局共享。
-const FINAL_BOSS_LOOT_CHANCE = 0.001;
-const FINAL_BOSS_LOOT_PITY = 2000;
 // 囤囤鼠专属 Boss 遗宝（唯一获取途径 = 囤囤鼠偷 Boss，不进入任何转盘/掉落/商店）
 const TUNTUNSHU_BOSS_LOOT = ['tun_tushenjian', 'tun_canglongqiang', 'tun_hunyuanjia', 'tun_tianxuanjia', 'tun_xinglongxue'];
 // 可偷神藏的中后期 Boss（仅这些 Boss 能被囤囤鼠偷走神藏，早期/秘境 Boss 不在此列）
@@ -848,7 +895,7 @@ const HERBS = {
 };
 
 // 洞府等级：等级越高，灵田越多、修炼加成越高
-const LEGACY_CAVE_LEVELS = [
+const CAVE_LEVELS = [
   { level: 1, plots: 1, cost: 0,     xpBonus: 0.00 },
   { level: 2, plots: 2, cost: 300,   xpBonus: 0.05 },
   { level: 3, plots: 3, cost: 800,   xpBonus: 0.10 },
@@ -857,35 +904,6 @@ const LEGACY_CAVE_LEVELS = [
   { level: 6, plots: 6, cost: 12000, xpBonus: 0.30 },
   { level: 7, plots: 7, cost: 30000, xpBonus: 0.40 },
 ];
-
-// 洞府灵田：种子种植、离线成长；全部作物成熟时返还种子价 2～5 倍灵石。
-const FARM_CROPS = {
-  huichun: { id: 'huichun', name: '回春草', icon: '🌿', type: 'alchemy', growMs: 20 * 60000, seedItem: 'seed_huichun', seedPrice: 30, harvestItem: 'farm_huichun', desc: '炼制小回春丹的基础材料' },
-  ningling: { id: 'ningling', name: '凝灵叶', icon: '🍃', type: 'alchemy', growMs: 20 * 60000, seedItem: 'seed_ningling', seedPrice: 30, harvestItem: 'farm_ningling', desc: '炼制小回灵丹的基础材料' },
-  chiyang: { id: 'chiyang', name: '赤阳花', icon: '🌺', type: 'alchemy', growMs: 60 * 60000, seedItem: 'seed_chiyang', seedPrice: 80, harvestItem: 'farm_chiyang', desc: '炼制中阶回血丹的材料' },
-  yuehua: { id: 'yuehua', name: '月华露', icon: '🌙', type: 'alchemy', growMs: 60 * 60000, seedItem: 'seed_yuehua', seedPrice: 80, harvestItem: 'farm_yuehua', desc: '炼制中阶回蓝丹的材料' },
-  xuelian: { id: 'xuelian', name: '雪莲', icon: '❄️', type: 'alchemy', growMs: 3 * 3600000, seedItem: 'seed_xuelian', seedPrice: 260, harvestItem: 'farm_xuelian', desc: '炼制高阶回血丹的材料' },
-  zixiao: { id: 'zixiao', name: '紫霄兰', icon: '🪻', type: 'alchemy', growMs: 3 * 3600000, seedItem: 'seed_zixiao', seedPrice: 260, harvestItem: 'farm_zixiao', desc: '炼制高阶回蓝丹的材料' },
-  longxue: { id: 'longxue', name: '龙血藤', icon: '🩸', type: 'alchemy', growMs: 6 * 3600000, seedItem: 'seed_longxue', seedPrice: 700, harvestItem: 'farm_longxue', desc: '炼制燃血爆发丹药的材料' },
-  xuanjia: { id: 'xuanjia', name: '玄甲果', icon: '🛡️', type: 'alchemy', growMs: 6 * 3600000, seedItem: 'seed_xuanjia', seedPrice: 700, harvestItem: 'farm_xuanjia', desc: '炼制护体丹药的材料' },
-  leiming: { id: 'leiming', name: '雷鸣草', icon: '⚡', type: 'alchemy', growMs: 8 * 3600000, seedItem: 'seed_leiming', seedPrice: 1200, harvestItem: 'farm_leiming', desc: '炼制雷系增益丹药的材料' },
-  jiuzhuan: { id: 'jiuzhuan', name: '九转灵芝', icon: '🍄', type: 'alchemy', growMs: 12 * 3600000, seedItem: 'seed_jiuzhuan', seedPrice: 2600, harvestItem: 'farm_jiuzhuan', desc: '炼制顶级恢复丹药的材料' },
-  linggu: { id: 'linggu', name: '灵谷', icon: '🌾', type: 'resource', growMs: 10 * 60000, seedItem: 'seed_linggu', seedPrice: 15, harvestItem: 'farm_linggu', desc: '售出后获得灵石，并有概率额外获得修为' },
-  ziyushen: { id: 'ziyushen', name: '紫玉参', icon: '🥕', type: 'resource', growMs: 30 * 60000, seedItem: 'seed_ziyushen', seedPrice: 50, harvestItem: 'farm_ziyushen', desc: '售出后获得灵石，并有概率额外获得修为' },
-  jinluhua: { id: 'jinluhua', name: '金露花', icon: '🌼', type: 'resource', growMs: 90 * 60000, seedItem: 'seed_jinluhua', seedPrice: 150, harvestItem: 'farm_jinluhua', desc: '售出后获得灵石，并有概率额外获得道韵' },
-  yunwenshu: { id: 'yunwenshu', name: '云纹果', icon: '☁️', type: 'resource', growMs: 3 * 3600000, seedItem: 'seed_yunwenshu', seedPrice: 420, harvestItem: 'farm_yunwenshu', desc: '售出后获得灵石，并有概率额外获得修为或道韵' },
-  jiuqu: { id: 'jiuqu', name: '九曲灵藤', icon: '🌿', type: 'resource', growMs: 6 * 3600000, seedItem: 'seed_jiuqu', seedPrice: 1100, harvestItem: 'farm_jiuqu', desc: '售出后获得高额灵石与随机奖励' },
-  xinghui: { id: 'xinghui', name: '星辉果', icon: '🌟', type: 'resource', growMs: 12 * 3600000, seedItem: 'seed_xinghui', seedPrice: 2600, harvestItem: 'farm_xinghui', desc: '售出后获得最高档灵石与随机奖励' },
-};
-
-const CAVE_LEVELS = Array.from({ length: 30 }, (_, i) => {
-  const level = i + 1;
-  const oldCosts = [0, 300, 800, 2000, 5000, 12000, 30000];
-  const cost = level <= 7 ? oldCosts[level - 1] : Math.floor(30000 * Math.pow(1.25, level - 7));
-  const oldBonus = [0, 0.05, 0.10, 0.15, 0.22, 0.30, 0.40];
-  const xpBonus = level <= 7 ? oldBonus[level - 1] : Math.min(0.98, 0.40 + (level - 7) * 0.025);
-  return { level, plots: level, cost, xpBonus };
-});
 
 // ========== 宗门系统 ==========
 // 宗门：加入后获得被动加成，可接宗门任务赚贡献、在贡献商店兑换
@@ -1042,7 +1060,7 @@ const ENEMIES = {
   fei_sheng_jie:{ id:'fei_sheng_jie',name:'飞升天劫·九重',hp: 1, atk: 0, def: 0, xp: 8000, stone: [2000,2000], drops: [], untouchable: true, boss: true, tribDmg: 0.22 },
   // 仙人级强敌：基础数值覆盖人仙期，仙帝后继续按动态 Boss 规则增长
   tianmo:          { id:'tianmo',          name:'域外天魔',   hp: 450000, atk: 8500,  def: 1800, matk: 11500, mdef: 2300, xp: 50000,  stone: [30000,45000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.1, finalBoss: true, finalHitPct: 0.09, finalDoubleChance: 0.16, finalSkill: '蚀魂魔焰' },
-  mojun:           { id:'mojun',           name:'上古魔君',   hp: 750000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, finalBoss: true, noEscape: true, finalHitPct: 0.10, finalDoubleChance: 0.18, finalSkill: '太古魔威' },
+  mojun:           { id:'mojun',           name:'上古魔君',   hp: 650000, atk: 12500, def: 2700, matk: 17000, mdef: 3400, xp: 80000,  stone: [50000,70000], drops: [{id:'juqi_pill',chance:1},{id:'lieyangshi',chance:1},{id:'tiebi',chance:1},{id:'jiuzhuan_pill',chance:1}], boss: true, power: 1.3, finalBoss: true, noEscape: true, finalHitPct: 0.07, finalDoubleChance: 0.12, finalSkill: '太古魔威' },
   honghuang_shou:  { id:'honghuang_shou',  name:'洪荒祖兽',   hp: 1200000,atk: 16500, def: 3600, matk: 22000, mdef: 4500, xp: 120000, stone: [90000,130000], drops: [{id:'lieyangshi',chance:1},{id:'juqi_pill',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 1.5, finalBoss: true, finalHitPct: 0.11, finalDoubleChance: 0.20, finalSkill: '洪荒践踏' },
   tian_dao:        { id:'tian_dao',        name:'天道化身',   hp: 1800000,atk: 22000, def: 4800, matk: 30000, mdef: 6000, xp: 180000, stone: [140000,200000], drops: [{id:'hanbingxue',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1}], boss: true, power: 1.8, finalBoss: true, finalHitPct: 0.12, finalDoubleChance: 0.22, finalSkill: '天罚湮灭' },
   chaos_yuanling:  { id:'chaos_yuanling',  name:'混沌元灵',   hp: 2600000,atk: 30000, def: 6500, matk: 41000, mdef: 8200, xp: 260000, stone: [210000,300000], drops: [{id:'lieyangshi',chance:1},{id:'jiuzhuan_pill',chance:1},{id:'tiebi',chance:1},{id:'dahuan_pill',chance:1}], boss: true, power: 2.1, finalBoss: true, finalHitPct: 0.14, finalDoubleChance: 0.25, finalSkill: '归墟终焉' },
@@ -1126,8 +1144,7 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 20 + Math.floor(Math.random() * 15);
       addXp(s, gain);
-      const vital = restoreCaveCultivationVital(s);
-      setNodeText(`修炼完毕，你感到体内灵气又充盈了几分。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
+      setNodeText('修炼完毕，你感到体内灵气又充盈了几分。' + '（+' + gain + '修为）');
     },
     choices: [
       { label: '继续修炼', next: 'outer_cultivate_2' },
@@ -1141,8 +1158,7 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 25 + Math.floor(Math.random() * 20);
       addXp(s, gain);
-      const vital = restoreCaveCultivationVital(s);
-      setNodeText(`这一次修炼比上次更有进益。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
+      setNodeText('这一次修炼比上次更有进益。' + '（+' + gain + '修为）');
     },
     choices: [
       { label: '返回', next: 'qingyun_gate' },
@@ -1924,8 +1940,7 @@ const STORY_NODES = {
       const base = 80 + Math.floor(Math.random() * 40);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      const vital = restoreCaveCultivationVital(s);
-      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
+      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为）`);
     },
     choices: [
       { label: '继续修炼', next: 'inner_cultivate_2' },
@@ -1940,8 +1955,7 @@ const STORY_NODES = {
       const base = 100 + Math.floor(Math.random() * 60);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      const vital = restoreCaveCultivationVital(s);
-      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为；灵泉回复${vital.hp}气血、${vital.mp}灵力）`);
+      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为）`);
     },
     choices: [
       { label: '返回', next: 'inner_gate' },
@@ -2694,7 +2708,7 @@ const STORY_NODES = {
     title: '洞府',
     dynamicText: (s) => {
       const c = getCaveInfo(s);
-      return `这是你的修行洞府（${c.level}级）。灵田 ${c.plots.length}/${c.maxPlots} 块，灵泉 ${c.springLevel || 0}级。\n洞府等级越高，灵田越多、修炼越快。`;
+      return `这是你的修行洞府（${c.level}级）。灵田 ${c.plots.length}/${c.plots} 块，修炼加成 +${Math.round(c.xpBonus * 100)}%。\n洞府等级越高，灵田越多、修炼越快。`;
     },
     choices: [
       { label: '闭关修炼', next: 'inner_cultivate' },
@@ -2914,6 +2928,7 @@ const STORY_NODES = {
 //   fame  : 名望
 //   item  : { id: '物品ID', count: 数量 }  物品ID见上方 ITEMS 定义
 //   repeatable: true  可重复使用（仅限内部测试码）
+//   optOutLeaderboard: true  使用后自动退出天机榜（归隐，仅此一码有效）
 //
 // 添加新码：复制一行，改 key（兑换码，建议纯大写字母+数字、不含空格）和奖励即可。
 const REDEEM_CODES = {
@@ -2930,6 +2945,8 @@ const REDEEM_CODES = {
     { id: 'tun_tianxuanjia', count: 1 },
     { id: 'tun_xinglongxue', count: 1 },
   ] },
+  // 归隐码：使用后退出天机榜（删除云端记录并停止上传）
+  'GUIYIN': { optOutLeaderboard: true },
 };
 
 // ========== 签到与日常 ==========
