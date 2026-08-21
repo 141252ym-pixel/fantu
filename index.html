@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>凡途修仙 — 文字修仙</title>
   <meta name="creative-medium" content="interactive-prototype" />
-  <link rel="stylesheet" href="styles.css?v=31" />
+  <link rel="stylesheet" href="styles.css?v=32" />
   <link rel="manifest" href="manifest.json?v=9" />
   <meta name="theme-color" content="#46321e" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -297,6 +297,8 @@
           <button class="pet-filter-btn active" data-board="realm" onclick="LB.switchTab('realm')">境界榜</button>
           <button class="pet-filter-btn" data-board="power" onclick="LB.switchTab('power')">战力榜</button>
           <button class="pet-filter-btn" data-board="mijing" onclick="LB.switchTab('mijing')">秘境榜</button>
+          <button class="pet-filter-btn" data-board="fame" onclick="LB.switchTab('fame')">名望榜</button>
+          <button class="pet-filter-btn" data-board="pet" onclick="LB.switchTab('pet')">灵宠榜</button>
         </div>
         <div id="lb-body" class="codex-list lb-list"></div>
         <div id="lb-foot" class="lb-foot"></div>
@@ -429,10 +431,10 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=60"></script>
-  <script src="game-engine.js?v=52"></script>
-  <script src="game-ui.js?v=46"></script>
-  <script src="leaderboard.js?v=6"></script>
+  <script src="game-data.js?v=62"></script>
+  <script src="game-engine.js?v=54"></script>
+  <script src="game-ui.js?v=49"></script>
+  <script src="leaderboard.js?v=8"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
@@ -441,7 +443,7 @@
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=19').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=23').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {

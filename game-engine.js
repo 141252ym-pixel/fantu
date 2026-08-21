@@ -105,6 +105,7 @@ function continueGame() {
   realignRealm(Game.state);
   migrateUpdateVitals(Game.state);
   migrateLegacyTribulationNode(Game.state);
+  if (window.LB) LB.afterStateLoaded();
   goToNode(Game.state.nodeId || 'start');
 }
 
@@ -2310,14 +2311,26 @@ function sellFarmResource(id) {
   autoSave(); UI.updateStats(); UI.updateBag(); return true;
 }
 
+// 同名装备在背包中以数量堆叠，强化等级则绑定到其中唯一的强化件。
+// 强化件未装备时自动保留 1 件，避免出售同名副本时误卖强化装备。
+function getProtectedEquipSellCount(s, id) {
+  const level = (s.equipLevel && s.equipLevel[id]) || 0;
+  if (level <= 0 || !s.bag || (s.bag[id] || 0) <= 0) return 0;
+  const equipped = s.equipment && EQUIP_SLOTS.some(slot => s.equipment[slot] === id);
+  return equipped ? 0 : 1;
+}
+
+function getSellableItemCount(s, id) {
+  return Math.max(0, ((s.bag && s.bag[id]) || 0) - getProtectedEquipSellCount(s, id));
+}
+
 // 出售物品换取灵石
 function sellItem(id) {
   const s = Game.state;
   const item = ITEMS[id];
   if (!item) return false;
-  if (!hasItem(id)) return false;
-  if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
-    UI.showToast('请先卸下装备');
+  if (getSellableItemCount(s, id) <= 0) {
+    UI.showToast((s.equipLevel && s.equipLevel[id]) ? '已强化装备已锁定，无法出售' : '没有可出售的物品');
     return false;
   }
   if (!item.sell || item.sell <= 0) {
@@ -2325,7 +2338,6 @@ function sellItem(id) {
     return false;
   }
   removeItemFromState(s, id, 1);
-  if (s.equipLevel) delete s.equipLevel[id];
   s.stone += item.sell;
   UI.showToast(`出售${item.name}，获得${item.sell}灵石`);
   autoSave();
@@ -2337,19 +2349,14 @@ function sellItem(id) {
 function sellItemBatch(id) {
     const s = Game.state;
     const item = ITEMS[id];
-    const count = s.bag[id] || 0;
+    const count = getSellableItemCount(s, id);
     if (!item || count <= 0) return false;
-    if (EQUIP_SLOTS.some(slot => s.equipment[slot] === id)) {
-        UI.showToast('已装备的物品无法出售');
-        return false;
-    }
     if (!item.sell || item.sell <= 0) {
         UI.showToast('该物品无法出售');
         return false;
     }
 
     removeItemFromState(s, id, count);
-    if (s.equipLevel) delete s.equipLevel[id];
     const gain = item.sell * count;
     s.stone += gain;
     UI.showToast(`批量出售${item.name}×${count}，获得${gain}灵石`);
@@ -3544,7 +3551,7 @@ function redeemCode(code) {
   }
   if (reward.excludeFromRanking) {
     s.excludeFromRanking = true;
-    if (window.LB) LB.optOut();
+    if (window.LB) LB.excludeCurrentSave();
     parts.push('当前存档已退出所有排行榜');
   }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }

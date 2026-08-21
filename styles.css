@@ -321,6 +321,46 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: 13px;
   padding: 4px 0;
 }
+
+/* ========== 灵田种植面板 ========== */
+.farm-plant-panel {
+  margin: 4px 0 2px;
+  padding: 12px;
+  border: 1px solid #a88b52;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(222, 193, 112, 0.22), transparent 34%),
+    linear-gradient(145deg, #fff8e4, #efe0b8);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.78), 0 2px 7px rgba(92, 58, 26, 0.13);
+}
+.farm-panel-title { display: flex; justify-content: space-between; align-items: baseline; color: #60441f; font-size: 15px; font-weight: 700; letter-spacing: 1px; margin-bottom: 9px; }
+.farm-panel-title em { font-size: 11px; color: #9a7c45; font-style: normal; font-weight: 400; letter-spacing: 0; }
+.farm-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.farm-select-card { min-width: 0; padding: 8px; border: 1px solid rgba(139, 107, 61, 0.5); border-radius: 8px; background: rgba(255,255,255,0.48); display: flex; flex-direction: column; gap: 4px; }
+.farm-crop-card { border-color: #88a85c; }
+.farm-fert-card { border-color: #b79358; }
+.farm-select-label { color: #806638; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.farm-select-card select {
+  width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #3f301b;
+  font: inherit; font-size: 14px; font-weight: 700; padding: 1px 18px 1px 0; cursor: pointer;
+}
+.farm-select-meta { min-height: 30px; color: #8a7248; font-size: 11px; line-height: 1.4; }
+.farm-count-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 9px; border-top: 1px dashed rgba(139, 107, 61, 0.38); }
+.farm-stepper { display: flex; align-items: center; border: 1px solid #a88b52; border-radius: 7px; overflow: hidden; background: #fffaf0; }
+.farm-step-btn { width: 30px; height: 28px; border: 0; background: #ead5a1; color: #65471e; font: inherit; font-size: 17px; cursor: pointer; }
+.farm-step-btn:active { background: #d8ba76; }
+.farm-stepper input { width: 36px; height: 28px; border: 0; outline: 0; background: transparent; color: #493519; font: inherit; text-align: center; }
+.farm-stepper input::-webkit-outer-spin-button, .farm-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.farm-empty-count { margin-left: auto; color: #8a7248; font-size: 11px; white-space: nowrap; }
+.farm-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 2px 0 8px; }
+.farm-action-grid .ink-btn { padding: 9px 7px; font-size: 12px; }
+.farm-action-grid .ink-btn:first-child { background: linear-gradient(180deg, #e3f0c9, #b8d17d); border-color: #6e9140; color: #3d5a20; }
+@media (max-width: 380px) {
+  .farm-select-grid { grid-template-columns: 1fr; }
+  .farm-select-meta { min-height: auto; }
+  .farm-count-row { flex-wrap: wrap; }
+  .farm-empty-count { margin-left: 0; }
+}
 .gacha-rate { font-weight: 600; letter-spacing: 1px; }
 .gacha-overlay {
   position: fixed;

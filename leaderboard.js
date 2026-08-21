@@ -19,6 +19,8 @@ const LB = {
     { id: 'realm', name: '境界榜', hint: '以转世次数、境界、修为论道' },
     { id: 'power', name: '战力榜', hint: '以物攻法攻物抗法抗穿透之和论道' },
     { id: 'mijing', name: '秘境榜', hint: '以试炼秘境最高层数论道' },
+    { id: 'fame', name: '名望榜', hint: '以名望高低论道', local: true },
+    { id: 'pet', name: '灵宠榜', hint: '以出战灵宠星级、等级论道', local: true },
   ],
 
   SUBMIT_INTERVAL: 60000, // 本地上传节流（服务端另有 20 秒硬限制）
@@ -71,6 +73,10 @@ const LB = {
 
   getNick() { return this.ls('fantu_lb_nick') || ''; },
   isOptOut() { return this.ls('fantu_lb_optout') === '1'; },
+  isTestExcluded() {
+    try { return !!(typeof Game !== 'undefined' && Game.state && Game.state.excludeFromRanking); }
+    catch (e) { return false; }
+  },
 
   // 取榜单名：玩家没手动改名时，沿用当前道号作为默认名，并固化下来避免每次重算
   resolveNick() {
@@ -215,6 +221,37 @@ const LB = {
     }).catch(() => { /* 联网失败下次启动重试 */ });
   },
 
+  // 策划测试档：仅删除当前玩家的云端成绩，不写浏览器级「归隐」标记。
+  // 这样读回普通存档后可正常重新参与天机榜，测试档本身仍可浏览所有榜单。
+  excludeCurrentSave() {
+    const pid = getPlayerId();
+    const secret = this.ls('fantu_lb_secret') || '';
+    this.lsDel('fantu_lb_pending');
+    this._lastSig = '';
+    this.ls('fantu_lb_test_exclude_pending', '1');
+    if (!this.configured()) return;
+    this.rpc('fantu_optout', { p_pid: pid, p_secret: secret }).then(res => {
+      if (res && res.ok) {
+        this.lsDel('fantu_lb_secret');
+        this.lsDel('fantu_lb_test_exclude_pending');
+        this.ls('fantu_lb_test_excluded_pid', pid);
+      }
+    }).catch(() => {});
+  },
+
+  // 读档后重新按“当前存档”判断资格，兼容旧版测试码遗留的浏览器级归隐标记。
+  afterStateLoaded() {
+    if (this.isTestExcluded()) {
+      this.lsDel('fantu_lb_optout');
+      this.lsDel('fantu_lb_pending');
+      if (this.ls('fantu_lb_test_exclude_pending') === '1' || this.ls('fantu_lb_test_excluded_pid') !== getPlayerId()) {
+        this.excludeCurrentSave();
+      }
+      return;
+    }
+    if (!this.isOptOut()) { this.onSave(); this.flushPending(); }
+  },
+
   // ---------- 界面 ----------
   open() {
     const el = document.getElementById('lb-overlay');
@@ -250,6 +287,12 @@ const LB = {
     const foot = document.getElementById('lb-foot');
     if (!body) return;
 
+    const boardConf = this.BOARDS.find(x => x.id === this._board);
+    if (boardConf && boardConf.local) {
+      this.renderLocalBoard(this._board);
+      return;
+    }
+
     if (!this.configured()) {
       body.innerHTML = '<div class="lb-hint">天机榜尚未开启，请稍候。</div>';
       if (foot) foot.innerHTML = '';
@@ -279,9 +322,10 @@ const LB = {
     const body = document.getElementById('lb-body');
     const foot = document.getElementById('lb-foot');
     const board = this._board;
-    const list = res.top || [];
-    const me = res.me || null;
     const myPid = getPlayerId();
+    const testExcluded = this.isTestExcluded();
+    const list = (res.top || []).filter(row => !testExcluded || row.player_id !== myPid);
+    const me = testExcluded ? null : (res.me || null);
 
     if (!list.length) {
       body.innerHTML = '<div class="lb-hint">榜上无名，此刻天下修士皆未登榜。<br>你可以做第一个。</div>';
@@ -314,6 +358,10 @@ const LB = {
     }
 
     if (!foot) return;
+    if (this.isTestExcluded()) {
+      foot.innerHTML = '<span class="lb-foot-txt">策划测试存档不参与排行，可正常查看天机榜</span>';
+      return;
+    }
     if (this.isOptOut()) {
       foot.innerHTML = '<span class="lb-foot-txt">你已归隐山林，不在天机榜之列</span>';
       return;
@@ -327,6 +375,49 @@ const LB = {
       foot.innerHTML = '<span class="lb-foot-txt">共 ' + total + ' 位道友在榜 · 你的成绩正在同步</span>' +
         '<button class="ink-btn" onclick="LB.openNick()">改名</button>';
     }
+  },
+
+  renderLocalBoard(board) {
+    const body = document.getElementById('lb-body');
+    const foot = document.getElementById('lb-foot');
+    if (!body) return;
+    const s = (typeof Game !== 'undefined') && Game.state;
+    const excluded = this.isTestExcluded();
+    let list = [];
+    let mine = null;
+    if (board === 'fame') {
+      list = FAME_LADDER.map(e => ({ name: e.name, score: e.fame, sub: '名望' }));
+      if (!excluded && s) {
+        mine = { name: s.name + '（你）', score: s.fame || 0, sub: '名望', me: true };
+        list.push(mine);
+        list.sort((a, b) => b.score - a.score);
+        const rank = list.findIndex(e => e.me) + 1;
+        const earned = grantFameRankingTitle(s, rank);
+        if (earned.length) { saveGame(0); UI.showToast(`名望榜称号达成：${earned.join('、')}`); }
+      }
+    } else {
+      list = PET_LADDER.map(e => ({ name: e.name, petId: e.petId, star: e.star, level: e.level }));
+      if (!excluded && s) {
+        const pet = getEquippedPet(s);
+        if (pet && PETS[pet.id]) {
+          mine = { name: s.name + '（你）', petId: pet.id, star: pet.star || 1, level: pet.level || 1, me: true };
+          list.push(mine);
+        }
+      }
+      list.sort((a, b) => b.star - a.star || b.level - a.level);
+    }
+    if (board === 'fame') list.sort((a, b) => b.score - a.score);
+    body.innerHTML = list.map((row, i) => {
+      const rank = i + 1;
+      const rankCls = rank <= 3 ? ' lb-rank-' + rank : '';
+      const main = board === 'fame' ? this.fmt(row.score) + ' 名望' : `${PETS[row.petId].icon}${PETS[row.petId].name} ★${row.star}`;
+      const sub = board === 'fame' ? row.sub : `${row.level}级`;
+      return '<div class="lb-row' + (row.me ? ' lb-me' : '') + '"><span class="lb-rank' + rankCls + '">' + rank + '</span><span class="lb-name">' + this.esc(row.name) + '</span><span class="lb-score">' + this.esc(main) + '<em class="lb-sub">' + this.esc(sub) + '</em></span></div>';
+    }).join('') || '<div class="lb-hint">榜上暂未有可展示的灵宠。</div>';
+    if (!foot) return;
+    if (excluded) foot.innerHTML = '<span class="lb-foot-txt">策划测试存档不参与排行，可正常查看天机榜</span>';
+    else if (mine) foot.innerHTML = '<span class="lb-foot-txt">你的名次 <b class="lb-myrank">#' + (list.findIndex(e => e.me) + 1) + '</b> / 共 ' + list.length + ' 位道友</span>';
+    else foot.innerHTML = '<span class="lb-foot-txt">出战灵宠后即可参与灵宠榜</span>';
   },
 
   // ---------- 登榜昵称（自定义弹窗，不用原生 prompt） ----------
@@ -370,6 +461,7 @@ const LB = {
   // ---------- 启动 ----------
   init() {
     if (!this.configured()) return;
+    if (this.isTestExcluded()) return;
     if (this.isOptOut()) {
       // 已归隐：若上次云端删除没成功，用保留的凭证重试一次
       const secret = this.ls('fantu_lb_secret');

@@ -473,18 +473,59 @@ const UI = {
     }
 
     const controls = document.createElement('div');
-    controls.className = 'gacha-info';
-    controls.innerHTML = `<select id="farm-crop-select">${Object.values(FARM_CROPS).map(h => `<option value="${h.id}">${h.icon}${h.name}·${Math.round(h.growMs / 60000)}分钟·${h.desc}</option>`).join('')}</select><select id="farm-fert-select"><option value="">不施肥</option>${Object.values(ITEMS).filter(x => x.fertilizer).map(x => `<option value="${x.id}">${x.icon}${x.name}（${x.desc}）</option>`).join('')}</select><input id="farm-plant-count" type="number" min="1" value="1" inputmode="numeric">`;
+    controls.className = 'farm-plant-panel';
+    controls.innerHTML = `
+      <div class="farm-panel-title"><span>🌱 灵田布置</span><em>选择种子与肥料</em></div>
+      <div class="farm-select-grid">
+        <label class="farm-select-card farm-crop-card">
+          <span class="farm-select-label">准备种植</span>
+          <select id="farm-crop-select">${Object.values(FARM_CROPS).map(h => `<option value="${h.id}">${h.icon} ${h.name}</option>`).join('')}</select>
+          <span id="farm-crop-meta" class="farm-select-meta"></span>
+        </label>
+        <label class="farm-select-card farm-fert-card">
+          <span class="farm-select-label">施用肥料</span>
+          <select id="farm-fert-select"><option value="">✨ 不施肥</option>${Object.values(ITEMS).filter(x => x.fertilizer).map(x => `<option value="${x.id}">${x.icon} ${x.name}</option>`).join('')}</select>
+          <span id="farm-fert-meta" class="farm-select-meta"></span>
+        </label>
+      </div>
+      <div class="farm-count-row">
+        <span class="farm-select-label">种植数量</span>
+        <div class="farm-stepper">
+          <button type="button" class="farm-step-btn" data-farm-step="-1">−</button>
+          <input id="farm-plant-count" type="number" min="1" value="1" inputmode="numeric">
+          <button type="button" class="farm-step-btn" data-farm-step="1">＋</button>
+        </div>
+        <span class="farm-empty-count">空闲田地 ${Math.max(0, c.maxPlots - c.plots.length)} 块</span>
+      </div>`;
     el.appendChild(controls);
+    const cropSelect = document.getElementById('farm-crop-select');
+    const fertSelect = document.getElementById('farm-fert-select');
+    const plantCount = document.getElementById('farm-plant-count');
+    const refreshPlantMeta = () => {
+      const crop = FARM_CROPS[cropSelect.value];
+      const fert = fertSelect.value ? ITEMS[fertSelect.value] : null;
+      document.getElementById('farm-crop-meta').textContent = `${Math.round(crop.growMs / 60000)}分钟成熟 · 持有种子 ${s.bag[crop.seedItem] || 0} 枚`;
+      document.getElementById('farm-fert-meta').textContent = fert ? `${fert.desc} · 持有 ${s.bag[fert.id] || 0} 份` : '不消耗肥料，按基础时间生长';
+    };
+    cropSelect.addEventListener('change', refreshPlantMeta);
+    fertSelect.addEventListener('change', refreshPlantMeta);
+    controls.querySelectorAll('[data-farm-step]').forEach(btn => btn.addEventListener('click', () => {
+      const max = Math.max(1, c.maxPlots - c.plots.length);
+      plantCount.value = Math.max(1, Math.min(max, (Number(plantCount.value) || 1) + Number(btn.dataset.farmStep)));
+    }));
+    plantCount.addEventListener('change', () => { plantCount.value = Math.max(1, Math.min(Math.max(1, c.maxPlots - c.plots.length), Math.floor(Number(plantCount.value) || 1))); });
+    refreshPlantMeta();
     const cropAction = (all) => {
-      const crop = document.getElementById('farm-crop-select').value;
-      const fert = document.getElementById('farm-fert-select').value || null;
-      const asked = all ? c.maxPlots - c.plots.length : Number(document.getElementById('farm-plant-count').value);
+      const crop = cropSelect.value;
+      const fert = fertSelect.value || null;
+      const asked = all ? c.maxPlots - c.plots.length : Number(plantCount.value);
       const r = plantCrop(s, crop, fert, asked); UI.showToast(r.msg); UI.renderCave(); UI.updateStats();
     };
-    [['🌱 种植', false], ['🌱 批量种满空田', true], ['🌾 一键收获', 'harvest'], ['🔁 按上次配置补种', 'last'], ['🧺 一键施肥', 'fertilize']].forEach(([label, mode]) => {
+    const actionGrid = document.createElement('div'); actionGrid.className = 'farm-action-grid'; el.appendChild(actionGrid);
+    [['🌱 开始种植', false], ['🌱 种满空田', true], ['🌾 一键收获', 'harvest'], ['🔁 按上次配置补种', 'last'], ['🧺 一键施肥', 'fertilize']].forEach(([label, mode]) => {
       const btn = document.createElement('button'); btn.className = 'ink-btn'; btn.textContent = label;
       btn.addEventListener('click', () => { const r = mode === 'harvest' ? harvestAllCrops(s) : mode === 'last' ? plantLastCrop(s) : mode === 'fertilize' ? fertilizeAllCrops(s, document.getElementById('farm-fert-select').value) : cropAction(mode); if (r) UI.showToast(r.msg); UI.renderCave(); UI.updateStats(); }); el.appendChild(btn);
+      actionGrid.appendChild(btn);
     });
 
     const shopTitle = document.createElement('div'); shopTitle.className = 'gacha-pity'; shopTitle.textContent = '灵田商店（每种种子每日限购100个；输入数量后购买）'; el.appendChild(shopTitle);
@@ -2174,6 +2215,8 @@ const UI = {
     items.forEach(item => {
       const equipped = item._equipped === true;
       const lv = (s.equipLevel && s.equipLevel[item.id]) || 0;
+      const sellableCount = equipped ? 0 : getSellableItemCount(s, item.id);
+      const protectedCount = equipped ? 0 : getProtectedEquipSellCount(s, item.id);
       const enhance = getEquipEnhanceSummary(s, item);
       const usable = !!getItemSlot(item) || item.type === 'pill'
         || !!((item.type === 'material' || item.type === 'misc') && item.effect);
@@ -2190,6 +2233,7 @@ const UI = {
         <div class="item-info">
           <div class="item-name"${nameStyle}>${item.name}${equipped ? '〔已装备〕' : ''}${equipped && lv > 0 ? ` +${lv}` : ''}</div>
           <div class="item-desc">${item.desc}${item.sell ? ` · 售价${item.sell}灵石` : ''}</div>
+          ${protectedCount ? `<div class="item-desc">其中 1 件 +${lv} 已锁定；出售会自动保留</div>` : ''}
           ${enhance ? `<div class="item-desc">强化基础${({ atk: '物攻', matk: '法攻', def: '物抗', mdef: '法抗', pen: '穿透' })[enhance.prefix]}：${enhance.base} → ${enhance.total}（+${enhance.level}/100；百分比词条固定）</div>` : ''}
         </div>
         <div class="item-count">${equipped ? '' : `×${item.count}`}</div>
@@ -2270,7 +2314,7 @@ const UI = {
       const sellBtn = document.createElement('button');
       sellBtn.className = 'item-sell';
       sellBtn.textContent = '出售';
-      if (!item.sell || item.sell <= 0 || equipped) {
+      if (!item.sell || item.sell <= 0 || equipped || sellableCount <= 0) {
         sellBtn.disabled = true;
         sellBtn.style.opacity = '0.4';
       }
@@ -2284,13 +2328,13 @@ const UI = {
             });
             actions.appendChild(sellBtn);
 
-            if (!equipped && item.sell > 0 && item.count > 1) {
+            if (!equipped && item.sell > 0 && sellableCount > 1) {
                 const sellAllBtn = document.createElement('button');
                 sellAllBtn.className = 'item-sell';
-                sellAllBtn.textContent = `全部出售×${item.count}`;
+                sellAllBtn.textContent = `全部出售×${sellableCount}`;
                 sellAllBtn.addEventListener('click', () => {
                     playClickSound();
-                    this.openBatchSellConfirm(item, item.count, cat);
+                    this.openBatchSellConfirm(item, sellableCount, cat);
                 });
                 actions.appendChild(sellAllBtn);
             }
@@ -2385,6 +2429,7 @@ const UI = {
     realignRealm(Game.state);
     migrateUpdateVitals(Game.state);
     migrateLegacyTribulationNode(Game.state);
+    if (window.LB) LB.afterStateLoaded();
     goToNode(Game.state.nodeId || 'start');
     this.showToast('读档成功');
     this.closeSidePanel();
@@ -2458,6 +2503,7 @@ const UI = {
     realignRealm(Game.state);
     migrateUpdateVitals(Game.state);
     migrateLegacyTribulationNode(Game.state);
+    if (window.LB) LB.afterStateLoaded();
     autoSave();
     goToNode(Game.state.nodeId || 'start');
     document.getElementById('import-box').classList.add('hidden');
