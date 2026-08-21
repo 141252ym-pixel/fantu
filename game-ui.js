@@ -1940,7 +1940,8 @@ const UI = {
     const atkShow = atkBoost > 0 ? Math.round(s.atk * (1 + atkBoost)) : Math.round(s.atk);
     const atkLabel = atkBoost > 0 ? `（+${Math.round(atkBoost * 100)}%）` : '';
     const critRate = Math.round(getCritRate(s) * 100);
-    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b> · 暴击 <b>${critRate}%</b>`;
+    const mcritRate = Math.round(getMCritRate(s) * 100);
+    this.els.battlePlayerStats.innerHTML = `物攻 <b>${atkShow}${atkLabel}</b> · 法攻 <b>${Math.round(s.matk)}</b> · 物抗 <b>${Math.round(s.def)}</b> · 法抗 <b>${Math.round(s.mdef)}</b> · 物暴 <b>${critRate}%</b> · 法暴 <b>${mcritRate}%</b>`;
     this.els.battleEnemyStats.innerHTML = `物攻 <b>${Math.round(e.atk)}</b> · 法攻 <b>${Math.round(e.matk)}</b> · 物抗 <b>${Math.round(e.def)}</b> · 法抗 <b>${Math.round(e.mdef)}</b>`;
     // Boss 挑战推荐（天劫按百分比结算，不给攻防建议）
     if (e.boss && !e.untouchable) {
