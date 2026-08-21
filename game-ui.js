@@ -2189,7 +2189,7 @@ const UI = {
     const s = Game.state;
     if (!s) return;
     let items = [];
-    // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化
+    // 已装备的武器/防具不在背包里，单独列在最前，方便查看/卸下/强化。
     for (const slot of EQUIP_SLOTS) {
       const eqId = s.equipment && s.equipment[slot];
       if (eqId && ITEMS[eqId]) {
@@ -2202,9 +2202,7 @@ const UI = {
     for (const id in s.bag) {
       if (s.bag[id] > 0 && ITEMS[id]) {
         const it = ITEMS[id];
-        if (cat === 'all' || it.type === cat) {
-          items.push({ id, ...it, count: s.bag[id] });
-        }
+        if (cat === 'all' || it.type === cat) items.push({ id, ...it, count: s.bag[id] });
       }
     }
     if (items.length === 0) {
@@ -2705,7 +2703,7 @@ UI.openEquipPick = function(slot) {
   _loadoutPickSlot = slot;
   this.els.equipPickTitle.textContent = `选择装备 · ${LOADOUT_SLOT_NAMES[slot] || slot}`;
 
-  // 候选：背包中可装入该槽的 + 其他槽已装备的（可移动过来，排除本槽自身）
+  // 候选：背包中可装入该槽的 + 其他槽已装备的（可移动过来，排除本槽自身）。
   const seen = new Set();
   const candidates = [];
   EQUIP_SLOTS.forEach(sl => {
