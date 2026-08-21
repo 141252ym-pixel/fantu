@@ -1925,6 +1925,74 @@ function starUpPet(petId, preferredUid) {
   return { ok: true, main };
 }
 
+// ---------- 一键升星 / 星级统计 ----------
+// 综合评分：等级 > 技能 > 好感（供自动升星选主宠）
+function petUpgradeScore(p) {
+  return (p.level || 1) * 100 + (p.skillLevel || 0) * 10 + (p.favor || 0);
+}
+
+// 统计各星级灵宠数量：{1: n, 2: m, ...}
+function getPetStarCounts(s) {
+  const counts = {};
+  (s.pets || []).forEach(p => {
+    const st = p.star || 1;
+    counts[st] = (counts[st] || 0) + 1;
+  });
+  return counts;
+}
+
+// 一键升星核心循环：把同名同星 ≥3 只的组合逐组合成，直到无法再升或灵石不足。
+// s 可为真实存档或预览用浅拷贝（不改原对象引用外的状态）；返回 { steps, totalCost, stopped }
+function runAutoStarUp(s) {
+  const steps = [];
+  let totalCost = 0;
+  let guard = 0;
+  while (guard++ < 500) {
+    // 按 (id + star) 分组
+    const groups = {};
+    (s.pets || []).forEach(p => {
+      const key = p.id + ':' + (p.star || 1);
+      (groups[key] = groups[key] || []).push(p);
+    });
+    let group = null;
+    for (const k in groups) { if (groups[k].length >= 3) { group = groups[k]; break; } }
+    if (!group) break;
+    const entry = group[0];
+    const pet = PETS[entry.id];
+    const cost = PET_STAR_COST[pet.quality] || 100;
+    if (s.stone < cost) return { steps, totalCost, stopped: 'no_stone' };
+    // 主宠 = 出战宠（优先保留，绝不吞出战宠）或综合评分最高者；其余两只作素材
+    const equipped = group.find(p => p.uid === s.pet);
+    const byScore = group.slice().sort((a, b) => petUpgradeScore(b) - petUpgradeScore(a));
+    const main = equipped || byScore[0];
+    const consumed = new Set(byScore.filter(p => p.uid !== main.uid).slice(0, 2).map(p => p.uid));
+    s.pets = s.pets.filter(p => !consumed.has(p.uid));
+    s.stone -= cost;
+    const fromStar = entry.star || 1;
+    main.star = fromStar + 1;
+    if (consumed.has(s.pet)) s.pet = main.uid;
+    totalCost += cost;
+    steps.push({ id: entry.id, icon: pet.icon, name: pet.name, quality: pet.quality, fromStar, toStar: main.star, cost });
+  }
+  return { steps, totalCost, stopped: 'done' };
+}
+
+// 一键升星预览：在副本上模拟，不改变真实存档
+function previewAutoStarUp(s) {
+  const sim = { pets: (s.pets || []).map(p => ({ ...p })), stone: s.stone, pet: s.pet };
+  return runAutoStarUp(sim);
+}
+
+// 一键升星：执行并保存
+function autoStarUpPets(s) {
+  const r = runAutoStarUp(s);
+  if (r.steps.length > 0) {
+    autoSave();
+    UI.updateStats();
+  }
+  return r;
+}
+
 // 灵宠战斗助攻：有概率触发技能造成额外伤害
 function petAssist(ownerDamage) {
   const s = Game.state;

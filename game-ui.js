@@ -60,6 +60,9 @@ const UI = {
       petStarChoiceOverlay: document.getElementById('pet-star-choice-overlay'),
       petStarChoiceDesc: document.getElementById('pet-star-choice-desc'),
       petStarChoiceList: document.getElementById('pet-star-choice-list'),
+      petAutoStarOverlay: document.getElementById('pet-auto-star-overlay'),
+      petAutoStarDesc: document.getElementById('pet-auto-star-desc'),
+      petAutoStarList: document.getElementById('pet-auto-star-list'),
       bossLootOverlay: document.getElementById('boss-loot-overlay'),
       bossLootIcon: document.getElementById('boss-loot-icon'),
       bossLootName: document.getElementById('boss-loot-name'),
@@ -1159,6 +1162,17 @@ const UI = {
     let html = `<div class="pet-level" style="color:#e6d3a0;text-align:center">喂养道具：🥩兽粮×${s.bag.shouliang || 0} 💊灵兽丹×${s.bag.lingshou_dan || 0}</div>`;
     html += `<div style="text-align:center;margin:8px 0"><button class="ink-btn" onclick="UI.openPetCodex()">📖 灵宠图鉴</button> <button class="ink-btn" onclick="UI.openGiftCodex()">📖 礼物图鉴</button></div>`;
     html += `<div class="pet-auto-release"><div>自动放生（神品不会自动放生）</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}<button class="ink-btn danger" onclick="UI.releaseSelectedPetQualities()">放生已选品质</button><small>立即放生会保留出战灵宠与神品。</small></div>`;
+    // 星级统计 + 一键升星
+    const starCounts = getPetStarCounts(s);
+    const maxStar = Object.keys(starCounts).length ? Math.max(...Object.keys(starCounts).map(Number)) : 1;
+    const starChips = [];
+    for (let i = 1; i <= maxStar; i++) {
+      if (starCounts[i]) starChips.push(`<span>★${i}星 ×${starCounts[i]}</span>`);
+    }
+    const autoPreview = previewAutoStarUp(s);
+    const canAuto = autoPreview.steps.length > 0;
+    html += `<div class="pet-star-summary">${starChips.length ? starChips.join('') : '暂无灵宠'}</div>`;
+    html += `<div style="text-align:center;margin:6px 0"><button class="ink-btn" ${canAuto ? '' : 'disabled'} onclick="UI.openAutoStarUp()">⚡ 一键升星${canAuto ? `（可升${autoPreview.steps.length}次 · 预计${autoPreview.totalCost}灵石）` : '（暂无组合）'}</button></div>`;
     html += `<div class="pet-filter"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>`;
     if (!s.pets || s.pets.length === 0) html += '<div class="pet-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
     else if (pets.length === 0) html += `<div class="pet-empty">没有「${filter}」品质的灵宠。</div>`;
@@ -1515,6 +1529,43 @@ const UI = {
     const result = starUpPet(pending.petId, mainUid);
     if (!result.ok) { this.showToast(result.plan ? '请重新选择主宠' : result.msg); return; }
     this.renderPetOverlay(); this.renderPetPanel(); this.updateStats();
+  },
+
+  openAutoStarUp() {
+    const r = previewAutoStarUp(Game.state);
+    this._autoStarPreview = r;
+    if (!r.steps.length) { this.showToast('暂无同名同星达 3 只的灵宠可升星'); return; }
+    const agg = {};
+    r.steps.forEach(st => {
+      const key = st.id + ':' + st.fromStar;
+      agg[key] = agg[key] || { icon: st.icon, name: st.name, fromStar: st.fromStar, toStar: st.toStar, count: 0, cost: 0 };
+      agg[key].count++;
+      agg[key].cost += st.cost;
+    });
+    const rows = Object.values(agg).map(it =>
+      `<div class="pet-auto-star-row"><span>${it.icon} ${it.name}</span><span>${it.fromStar}星 → ${it.toStar}星 ×${it.count}</span><span>${it.cost}灵石</span></div>`
+    ).join('');
+    const stoneTip = r.stopped === 'no_stone' ? '<div style="color:#ff8a80;margin-top:8px">⚠️ 灵石不足，仅可完成以上部分。</div>' : '';
+    this.els.petAutoStarDesc.textContent = `将自动完成 ${r.steps.length} 次升星，共消耗 ${r.totalCost} 灵石、${r.steps.length * 2} 只素材灵宠。每组保留培养最优的主宠（出战宠优先保留），其余两只作为素材。`;
+    this.els.petAutoStarList.innerHTML = rows + stoneTip;
+    this.els.petAutoStarOverlay.classList.remove('hidden');
+  },
+
+  confirmAutoStarUp() {
+    this.closeAutoStarUp();
+    const r = autoStarUpPets(Game.state);
+    if (r.steps.length > 0) {
+      this.showToast(`⚡ 一键升星完成：${r.steps.length} 次，消耗 ${r.totalCost} 灵石${r.stopped === 'no_stone' ? '（灵石不足，部分未完成）' : ''}`);
+    } else {
+      this.showToast('灵石不足或暂无组合可升星');
+    }
+    this.renderPetOverlay();
+    this.updateStats();
+  },
+
+  closeAutoStarUp() {
+    this._autoStarPreview = null;
+    this.els.petAutoStarOverlay.classList.add('hidden');
   },
 
   renderSectTransfer() {

@@ -5,10 +5,13 @@
 -- 本脚本可重复执行（幂等），改完再跑一遍即可。
 --
 -- 设计要点：
---   1. 一张表存全部玩家，三个榜只是同一份数据的三种 ORDER BY
+--   1. 一张表存全部玩家，五个榜只是同一份数据的五种 ORDER BY
+--      （境界 / 战力 / 秘境 / 名望 / 灵宠，见 fantu_board 的白名单 CASE）
 --   2. 启用 RLS 且不建任何 policy ⇒ 前端拿着公开 key 也无法直连读写这张表
 --   3. 前端只能调下面三个 SECURITY DEFINER 函数，所有规则由服务端掌握
 --      （等价于 Edge Function 网关的效果，但不需要装 CLI 部署）
+--   4. 脚本可重复执行：新列/约束用 add column/constraint if not exists，
+--      对已存在的线上表同样生效
 -- ============================================================================
 
 
@@ -25,6 +28,10 @@ create table if not exists public.fantu_leaderboard (
   mijing_best   int    not null default 0,                  -- 秘境最高层
   reincarnation int    not null default 0,                  -- 转世次数
   title         text,                                       -- 当前佩戴称号
+  fame          bigint not null default 0,                  -- 名望（名望榜）
+  pet_id        text,                                       -- 出战灵宠 id（无出战灵宠为 NULL，不参与灵宠榜）
+  pet_star      int    not null default 0,                  -- 出战灵宠星级
+  pet_level     int    not null default 0,                  -- 出战灵宠等级
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
@@ -36,16 +43,37 @@ create table if not exists public.fantu_leaderboard (
   constraint ck_lb_power check (power         between 0 and 1000000000000),
   constraint ck_lb_mj    check (mijing_best   between 0 and 1000),
   constraint ck_lb_rein  check (reincarnation between 0 and 9999),
-  constraint ck_lb_title check (title is null or char_length(title) <= 16)
+  constraint ck_lb_title check (title is null or char_length(title) <= 16),
+  constraint ck_lb_fame  check (fame          between 0 and 1000000000000),
+  constraint ck_lb_pet   check (pet_star      between 0 and 20
+                                and pet_level between 0 and 200
+                                and (pet_id is null or char_length(pet_id) <= 20))
 );
 
--- 三个榜各一个覆盖索引
+-- 线上表已存在时，上面的 create table if not exists 不会补列/约束，这里幂等补齐
+alter table public.fantu_leaderboard
+  add column if not exists fame      bigint not null default 0,
+  add column if not exists pet_id    text,
+  add column if not exists pet_star  int    not null default 0,
+  add column if not exists pet_level int    not null default 0;
+
+alter table public.fantu_leaderboard
+  add constraint ck_lb_fame check (fame between 0 and 1000000000000),
+  add constraint ck_lb_pet  check (pet_star between 0 and 20
+                                   and pet_level between 0 and 200
+                                   and (pet_id is null or char_length(pet_id) <= 20));
+
+-- 五个榜各一个覆盖索引
 create index if not exists idx_lb_realm
   on public.fantu_leaderboard (reincarnation desc, realm_index desc, xp desc);
 create index if not exists idx_lb_power
   on public.fantu_leaderboard (power desc, realm_index desc);
 create index if not exists idx_lb_mijing
   on public.fantu_leaderboard (mijing_best desc, realm_index desc);
+create index if not exists idx_lb_fame
+  on public.fantu_leaderboard (fame desc, realm_index desc);
+create index if not exists idx_lb_pet
+  on public.fantu_leaderboard (pet_star desc, pet_level desc, realm_index desc);
 
 
 -- ---------------------------------------------------------------------------
@@ -97,7 +125,11 @@ create or replace function public.fantu_submit(
   p_power  bigint,
   p_mijing int,
   p_rein   int,
-  p_title  text default null
+  p_title  text default null,
+  p_fame     bigint default 0,
+  p_pet_id   text   default null,
+  p_pet_star int    default 0,
+  p_pet_level int   default 0
 )
 returns json
 language plpgsql
@@ -122,7 +154,8 @@ begin
   -- 首次登榜
   if not found then
     insert into public.fantu_leaderboard
-      (player_id, nickname, realm_index, xp, power, mijing_best, reincarnation, title)
+      (player_id, nickname, realm_index, xp, power, mijing_best, reincarnation,
+       title, fame, pet_id, pet_star, pet_level)
     values (
       p_pid,
       v_nick,
@@ -131,7 +164,11 @@ begin
       least(greatest(coalesce(p_power,  0), 0), 1000000000000),
       least(greatest(coalesce(p_mijing, 0), 0), 1000),
       least(greatest(coalesce(p_rein,   0), 0), 9999),
-      v_title
+      v_title,
+      least(greatest(coalesce(p_fame,    0), 0), 1000000000000),
+      nullif(regexp_replace(coalesce(p_pet_id, ''), '[^A-Za-z0-9_]', '', 'g'), ''),
+      least(greatest(coalesce(p_pet_star,  0), 0), 20),
+      least(greatest(coalesce(p_pet_level, 0), 0), 200)
     )
     returning secret into v_sec;
     return json_build_object('ok', true, 'created', true, 'secret', v_sec);
@@ -155,6 +192,10 @@ begin
     mijing_best   = least(greatest(coalesce(p_mijing, 0), 0), 1000),
     reincarnation = least(greatest(coalesce(p_rein,   0), 0), 9999),
     title         = v_title,
+    fame          = least(greatest(coalesce(p_fame,    0), 0), 1000000000000),
+    pet_id        = nullif(regexp_replace(coalesce(p_pet_id, ''), '[^A-Za-z0-9_]', '', 'g'), ''),
+    pet_star      = least(greatest(coalesce(p_pet_star,  0), 0), 20),
+    pet_level     = least(greatest(coalesce(p_pet_level, 0), 0), 200),
     updated_at    = now()
   where player_id = p_pid;
 
@@ -180,15 +221,20 @@ set search_path = public
 as $$
 declare
   v_order text;
+  v_where text;
   v_json  json;
 begin
-  -- 白名单，p_board 只用来选排序表达式，无注入面
+  -- 白名单，p_board 只用来选排序表达式与过滤条件，无注入面
   v_order := case p_board
     when 'realm'  then 'reincarnation desc, realm_index desc, xp desc, updated_at asc'
     when 'power'  then 'power desc, realm_index desc, updated_at asc'
     when 'mijing' then 'mijing_best desc, realm_index desc, updated_at asc'
+    when 'fame'   then 'fame desc, realm_index desc, updated_at asc'
+    when 'pet'    then 'pet_star desc, pet_level desc, realm_index desc, updated_at asc'
     else null
   end;
+  -- 灵宠榜只展示有出战灵宠的玩家；其余榜全部上榜
+  v_where := case when p_board = 'pet' then 'pet_star > 0' else 'true' end;
 
   if v_order is null then
     return json_build_object('ok', false, 'error', 'bad_board');
@@ -197,9 +243,10 @@ begin
   execute format($f$
     with ranked as (
       select player_id, nickname, realm_index, xp, power, mijing_best,
-             reincarnation, title,
+             reincarnation, title, fame, pet_id, pet_star, pet_level,
              row_number() over (order by %s) as rank
       from public.fantu_leaderboard
+      where %s
     )
     select json_build_object(
       'ok',    true,
@@ -210,7 +257,7 @@ begin
       'me',    (select row_to_json(m)
                 from (select * from ranked where player_id = %L) m)
     )
-  $f$, v_order, p_board, coalesce(p_pid, '')) into v_json;
+  $f$, v_order, v_where, p_board, coalesce(p_pid, '')) into v_json;
 
   return v_json;
 end;
@@ -251,11 +298,11 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 7. 只把这三个函数的执行权限开给匿名客户端
 -- ---------------------------------------------------------------------------
-revoke all on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text) from public;
+revoke all on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text,bigint,text,int,int) from public;
 revoke all on function public.fantu_board(text,text) from public;
 revoke all on function public.fantu_optout(text,text) from public;
 
-grant execute on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text) to anon, authenticated;
+grant execute on function public.fantu_submit(text,text,text,int,bigint,bigint,int,int,text,bigint,text,int,int) to anon, authenticated;
 grant execute on function public.fantu_board(text,text) to anon, authenticated;
 grant execute on function public.fantu_optout(text,text) to anon, authenticated;
 

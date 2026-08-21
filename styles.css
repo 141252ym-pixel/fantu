@@ -431,6 +431,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   flex-direction: column;
   gap: 12px;
 }
+.pet-star-summary {
+  text-align: center;
+  margin: 6px 0;
+  font-size: 14px;
+  color: #d4c08a;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+}
+.pet-star-summary span { color: #ffd54f; }
+.pet-auto-star-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  color: #e6d3a0;
+  font-size: 14px;
+}
+.pet-auto-star-row:last-child { border-bottom: none; }
 .announce-item {
   border: 1px solid #8b6b3d;
   border-radius: 8px;
