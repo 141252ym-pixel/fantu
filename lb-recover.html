@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>凡途修仙 · 存档诊断与恢复</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: #14100a; color: #e8dcb8; padding: 16px; min-height: 100vh; }
+  h1 { font-size: 20px; text-align: center; color: #f0c75e; margin-bottom: 6px; }
+  .tip { font-size: 12px; color: #9a8c6c; text-align: center; margin-bottom: 14px; line-height: 1.6; }
+  .pid { text-align: center; font-size: 13px; color: #7fae7f; margin-bottom: 14px; }
+  .card { background: #1e1810; border: 1px solid #3a2f1e; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .card h2 { font-size: 15px; color: #f0c75e; margin-bottom: 8px; }
+  .card h2 .tag { font-size: 11px; color: #7a6a4a; margin-left: 6px; }
+  .row { font-size: 13px; line-height: 1.9; color: #d8caa6; }
+  .row b { color: #fff; }
+  .row .hl { color: #7fae7f; }
+  .empty { color: #7a6a4a; font-size: 13px; }
+  .score { font-size: 12px; color: #9a8c6c; margin-top: 4px; }
+  .btn { display: block; width: 100%; padding: 13px; margin-top: 10px; font-size: 15px; border: none; border-radius: 8px; background: #c8a24a; color: #14100a; font-weight: bold; cursor: pointer; }
+  .btn:disabled { background: #4a3f2a; color: #7a6a4a; cursor: not-allowed; }
+  .btn.green { background: #3f7f4f; color: #fff; }
+  .btn.danger { background: #8a3a2a; color: #fff; }
+  .btn.small { font-size: 13px; padding: 10px; }
+  #msg { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 13px; line-height: 1.7; display: none; white-space: pre-wrap; word-break: break-all; }
+  #msg.ok { display: block; background: #23331f; color: #b8d8a8; border: 1px solid #3a5a35; }
+  #msg.err { display: block; background: #3a2018; color: #e8a888; border: 1px solid #6a3a28; }
+  .hidden { display: none !important; }
+  textarea { width: 100%; height: 90px; margin-top: 10px; background: #14100a; color: #d8caa6; border: 1px solid #3a2f1e; border-radius: 8px; padding: 8px; font-size: 12px; font-family: monospace; }
+</style>
+</head>
+<body>
+  <h1>⚔️ 凡途修仙 · 存档诊断与恢复</h1>
+  <p class="tip">此页面和游戏在同一个站点，能读取你<b>手机上这个浏览器</b>里的游戏存档。<br>所有操作只在你本机完成，<b>不会上传任何数据</b>。</p>
+  <div class="pid" id="pid"></div>
+
+  <div class="card">
+    <h2>📦 当前主档 <span class="tag">fantu_save</span></h2>
+    <div class="row" id="main"></div>
+  </div>
+
+  <div class="card">
+    <h2>🗂️ 自动备份 <span class="tag">fantu_save_bak</span></h2>
+    <div class="row" id="bak"></div>
+    <button class="btn green" id="btn-recover">⬆ 恢复备份到主档</button>
+    <div class="score" id="recover-hint"></div>
+  </div>
+
+  <div class="card">
+    <h2>💾 手动存档槽</h2>
+    <div class="row" id="slots"></div>
+    <button class="btn small" id="btn-save-slot">把当前主档另存为「手动槽1」</button>
+  </div>
+
+  <div class="card">
+    <h2>🔐 导出 / 导入（强烈建议先导出一份）</h2>
+    <button class="btn small" id="btn-export">复制主档内容（粘贴给朋友/作者保管）</button>
+    <textarea id="import-box" placeholder="粘贴要导入的存档 JSON 到此处"></textarea>
+    <button class="btn small" id="btn-import">写入为「主档」</button>
+  </div>
+
+  <div id="msg"></div>
+
+  <script src="game-data.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var K_MAIN = 'fantu_save';
+    var K_BAK = 'fantu_save_bak';
+    var K_UID = 'fantu_uid';
+    var K_PRE = 'fantu_save_pre_recover';
+    var K_SLOT1 = 'fantu_save_1';
+
+    function $(id) { return document.getElementById(id); }
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    function parse(v) { try { return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+
+    function realmName(ri) {
+      ri = Math.max(0, Math.floor(ri || 0));
+      if (typeof REALMS !== 'undefined' && ri < REALMS.length && REALMS[ri]) return REALMS[ri].name;
+      if (ri <= 35) return '境界' + ri;
+      return '仙帝后 ' + (ri - 35) + ' 重';
+    }
+
+    function summarize(s) {
+      if (!s) return null;
+      var ri = Math.max(0, Math.floor(s.realmIndex || 0));
+      return {
+        realmIdx: ri,
+        realm: realmName(ri),
+        xp: Math.floor(s.xp || 0),
+        stone: Math.floor(s.stone || 0),
+        fame: Math.floor(s.fame || 0),
+        eq: Object.keys(s.equipment || {}).filter(function (k) { return s.equipment[k]; }).length,
+        pets: (s.pets || []).length,
+        gongfa: (s.gongfa || []).length,
+        ach: (s.achievements || []).length,
+        savedAt: s.savedAt ? new Date(s.savedAt).toLocaleString() : '（未知）'
+      };
+    }
+    function score(s) {
+      if (!s) return 0;
+      return (s.realmIdx || 0) * 1e9 + Math.min(s.xp || 0, 1e6) * 1e3 + (s.stone || 0) * 10 + (s.fame || 0);
+    }
+    function render(name, elId, s) {
+      var el = $(elId);
+      if (!s) { el.innerHTML = '<span class="empty">（无存档）</span>'; return; }
+      el.innerHTML =
+        '境界：<b>' + s.realm + '</b>（' + s.realmIdx + '）<br>' +
+        '修为：<b>' + s.xp.toLocaleString() + '</b>｜灵石：<b>' + s.stone.toLocaleString() + '</b>｜名望：<b>' + s.fame.toLocaleString() + '</b><br>' +
+        '装备：<b>' + s.eq + '</b> 件｜灵宠：<b>' + s.pets + '</b> 只｜功法：<b>' + s.gongfa + '</b> 本｜成就：<b>' + s.ach + '</b><br>' +
+        '最后保存：<span class="hl">' + s.savedAt + '</span>';
+    }
+
+    function msg(text, ok) {
+      var m = $('msg');
+      m.className = ok ? 'ok' : 'err';
+      m.textContent = text;
+    }
+
+    function refresh() {
+      var uid = lsGet(K_UID);
+      $('pid').textContent = '玩家编号：' + (uid || '（本设备尚未生成）');
+
+      var main = summarize(parse(lsGet(K_MAIN)));
+      var bak = summarize(parse(lsGet(K_BAK)));
+      render('主档', 'main', main);
+      render('备份', 'bak', bak);
+
+      var sm = score(main), sb = score(bak);
+      var hint = $('recover-hint');
+      if (!bak) {
+        $('btn-recover').disabled = true;
+        hint.textContent = '没有备份，无法自动恢复。';
+      } else if (sb > sm) {
+        $('btn-recover').disabled = false;
+        hint.innerHTML = '⚠️ 检测到备份比当前主档进度更高（备份 <span class="hl">境界' + bak.realm + ' / ' + bak.xp.toLocaleString() + '修为</span> vs 主档 境界' + (main ? main.realm : '无') + '）。<b>可以点上方按钮恢复。</b>';
+      } else {
+        $('btn-recover').disabled = true;
+        hint.textContent = '备份不高于当前主档，无需恢复。';
+      }
+
+      var slotsHtml = '';
+      for (var i = 1; i <= 3; i++) {
+        var sv = summarize(parse(lsGet('fantu_save_' + i)));
+        slotsHtml += '槽' + i + '：' + (sv ? '境界' + sv.realm + '｜修为' + sv.xp.toLocaleString() : '（空）') + '<br>';
+      }
+      $('slots').innerHTML = slotsHtml || '<span class="empty">（无）</span>';
+    }
+
+    $('btn-recover').addEventListener('click', function () {
+      var bakRaw = lsGet(K_BAK);
+      var bak = parse(bakRaw);
+      var main = parse(lsGet(K_MAIN));
+      if (!bak) { msg('没有备份可恢复。', false); return; }
+      if (!confirm('确认用备份覆盖当前主档？\n\n备份：境界' + summarize(bak).realm + ' / 修为' + summarize(bak).xp.toLocaleString() + '\n当前主档：' + (main ? '境界' + summarize(main).realm + ' / 修为' + summarize(main).xp.toLocaleString() : '无') + '\n\n覆盖前会自动把当前主档备份到 fantu_save_pre_recover，可反悔。')) return;
+      if (main) lsSet(K_PRE, lsGet(K_MAIN)); // 覆盖前兜底保存当前主档
+      if (!lsSet(K_MAIN, bakRaw)) { msg('写入失败，可能是浏览器存储已满。', false); return; }
+      msg('✅ 已用备份恢复主档！\n请回到游戏页面，刷新即可看到恢复后的存档。\n（若想反悔：点下方导入，粘贴 fantu_save_pre_recover 的内容即可）', true);
+      refresh();
+    });
+
+    $('btn-save-slot').addEventListener('click', function () {
+      var raw = lsGet(K_MAIN);
+      if (!raw) { msg('当前没有主档。', false); return; }
+      if (!lsSet(K_SLOT1, raw)) { msg('写入失败。', false); return; }
+      msg('✅ 已把当前主档另存为「手动槽1」！', true);
+      refresh();
+    });
+
+    $('btn-export').addEventListener('click', function () {
+      var raw = lsGet(K_MAIN);
+      if (!raw) { msg('当前没有主档可导出。', false); return; }
+      var text = 'FANTU-SAVE-EXPORT\nUID=' + (lsGet(K_UID) || '') + '\n' + raw;
+      function fallback() {
+        $('import-box').value = text;
+        $('import-box').select();
+        msg('请长按复制下方文本框中的内容，发给朋友/作者保管。', true);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          msg('✅ 已复制到剪贴板！直接粘贴发给朋友/作者保管即可。', true);
+        }, fallback);
+      } else {
+        fallback();
+      }
+    });
+
+    $('btn-import').addEventListener('click', function () {
+      var text = ($('import-box').value || '').trim();
+      if (!text) { msg('请先粘贴存档内容。', false); return; }
+      var idx = text.indexOf('{');
+      if (idx < 0) { msg('没有找到 JSON 存档。', false); return; }
+      var json = text.slice(idx);
+      var obj = parse(json);
+      if (!obj || typeof obj.xp !== 'number') { msg('不是有效的存档 JSON（缺少 xp 字段）。', false); return; }
+      var pre = lsGet(K_MAIN);
+      if (pre) lsSet(K_PRE, pre);
+      if (!lsSet(K_MAIN, json)) { msg('写入失败，可能是浏览器存储已满。', false); return; }
+      msg('✅ 已写入为「主档」！\n境界' + realmName(obj.realmIndex) + ' / 修为' + Math.floor(obj.xp || 0).toLocaleString() + '\n请回到游戏页面，刷新生效。', true);
+      refresh();
+    });
+
+    refresh();
+  })();
+  </script>
+</body>
+</html>
