@@ -1879,7 +1879,7 @@ function releasePetsByQualities(s, qualities) {
   return { count: released.length, refund };
 }
 
-// 计算升星方案：点击的宠物必参与，额外优先选同名同星中等级最高的两只。
+// 计算升星方案：点击的宠物必参与且默认为主宠，额外优先选同名同星中等级最高的两只作为素材。
 function getStarUpPetPlan(petId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
@@ -1898,17 +1898,21 @@ function getStarUpPetPlan(petId) {
     return { ok: false, msg: `灵石不足（升星需 ${cost} 灵石）` };
   }
   const sources = [entry, ...others.slice(0, 2)];
+  // 主宠 = 玩家点击的那只：保留其技能、天赋、好感与经验，技能概率以它为准
+  // （避免「点击的宠被吞掉」和「升星后技能概率变低」）。
+  // 若素材里有等级更高的宠，需弹窗让玩家确认/改选，防止把培养好的高等级宠误当素材消耗。
   const highestLevel = Math.max(...sources.map(p => p.level || 1));
-  const choices = sources.filter(p => (p.level || 1) === highestLevel);
-  return { ok: true, pet, star, cost, sources, choices, main: choices.length === 1 ? choices[0] : null };
+  const needChoose = (entry.level || 1) < highestLevel;
+  return { ok: true, pet, star, cost, sources, choices: sources, main: entry, needChoose };
 }
 
-// 灵宠升星：保留等级最高的主宠全部数据；最高等级相同则由界面指定主宠。
+// 灵宠升星：主宠 = 玩家点击的那只（保留其全部数据），其余两只作素材；
+// 素材有更高等级时界面会先让玩家确认/改选，preferredUid 仅在弹窗改选时传入。
 function starUpPet(petId, preferredUid) {
   const s = Game.state;
   const plan = getStarUpPetPlan(petId);
   if (!plan.ok) { UI.showToast(plan.msg); return plan; }
-  const main = preferredUid ? plan.choices.find(p => p.uid === preferredUid) : plan.main;
+  const main = preferredUid ? plan.sources.find(p => p.uid === preferredUid) : plan.main;
   if (!main) return { ok: false, needsChoice: true, plan };
   const consumedIds = new Set(plan.sources.filter(p => p.uid !== main.uid).map(p => p.uid));
   s.pets = s.pets.filter(p => !consumedIds.has(p.uid));

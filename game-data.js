@@ -2,6 +2,16 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v50',
+    date: '2026-08-21',
+    title: '灵泉回复修复 · 灵宠升星不再吞宠',
+    items: [
+      '修复灵泉回复不生效：此前修炼流程缺失灵泉的气血/灵力恢复调用，现每次修炼均按灵泉等级恢复气血与灵力（7 级灵泉每次修炼回复 12%）',
+      '灵宠升星不再吞掉培养宠：主宠固定为玩家点击的那只，其技能、天赋、好感与经验完整保留，升星后技能概率不再降低',
+      '升星时若素材中存在更高等级的灵宠，会弹出选择确认，防止误把培养好的高等级灵宠当素材消耗',
+    ],
+  },
+  {
     version: 'v49',
     date: '2026-08-21',
     title: '洞府与灵宠修复 · 排行榜补全',
@@ -1242,7 +1252,9 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 20 + Math.floor(Math.random() * 15);
       addXp(s, gain);
-      setNodeText('修炼完毕，你感到体内灵气又充盈了几分。' + '（+' + gain + '修为）');
+      const heal = restoreCaveCultivationVital(s);
+      const healStr = heal.pct > 0 ? `（灵泉润体，回复${Math.round(heal.pct * 100)}%气血与灵力）` : '';
+      setNodeText('修炼完毕，你感到体内灵气又充盈了几分。' + '（+' + gain + '修为）' + healStr);
     },
     choices: [
       { label: '继续修炼', next: 'outer_cultivate_2' },
@@ -1256,7 +1268,9 @@ const STORY_NODES = {
     onEnter: (s) => {
       const gain = 25 + Math.floor(Math.random() * 20);
       addXp(s, gain);
-      setNodeText('这一次修炼比上次更有进益。' + '（+' + gain + '修为）');
+      const heal = restoreCaveCultivationVital(s);
+      const healStr = heal.pct > 0 ? `（灵泉润体，回复${Math.round(heal.pct * 100)}%气血与灵力）` : '';
+      setNodeText('这一次修炼比上次更有进益。' + '（+' + gain + '修为）' + healStr);
     },
     choices: [
       { label: '返回', next: 'qingyun_gate' },
@@ -2038,7 +2052,9 @@ const STORY_NODES = {
       const base = 80 + Math.floor(Math.random() * 40);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为）`);
+      const heal = restoreCaveCultivationVital(s);
+      const healStr = heal.pct > 0 ? `（灵泉润体，回复${Math.round(heal.pct * 100)}%气血与灵力）` : '';
+      setNodeText(`修炼完毕，你感到体内灵气暴涨。（+${gain}修为）${healStr}`);
     },
     choices: [
       { label: '继续修炼', next: 'inner_cultivate_2' },
@@ -2053,7 +2069,9 @@ const STORY_NODES = {
       const base = 100 + Math.floor(Math.random() * 60);
       const gain = Math.floor(base * (1 + getCaveXpBonus(s)));
       addXp(s, gain);
-      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为）`);
+      const heal = restoreCaveCultivationVital(s);
+      const healStr = heal.pct > 0 ? `（灵泉润体，回复${Math.round(heal.pct * 100)}%气血与灵力）` : '';
+      setNodeText(`你周身灵气愈发醇厚。（+${gain}修为）${healStr}`);
     },
     choices: [
       { label: '返回', next: 'inner_gate' },

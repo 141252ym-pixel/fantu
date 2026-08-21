@@ -1481,21 +1481,22 @@ const UI = {
   starUpPetFromPanel(id) {
     const plan = getStarUpPetPlan(id);
     if (!plan.ok) { this.showToast(plan.msg); return; }
-    if (plan.choices.length > 1) return this.openPetStarChoice(id, plan);
+    if (plan.needChoose) return this.openPetStarChoice(id, plan);
     const result = starUpPet(id, plan.main.uid);
     if (result.ok) { this.renderPetOverlay(); this.renderPetPanel(); this.updateStats(); }
   },
 
   openPetStarChoice(petId, plan) {
-    this.pendingPetStar = { petId, choices: plan.choices.map(p => p.uid) };
-    this.els.petStarChoiceDesc.textContent = `三只${plan.pet.name}将合成为${plan.star + 1}星。它们同为${plan.choices[0].level || 1}级，请选择保留哪只的技能、神品天赋、好感与经验。`;
+    this.pendingPetStar = { petId, choices: plan.sources.map(p => p.uid) };
+    this.els.petStarChoiceDesc.textContent = `${plan.pet.name}升为${plan.star + 1}星需消耗 3 只同名${plan.star}星灵宠。你点击的是${plan.main.level || 1}级宠，素材中有等级更高的，请确认保留哪只（其技能、天赋、好感与经验随之保留）。`;
     this.els.petStarChoiceList.innerHTML = '';
-    plan.choices.forEach(entry => {
+    plan.sources.forEach(entry => {
       const pet = PETS[entry.id];
       const trait = getPetTrait(entry);
+      const isClicked = entry.uid === plan.main.uid;
       const btn = document.createElement('button');
       btn.className = 'ink-btn';
-      btn.textContent = `${pet.icon} 保留此宠：${entry.level || 1}级 · ${getPetStage(entry)}阶 · 技能${entry.skillLevel || 0}级${trait ? ` · 天赋【${trait.name}】` : ''}`;
+      btn.textContent = `${pet.icon} 保留此宠${isClicked ? '（你点击的，推荐）' : ''}：${entry.level || 1}级 · ${getPetStage(entry)}阶 · 技能${entry.skillLevel || 0}级${trait ? ` · 天赋【${trait.name}】` : ''}`;
       btn.addEventListener('click', () => this.confirmPetStarChoice(entry.uid));
       this.els.petStarChoiceList.appendChild(btn);
     });
