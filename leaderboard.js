@@ -72,10 +72,14 @@ const LB = {
   },
 
   boardHonor(board, rank) {
-    if (board !== 'fame') return '';
-    if (rank === 1) return '\u58f0\u540d\u9707\u5bf0\u5b87';
-    if (rank === 2 || rank === 3) return '\u540d\u626c\u5929\u4e0b\u60ca';
-    return '';
+    const honors = {
+      realm: ['\u4e07\u5883\u9053\u9b41', '\u767b\u4ed9\u4e9a\u5c0a', '\u95ee\u9053\u5b63\u541b'],
+      power: ['\u6597\u6218\u65e0\u53cc', '\u7834\u519b\u4e9a\u5c0a', '\u9547\u5cb3\u5b63\u541b'],
+      mijing: ['\u79d8\u5883\u9b41\u9996', '\u8e0f\u6e0a\u4e9a\u5c0a', '\u63a2\u5e7d\u5b63\u541b'],
+      fame: ['\u58f0\u540d\u9707\u5bf0\u5b87', '\u540d\u626c\u5929\u4e0b\u60ca', '\u540d\u626c\u5929\u4e0b\u60ca'],
+      pet: ['\u4e07\u7075\u4e4b\u4e3b', '\u5fa1\u7075\u4e9a\u5c0a', '\u7075\u5ba0\u5b63\u541b'],
+    };
+    return honors[board] ? (honors[board][rank - 1] || '') : '';
   },
 
   getNick() { return this.ls('fantu_lb_nick') || ''; },
