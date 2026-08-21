@@ -2062,7 +2062,7 @@ function playerCastGongfa(id) {
     s.hp -= hpCost;
     Game.battle.attackBoost = Math.max(Game.battle.attackBoost || 0, combat.boost);
     Game.battle.attackBoostTurns = Math.max(Game.battle.attackBoostTurns || 0, combat.turns + 1);
-    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，攻击提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
+    logBattle(`【${g.name}】燃去 ${hpCost} 点气血，物攻、法攻均提高 ${Math.round(combat.boost * 100)}%，持续 ${combat.turns} 回合！`, 'player');
   } else if (combat.kind === 'blood_strike') {
     const hpCost = Math.max(1, Math.floor(s.maxHp * combat.hpPct));
     if (s.hp <= hpCost) {
@@ -2966,21 +2966,27 @@ function performEnemySpecial(s, e) {
   return true;
 }
 
-// 终局 Boss 的攻击不走普通伤害链：无视防御、守势、减伤、护盾、闪避与反弹。
+// 终局 Boss 的攻击不走普通伤害链：无视防御、守势、减伤、护盾与闪避；丹霞灵壁例外，仅保留反震伤害。
 function performFinalBossAttack(s, e) {
   const hits = Math.random() < (e.finalDoubleChance || 0.20) ? 2 : 1;
+  const danxiaGuard = Game.battle.danxiaGuard;
   if (Game.battle.defending || Game.battle.waterGuard || Game.battle.danxiaGuard || Game.battle.metalReflect) {
     Game.battle.defending = false;
     Game.battle.waterGuard = 0;
     Game.battle.danxiaGuard = 0;
     Game.battle.metalReflect = 0;
-    logBattle('魔尊魔威贯穿一切防护，守势、减伤与反震尽数失效！', 'enemy');
+    logBattle(danxiaGuard ? '终局魔威贯穿一切防护，丹霞灵壁无法减伤，但反震之力仍可伤敌！' : '终局魔威贯穿一切防护，守势、减伤与反震尽数失效！', 'enemy');
   }
   for (let i = 0; i < hits; i++) {
     const hitPct = e.finalHitPct || 0.10;
     const dmg = Math.max(1, Math.floor(s.maxHp * hitPct));
     s.hp -= dmg;
     logBattle(`${e.name}施展【${e.finalSkill || '终焉一击'}】${hits === 2 ? `（第${i + 1}击）` : ''}，无视一切防护，固定扣除你 ${dmg} 点气血（${Math.round(hitPct * 100)}%）！`, 'enemy');
+    if (danxiaGuard && i === 0) {
+      const reflect = Math.max(1, Math.floor(dmg * danxiaGuard.reflect));
+      const actualReflect = dealDamageToEnemy(e, reflect);
+      logBattle(`丹霞灵壁硬撼终局魔威，虽未能减伤，仍反震 ${e.name} ${actualReflect} 点伤害！`, 'player');
+    }
     checkBattleEnd();
     if (Game.battle.ended) return;
   }

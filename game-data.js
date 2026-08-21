@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v50',
+    date: '2026-08-21',
+    title: '丹霞反震强化 · 血煞双攻',
+    items: [
+      '丹霞谷「丹霞灵壁」反弹倍率提升，并可在魔尊及其他终局 Boss 无视减伤的攻击下正常反震造成伤害；该类攻击仍无法被减伤',
+      '天魔教「血煞燃元术」强化：燃血后物理攻击与法术攻击同时提高，持续时间与冷却不变',
+    ],
+  },
+  {
     version: 'v49',
     date: '2026-08-21',
     title: '洞府与灵宠修复 · 排行榜补全',
@@ -894,8 +903,8 @@ const GONGFA = {
   gong_xingyun:    { id: 'gong_xingyun',    name: '星陨术',     grade: '神级', icon: '☄️', color: '#e0473c', sect: 'qingyun', desc: '主动·星辰坠落（法攻5.5倍，灵力55%，冷却10回合）', combat: { name: '星陨术', mult: 5.5, manaPct: 0.55, cd: 10 } },
   gong_danxia_chunfeng: { id: 'gong_danxia_chunfeng', name: '春风化雨诀', grade: '天级', icon: '🌿', color: '#e6a23c', sect: 'danxia', desc: '主动·回复30%气血（灵力25%，冷却4回合）', combat: { kind: 'heal', healPct: 0.30, manaPct: 0.25, cd: 4 } },
   gong_danxia_fuhua: { id: 'gong_danxia_fuhua', name: '扶华增元诀', grade: '仙级', icon: '✨', color: '#e6a23c', sect: 'danxia', desc: '主动·攻击提高70%，持续3回合（灵力30%，冷却6回合）', combat: { kind: 'buff', boost: 0.70, turns: 3, manaPct: 0.30, cd: 6 } },
-  gong_danxia_lingbi: { id: 'gong_danxia_lingbi', name: '丹霞灵壁', grade: '仙级', icon: '🛡️', color: '#e6a23c', sect: 'danxia', desc: '主动·下一次受击减伤65%，并反弹敌方来袭伤害的150%（灵力25%，冷却5回合）', combat: { kind: 'guard', guard: 0.65, reflect: 1.5, manaPct: 0.25, cd: 5 } },
-  gong_tianmo_bloodsacrifice: { id: 'gong_tianmo_bloodsacrifice', name: '血煞燃元术', grade: '仙级', icon: '🩸', color: '#e0473c', sect: 'tianmo', desc: '主动·消耗8%气血，攻击提高100%，持续3回合（灵力20%，冷却6回合）', combat: { kind: 'blood_rage', hpPct: 0.08, boost: 1.00, turns: 3, manaPct: 0.20, cd: 6 } },
+  gong_danxia_lingbi: { id: 'gong_danxia_lingbi', name: '丹霞灵壁', grade: '仙级', icon: '🛡️', color: '#e6a23c', sect: 'danxia', desc: '主动·下一次受击减伤65%，并反弹敌方来袭伤害的300%；终局Boss攻击仅反弹、不减伤（灵力25%，冷却5回合）', combat: { kind: 'guard', guard: 0.65, reflect: 3.0, manaPct: 0.25, cd: 5 } },
+  gong_tianmo_bloodsacrifice: { id: 'gong_tianmo_bloodsacrifice', name: '血煞燃元术', grade: '仙级', icon: '🩸', color: '#e0473c', sect: 'tianmo', desc: '主动·消耗8%气血，物攻、法攻均提高120%，持续3回合（灵力20%，冷却6回合）', combat: { kind: 'blood_rage', hpPct: 0.08, boost: 1.20, turns: 3, manaPct: 0.20, cd: 6 } },
   gong_tianmo_bloodflame: { id: 'gong_tianmo_bloodflame', name: '血焰焚天诀', grade: '仙级', icon: '🔥', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧15%气血，轰出血焰重击（物攻3.6倍，灵力15%，冷却5回合）', combat: { kind: 'blood_strike', hpPct: 0.15, mult: 3.6, manaPct: 0.15, cd: 5 } },
   gong_tianmo_bloodescape: { id: 'gong_tianmo_bloodescape', name: '血遁大法', grade: '天级', icon: '💨', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血血遁逃离（95%成功；失败则爆体战败，不耗灵力）', combat: { kind: 'blood_escape', hpPct: 0.20, manaPct: 0, cd: 0 } },
   gong_tianmo_bloodplunder: { id: 'gong_tianmo_bloodplunder', name: '燃血夺宝诀', grade: '仙级', icon: '💰', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血，本场经验、灵石、名望及掉落概率提高20%（每场一次，不耗灵力）', combat: { kind: 'reward_boost', hpPct: 0.20, rewardBoost: 0.20, onceBattle: true, manaPct: 0, cd: 0 } },
