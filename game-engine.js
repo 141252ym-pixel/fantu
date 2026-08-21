@@ -167,6 +167,8 @@ function resetGame() {
   localStorage.removeItem('fantu_save_1');
   localStorage.removeItem('fantu_save_2');
   localStorage.removeItem('fantu_save_3');
+  // 删档重开：清空自动历史链，避免旧档从历史中「复活」
+  for (let i = 1; i <= SAVE_HISTORY_SLOTS; i++) localStorage.removeItem(saveHistoryKey(i));
   newGame();
   goToNode('start');
   UI.showToast('已删档重开');
@@ -216,6 +218,34 @@ function reincarnate(s) {
 }
 
 // ========== 存档 ==========
+// ========== 多版本自动存档 ==========
+// 自动档每次保存把「上一版」保留下来：上一版备份(fantu_save_bak) + 最近 5 个不同版本的历史链(fantu_save_hist_1~5)。
+// 主档损坏/进度异常时可回退到更早的版本，避免只剩一份备份、档一坏全丢。
+const SAVE_HISTORY_SLOTS = 5;
+function saveHistoryKey(i) { return 'fantu_save_hist_' + i; }
+
+// 存档内容指纹：忽略每次保存都会变化的元数据（savedAt 时间戳、nodeId 当前剧情节点），
+// 只比较实质进度，用于判断两个版本是否相同（走动/战斗中高频保存不产生重复历史）
+function saveFingerprint(raw) {
+  try {
+    const o = JSON.parse(raw);
+    delete o.savedAt;
+    delete o.nodeId;
+    return JSON.stringify(o);
+  } catch (e) { return raw; }
+}
+
+// 把上一版主档轮转进历史链：最新进 hist_1，最旧(hist_5)丢弃；内容与最新历史相同则跳过（防高频重复）
+function rotateSaveHistory(prev) {
+  const first = localStorage.getItem(saveHistoryKey(1));
+  if (first && saveFingerprint(first) === saveFingerprint(prev)) return;
+  for (let i = SAVE_HISTORY_SLOTS; i > 1; i--) {
+    const older = localStorage.getItem(saveHistoryKey(i - 1));
+    if (older != null) localStorage.setItem(saveHistoryKey(i), older);
+  }
+  localStorage.setItem(saveHistoryKey(1), prev);
+}
+
 function saveGame(slot = 0) {
   if (!Game.state) return false;
   const key = slot === 0 ? 'fantu_save' : `fantu_save_${slot}`;
@@ -223,11 +253,15 @@ function saveGame(slot = 0) {
   Game.state.realmIndex = getRealmIndex(Game.state);
   Game.state.savedAt = Date.now();
   try {
-    // 自动档：写入前先把上一版备份，防止单个存档损坏导致进度全丢
+    // 自动档：写入前先把上一版备份到「上一版」备份 + 历史版本链，防止单个存档损坏导致进度全丢
     if (slot === 0) {
       const prev = localStorage.getItem('fantu_save');
       if (prev) {
-        try { JSON.parse(prev); localStorage.setItem('fantu_save_bak', prev); } catch (e) { /* 旧档损坏则跳过备份 */ }
+        try {
+          JSON.parse(prev); // 上一版完好才入库
+          localStorage.setItem('fantu_save_bak', prev);
+          rotateSaveHistory(prev);
+        } catch (e) { /* 旧档损坏则跳过备份 */ }
       }
     }
     localStorage.setItem(key, JSON.stringify(Game.state));
@@ -243,10 +277,16 @@ function loadGame(slot = 0) {
   const raw = localStorage.getItem(key);
   if (raw) {
     try { return JSON.parse(raw); }
-    catch (e) { /* 主档损坏，下面自动档会尝试回退备份 */ }
+    catch (e) { /* 主档损坏，依次尝试历史版本链与备份 */ }
   }
-  // 自动档缺失或损坏：回退上一版备份
   if (slot === 0) {
+    // 自动档缺失或损坏：先试最近的历史版本，再回退上一版备份
+    for (let i = 1; i <= SAVE_HISTORY_SLOTS; i++) {
+      const h = localStorage.getItem(saveHistoryKey(i));
+      if (h) {
+        try { return JSON.parse(h); } catch (e) { /* 继续下一个 */ }
+      }
+    }
     const bak = localStorage.getItem('fantu_save_bak');
     if (bak) {
       try { return JSON.parse(bak); } catch (e) { return null; }

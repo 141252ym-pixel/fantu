@@ -28,6 +28,7 @@
   #msg.err { display: block; background: #3a2018; color: #e8a888; border: 1px solid #6a3a28; }
   .hidden { display: none !important; }
   textarea { width: 100%; height: 90px; margin-top: 10px; background: #14100a; color: #d8caa6; border: 1px solid #3a2f1e; border-radius: 8px; padding: 8px; font-size: 12px; font-family: monospace; }
+  select { width: 100%; margin-top: 10px; background: #14100a; color: #d8caa6; border: 1px solid #3a2f1e; border-radius: 8px; padding: 8px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -51,6 +52,14 @@
     <h2>💾 手动存档槽</h2>
     <div class="row" id="slots"></div>
     <button class="btn small" id="btn-save-slot">把当前主档另存为「手动槽1」</button>
+  </div>
+
+  <div class="card">
+    <h2>🕘 历史版本 <span class="tag">fantu_save_hist_1~5</span></h2>
+    <div class="row" id="hist"></div>
+    <select id="hist-select"><option value="">选择要恢复的历史版本…</option></select>
+    <button class="btn green" id="btn-hist">⬆ 恢复所选历史版本到主档</button>
+    <div class="score" id="hist-hint"></div>
   </div>
 
   <div class="card">
@@ -148,6 +157,40 @@
         slotsHtml += '槽' + i + '：' + (sv ? '境界' + sv.realm + '｜修为' + sv.xp.toLocaleString() : '（空）') + '<br>';
       }
       $('slots').innerHTML = slotsHtml || '<span class="empty">（无）</span>';
+      renderHistory();
+    }
+
+    // 历史版本链（fantu_save_hist_1~5）：显示每个版本摘要并填充下拉，供选择恢复
+    function renderHistory() {
+      var el = $('hist');
+      var sel = $('hist-select');
+      var hint = $('hist-hint');
+      var selVal = sel.value;
+      el.innerHTML = '';
+      sel.innerHTML = '<option value="">选择要恢复的历史版本…</option>';
+      var latestRaw = null;
+      for (var i = 1; i <= 5; i++) {
+        var s = summarize(parse(lsGet('fantu_save_hist_' + i)));
+        if (s) {
+          if (!latestRaw) latestRaw = lsGet('fantu_save_hist_' + i);
+          el.innerHTML += '版本' + i + '：境界<b>' + s.realm + '</b>｜修为<b>' + s.xp.toLocaleString() + '</b>｜灵石<b>' + s.stone.toLocaleString() + '</b><br>（' + s.savedAt + '）<br>';
+          var opt = document.createElement('option');
+          opt.value = 'fantu_save_hist_' + i;
+          opt.textContent = '版本' + i + '（境界' + s.realm + ' / 修为' + s.xp.toLocaleString() + ' / ' + s.savedAt + '）';
+          sel.appendChild(opt);
+        } else {
+          el.innerHTML += '版本' + i + '：（空）<br>';
+        }
+      }
+      if (!el.innerHTML) el.innerHTML = '<span class="empty">（无历史版本）</span>';
+      if (selVal && sel.querySelector('option[value="' + selVal + '"]')) sel.value = selVal;
+      var main = summarize(parse(lsGet(K_MAIN)));
+      var latest = summarize(parse(latestRaw));
+      if (latest && main && score(latest) > score(main)) {
+        hint.innerHTML = '⚠️ 检测到历史版本比当前主档进度更高（版本1 境界' + latest.realm + ' / ' + latest.xp.toLocaleString() + '）。<b>可选择上方版本恢复。</b>';
+      } else {
+        hint.textContent = '';
+      }
     }
 
     $('btn-recover').addEventListener('click', function () {
@@ -167,6 +210,20 @@
       if (!raw) { msg('当前没有主档。', false); return; }
       if (!lsSet(K_SLOT1, raw)) { msg('写入失败。', false); return; }
       msg('✅ 已把当前主档另存为「手动槽1」！', true);
+      refresh();
+    });
+
+    $('btn-hist').addEventListener('click', function () {
+      var key = $('hist-select').value;
+      if (!key) { msg('请先选择要恢复的历史版本。', false); return; }
+      var raw = lsGet(key);
+      var s = summarize(parse(raw));
+      if (!s) { msg('该历史版本无效。', false); return; }
+      var main = summarize(parse(lsGet(K_MAIN)));
+      if (!confirm('用历史版本覆盖当前主档？\n\n选中版本：境界' + s.realm + ' / 修为' + s.xp.toLocaleString() + '（' + s.savedAt + '）\n当前主档：' + (main ? '境界' + main.realm + ' / 修为' + main.xp.toLocaleString() : '无') + '\n\n覆盖前会自动备份当前主档到 fantu_save_pre_recover，可反悔。')) return;
+      if (main) lsSet(K_PRE, lsGet(K_MAIN));
+      if (!lsSet(K_MAIN, raw)) { msg('写入失败，可能是浏览器存储已满。', false); return; }
+      msg('✅ 已从历史版本恢复主档！\n请回到游戏页面刷新，即可看到恢复后的存档。', true);
       refresh();
     });
 
