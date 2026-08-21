@@ -192,6 +192,16 @@
       </div>
     </div>
 
+    <!-- 灵宠同级升星主宠选择 -->
+    <div id="pet-star-choice-overlay" class="gacha-overlay hidden">
+      <div class="gacha-card">
+        <div class="gacha-name">选择升星主宠</div>
+        <div id="pet-star-choice-desc" class="gacha-desc">等级相同，请选择保留哪只灵宠的技能、天赋与培养数据。</div>
+        <div id="pet-star-choice-list" class="save-actions"></div>
+        <button class="ink-btn" onclick="UI.closePetStarChoice()">取消</button>
+      </div>
+    </div>
+
     <!-- 批量出售确认弹窗（避免 WebView 原生确认框显示为“关闭网页”） -->
     <div id="batch-sell-confirm-overlay" class="gacha-overlay hidden">
       <div class="gacha-card">
@@ -419,10 +429,10 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=57"></script>
-  <script src="game-engine.js?v=50"></script>
-  <script src="game-ui.js?v=45"></script>
-  <script src="leaderboard.js?v=5"></script>
+  <script src="game-data.js?v=58"></script>
+  <script src="game-engine.js?v=51"></script>
+  <script src="game-ui.js?v=46"></script>
+  <script src="leaderboard.js?v=6"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initGame();
@@ -431,7 +441,7 @@
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=16').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=17').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {

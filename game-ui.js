@@ -57,6 +57,9 @@ const UI = {
       batchSellConfirmTitle: document.getElementById('batch-sell-confirm-title'),
       batchSellConfirmDesc: document.getElementById('batch-sell-confirm-desc'),
       batchSellConfirmAction: document.getElementById('batch-sell-confirm-action'),
+      petStarChoiceOverlay: document.getElementById('pet-star-choice-overlay'),
+      petStarChoiceDesc: document.getElementById('pet-star-choice-desc'),
+      petStarChoiceList: document.getElementById('pet-star-choice-list'),
       bossLootOverlay: document.getElementById('boss-loot-overlay'),
       bossLootIcon: document.getElementById('boss-loot-icon'),
       bossLootName: document.getElementById('boss-loot-name'),
@@ -1435,7 +1438,41 @@ const UI = {
   },
 
   starUpPetFromPanel(id) {
-    if (starUpPet(id)) { this.renderPetOverlay(); this.updateStats(); }
+    const plan = getStarUpPetPlan(id);
+    if (!plan.ok) { this.showToast(plan.msg); return; }
+    if (plan.choices.length > 1) return this.openPetStarChoice(id, plan);
+    const result = starUpPet(id, plan.main.uid);
+    if (result.ok) { this.renderPetOverlay(); this.renderPetPanel(); this.updateStats(); }
+  },
+
+  openPetStarChoice(petId, plan) {
+    this.pendingPetStar = { petId, choices: plan.choices.map(p => p.uid) };
+    this.els.petStarChoiceDesc.textContent = `三只${plan.pet.name}将合成为${plan.star + 1}星。它们同为${plan.choices[0].level || 1}级，请选择保留哪只的技能、神品天赋、好感与经验。`;
+    this.els.petStarChoiceList.innerHTML = '';
+    plan.choices.forEach(entry => {
+      const pet = PETS[entry.id];
+      const trait = getPetTrait(entry);
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      btn.textContent = `${pet.icon} 保留此宠：${entry.level || 1}级 · ${getPetStage(entry)}阶 · 技能${entry.skillLevel || 0}级${trait ? ` · 天赋【${trait.name}】` : ''}`;
+      btn.addEventListener('click', () => this.confirmPetStarChoice(entry.uid));
+      this.els.petStarChoiceList.appendChild(btn);
+    });
+    this.els.petStarChoiceOverlay.classList.remove('hidden');
+  },
+
+  closePetStarChoice() {
+    this.pendingPetStar = null;
+    this.els.petStarChoiceOverlay.classList.add('hidden');
+  },
+
+  confirmPetStarChoice(mainUid) {
+    const pending = this.pendingPetStar;
+    this.closePetStarChoice();
+    if (!pending || !pending.choices.includes(mainUid)) return;
+    const result = starUpPet(pending.petId, mainUid);
+    if (!result.ok) { this.showToast(result.plan ? '请重新选择主宠' : result.msg); return; }
+    this.renderPetOverlay(); this.renderPetPanel(); this.updateStats();
   },
 
   renderSectTransfer() {

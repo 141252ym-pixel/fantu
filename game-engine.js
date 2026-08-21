@@ -1127,6 +1127,12 @@ function getArenaTier(score) {
 function getArenaLadderText(s) {
   const score = (s.arena && s.arena.score) || 0;
   const list = ARENA_LADDER.map(e => ({ name: e.name, score: e.score }));
+  if (s.excludeFromRanking) {
+    let text = '当前存档已退出排行榜（策划测试）。\n\n';
+    list.sort((a, b) => b.score - a.score);
+    list.forEach((e, i) => { text += `${i + 1}. ${e.name}　${e.score}\n`; });
+    return text;
+  }
   list.push({ name: s.name + '（你）', score, me: true });
   list.sort((a, b) => b.score - a.score);
   const rank = list.findIndex(e => e.me) + 1;
@@ -1134,6 +1140,55 @@ function getArenaLadderText(s) {
   list.forEach((e, i) => {
     text += `${i + 1}. ${e.name}　${e.score}\n`;
   });
+  return text;
+}
+
+function getFameRank(s) {
+  if (s.excludeFromRanking) return null;
+  const list = FAME_LADDER.map(e => ({ name: e.name, fame: e.fame }));
+  list.push({ name: s.name + '（你）', fame: s.fame || 0, me: true });
+  list.sort((a, b) => b.fame - a.fame);
+  return { rank: list.findIndex(e => e.me) + 1, list };
+}
+
+function grantFameRankingTitle(s, rank) {
+  const eligible = [];
+  if (rank <= 100) eligible.push('声名鹊起');
+  if (rank <= 10) eligible.push('威震四海');
+  if (rank <= 3) eligible.push('名扬天下');
+  if (rank === 1) eligible.push('声名震寰宇');
+  if (!eligible.length) return [];
+  if (!Array.isArray(s.titles)) s.titles = [];
+  const earned = eligible.filter(title => !s.titles.includes(title));
+  s.titles.push(...earned);
+  return earned;
+}
+
+function getFameLadderText(s) {
+  if (s.excludeFromRanking) return '当前存档已退出排行榜（策划测试）。';
+  const info = getFameRank(s);
+  const earned = grantFameRankingTitle(s, info.rank);
+  if (earned.length) { autoSave(); UI.showToast(`名望榜称号达成：${earned.join('、')}`); }
+  let text = `你的名望排名：第 ${info.rank} 名${earned.length ? `\n获得称号「${earned.join('、】【')}」` : ''}\n\n`;
+  info.list.slice(0, 20).forEach((e, i) => { text += `${i + 1}. ${e.name}　${e.fame} 名望\n`; });
+  if (info.rank > 20) text += `\n…\n${info.rank}. ${s.name}（你）　${s.fame || 0} 名望`;
+  return text;
+}
+
+function getPetLadderText(s) {
+  if (s.excludeFromRanking) return '当前存档已退出排行榜（策划测试）。';
+  const equipped = getEquippedPet(s);
+  const list = PET_LADDER.map(e => ({ ...e }));
+  if (!equipped || !PETS[equipped.id]) {
+    list.sort((a, b) => b.star - a.star || b.level - a.level);
+    return `尚未出战灵宠，因此不参与灵宠榜。\n\n${list.map((e, i) => `${i + 1}. ${e.name} · ${PETS[e.petId].name} ★${e.star} · ${e.level}级`).join('\n')}`;
+  }
+  const mine = { name: s.name + '（你）', petId: equipped.id, star: equipped.star || 1, level: equipped.level || 1, me: true };
+  list.push(mine);
+  list.sort((a, b) => b.star - a.star || b.level - a.level);
+  const rank = list.findIndex(e => e.me) + 1;
+  let text = `出战灵宠：${PETS[mine.petId].icon}${PETS[mine.petId].name} ★${mine.star} · ${mine.level}级\n排名：第 ${rank} 名\n\n`;
+  list.forEach((e, i) => { text += `${i + 1}. ${e.name} · ${PETS[e.petId].name} ★${e.star} · ${e.level}级\n`; });
   return text;
 }
 
@@ -1738,37 +1793,46 @@ function releasePetsByQualities(s, qualities) {
   return { count: released.length, refund };
 }
 
-// 灵宠升星：3 只同名同星宠物合成 1 只星级+1 的主宠（每星全属性 +10%）
-function starUpPet(petId) {
+// 计算升星方案：点击的宠物必参与，额外优先选同名同星中等级最高的两只。
+function getStarUpPetPlan(petId) {
   const s = Game.state;
   if (!petId) petId = s.pet;
-  if (!petId) { UI.showToast('你还没有灵宠'); return false; }
+  if (!petId) return { ok: false, msg: '你还没有灵宠' };
   const entry = s.pets.find(p => p.uid === petId);
-  if (!entry) return false;
+  if (!entry) return { ok: false, msg: '找不到该灵宠' };
   const pet = PETS[entry.id];
   const star = entry.star || 1;
   const cost = PET_STAR_COST[pet.quality] || 100;
-  // 找另外两只同名同星（且不是主宠自身）的宠物
-  const others = s.pets.filter(p => p.id === entry.id && p.uid !== entry.uid && (p.star || 1) === star);
+  const others = s.pets.filter(p => p.id === entry.id && p.uid !== entry.uid && (p.star || 1) === star)
+    .sort((a, b) => (b.level || 1) - (a.level || 1) || (b.skillLevel || 0) - (a.skillLevel || 0));
   if (others.length < 2) {
-    UI.showToast(`升星需 3 只同名${star}星宠物，还差 ${2 - others.length} 只（当前同星 ${others.length} 只）`);
-    return false;
+    return { ok: false, msg: `升星需 3 只同名${star}星宠物，还差 ${2 - others.length} 只（当前同星 ${others.length} 只）` };
   }
   if (s.stone < cost) {
-    UI.showToast(`灵石不足（升星需 ${cost} 灵石）`);
-    return false;
+    return { ok: false, msg: `灵石不足（升星需 ${cost} 灵石）` };
   }
-  // 消耗 2 只素材 + 灵石
-  for (let i = 0; i < 2; i++) {
-    const idx = s.pets.findIndex(p => p.uid === others[i].uid);
-    if (idx >= 0) s.pets.splice(idx, 1);
-  }
-  s.stone -= cost;
-  entry.star = star + 1;
-  UI.showToast(`✨ ${pet.name} 升为 ${star + 1} 星！全属性 +5%（累计 +${star * 5}%），消耗 ${cost} 灵石`);
+  const sources = [entry, ...others.slice(0, 2)];
+  const highestLevel = Math.max(...sources.map(p => p.level || 1));
+  const choices = sources.filter(p => (p.level || 1) === highestLevel);
+  return { ok: true, pet, star, cost, sources, choices, main: choices.length === 1 ? choices[0] : null };
+}
+
+// 灵宠升星：保留等级最高的主宠全部数据；最高等级相同则由界面指定主宠。
+function starUpPet(petId, preferredUid) {
+  const s = Game.state;
+  const plan = getStarUpPetPlan(petId);
+  if (!plan.ok) { UI.showToast(plan.msg); return plan; }
+  const main = preferredUid ? plan.choices.find(p => p.uid === preferredUid) : plan.main;
+  if (!main) return { ok: false, needsChoice: true, plan };
+  const consumedIds = new Set(plan.sources.filter(p => p.uid !== main.uid).map(p => p.uid));
+  s.pets = s.pets.filter(p => !consumedIds.has(p.uid));
+  s.stone -= plan.cost;
+  main.star = plan.star + 1;
+  if (plan.sources.some(p => p.uid === s.pet)) s.pet = main.uid;
+  UI.showToast(`✨ ${plan.pet.name} 升为 ${plan.star + 1} 星！保留${main.level || 1}级主宠的技能与天赋，消耗 ${plan.cost} 灵石`);
   autoSave();
   UI.updateStats();
-  return true;
+  return { ok: true, main };
 }
 
 // 灵宠战斗助攻：有概率触发技能造成额外伤害
@@ -3471,6 +3535,11 @@ function redeemCode(code) {
   if (reward.deathNoReincarnation) {
     s.deathNoReincarnation = true;
     parts.push('获得天命护持（死亡不降修为，仍获转世增幅）');
+  }
+  if (reward.excludeFromRanking) {
+    s.excludeFromRanking = true;
+    if (window.LB) LB.optOut();
+    parts.push('当前存档已退出所有排行榜');
   }
   if (reward.stone) { s.stone += reward.stone; parts.push(`灵石×${reward.stone}`); }
   if (reward.xp) {

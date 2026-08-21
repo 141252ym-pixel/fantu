@@ -146,6 +146,7 @@ const LB = {
     if (!this.configured()) return;
     if (this.isOptOut()) return;                                 // 已归隐，不再上传
     if (typeof Game === 'undefined' || !Game.state) return;
+    if (Game.state.excludeFromRanking) return;                    // 策划测试存档不参与榜单
     if (Game.battle && !Game.battle.ended) return;                // 战斗中属性被临时改写
     const snap = this.snapshot();
     if (!snap || this.sig(snap) === this._lastSig) return;        // 数据没变化
@@ -159,6 +160,7 @@ const LB = {
   async submit(snap) {
     if (!this.configured()) return { ok: false, error: 'unconfigured' };
     if (this.isOptOut()) return { ok: false, error: 'optout' };
+    if (typeof Game !== 'undefined' && Game.state && Game.state.excludeFromRanking) return { ok: false, error: 'excluded' };
     snap = snap || this.snapshot();
     if (!snap || !snap.nick) return { ok: false, error: 'no_nick' };
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {

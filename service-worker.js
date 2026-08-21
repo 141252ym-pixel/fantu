@@ -1,6 +1,6 @@
 // 凡途修仙 Service Worker：联网时始终优先获取最新版，离线时才回退缓存。
 // 每次发布递增此版本，activate 会清理所有旧版资源缓存。
-const CACHE_NAME = 'fantu-v17';
+const CACHE_NAME = 'fantu-v18';
 
 self.addEventListener('install', () => {});
 
