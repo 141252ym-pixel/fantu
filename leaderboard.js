@@ -111,12 +111,15 @@ const LB = {
     };
   },
 
-  // 出战灵宠快照：灵宠榜只统计出战灵宠（星级优先、等级次之）
+  // 灵宠榜快照：取等级最高的灵宠参评（平级比星级）
   petSnap(s) {
     try {
-      const pet = getEquippedPet(s);
-      if (!pet || !PETS[pet.id]) return null;
-      return { id: pet.id, star: pet.star || 1, level: pet.level || 1 };
+      const list = (s.pets || []).filter(p => p && PETS[p.id]);
+      if (!list.length) return null;
+      const best = list.slice().sort((a, b) =>
+        (b.level || 1) - (a.level || 1) || (b.star || 0) - (a.star || 0)
+      )[0];
+      return { id: best.id, star: best.star || 1, level: best.level || 1 };
     } catch (e) { return null; }
   },
 
