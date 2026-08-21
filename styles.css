@@ -1298,6 +1298,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-top: 1px dashed #3a2c18;
 }
 .lb-row:first-child { border-top: none; }
+.lb-row-top {
+  border-radius: 4px;
+  margin: 0 -6px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.lb-row-top-1 { background: linear-gradient(90deg, rgba(255, 218, 111, 0.16), rgba(255, 218, 111, 0.03)); }
+.lb-row-top-2 { background: linear-gradient(90deg, rgba(216, 216, 216, 0.12), rgba(216, 216, 216, 0.02)); }
+.lb-row-top-3 { background: linear-gradient(90deg, rgba(217, 160, 106, 0.12), rgba(217, 160, 106, 0.02)); }
 .lb-rank {
   flex: 0 0 30px;
   text-align: center;
@@ -1325,6 +1334,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .lb-title::before { content: '「'; }
 .lb-title::after { content: '」'; }
+.lb-honor {
+  display: inline-block;
+  vertical-align: baseline;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid rgba(201, 169, 98, 0.45);
+  border-radius: 4px;
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #f6d886;
+  background: rgba(255, 213, 79, 0.08);
+}
+.lb-honor-1 {
+  color: #ffe49a;
+  border-color: rgba(255, 228, 154, 0.7);
+  background: rgba(255, 228, 154, 0.14);
+}
+.lb-honor-2 {
+  color: #eeeeee;
+  border-color: rgba(238, 238, 238, 0.55);
+  background: rgba(238, 238, 238, 0.09);
+}
+.lb-honor-3 {
+  color: #e2ad7b;
+  border-color: rgba(226, 173, 123, 0.55);
+  background: rgba(226, 173, 123, 0.09);
+}
 .lb-score {
   flex: 0 0 auto;
   text-align: right;

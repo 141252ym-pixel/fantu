@@ -71,6 +71,13 @@ const LB = {
     try { return getRealm(Math.max(0, Number(idx) || 0)).name; } catch (e) { return '—'; }
   },
 
+  boardHonor(board, rank) {
+    if (board !== 'fame') return '';
+    if (rank === 1) return '\u58f0\u540d\u9707\u5bf0\u5b87';
+    if (rank === 2 || rank === 3) return '\u540d\u626c\u5929\u4e0b\u60ca';
+    return '';
+  },
+
   getNick() { return this.ls('fantu_lb_nick') || ''; },
   isOptOut() { return this.ls('fantu_lb_optout') === '1'; },
   isTestExcluded() {
@@ -350,6 +357,7 @@ const LB = {
         const rank = Number(row.rank) || 0;
         const rankCls = rank <= 3 ? ' lb-rank-' + rank : '';
         const isMe = row.player_id === myPid;
+        const honor = this.boardHonor(board, rank);
         let main, sub;
         if (board === 'power') {
           main = this.fmt(row.power);
@@ -369,9 +377,10 @@ const LB = {
           main = this.realmName(row.realm_index);
           sub = (Number(row.reincarnation) > 0 ? '转世 ' + row.reincarnation + ' 次' : '初世');
         }
-        html += '<div class="lb-row' + (isMe ? ' lb-me' : '') + '">' +
+        html += '<div class="lb-row' + (rank <= 3 ? ' lb-row-top lb-row-top-' + rank : '') + (isMe ? ' lb-me' : '') + '">' +
           '<span class="lb-rank' + rankCls + '">' + rank + '</span>' +
           '<span class="lb-name">' + this.esc(row.nickname) +
+            (honor ? '<em class="lb-honor lb-honor-' + rank + '">' + this.esc(honor) + '</em>' : '') +
             (row.title ? '<em class="lb-title">' + this.esc(row.title) + '</em>' : '') +
           '</span>' +
           '<span class="lb-score">' + this.esc(main) + '<em class="lb-sub">' + this.esc(sub) + '</em></span>' +
