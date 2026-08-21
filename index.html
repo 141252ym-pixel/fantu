@@ -429,7 +429,7 @@
   <!-- 背景音乐 -->
   <audio id="bgm-audio" src="bgm.mp3" loop preload="auto"></audio>
 
-  <script src="game-data.js?v=58"></script>
+  <script src="game-data.js?v=59"></script>
   <script src="game-engine.js?v=51"></script>
   <script src="game-ui.js?v=46"></script>
   <script src="leaderboard.js?v=6"></script>
@@ -441,7 +441,7 @@
     // 注册 Service Worker；发现新版时，存档自动保存后由玩家确认刷新。
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?v=17').then(registration => {
+        navigator.serviceWorker.register('./service-worker.js?v=18').then(registration => {
           registration.update();
           let updatePromptShown = false;
           const activateUpdate = worker => {
