@@ -1360,10 +1360,10 @@ const UI = {
     const canAuto = autoPreview.steps.length > 0;
     const bestStats = best ? `物攻+${getPetStatBonus(s, best, 'atk')} 法攻+${getPetStatBonus(s, best, 'matk')} 物抗+${getPetStatBonus(s, best, 'def')} 法抗+${getPetStatBonus(s, best, 'mdef')} 穿透+${getPetStatBonus(s, best, 'pen')}` : '暂无灵宠属性';
     let html = `
-      <div class="simple-panel pet-simple">
-        <div class="simple-hero-card">
+      <div class="simple-panel pet-simple refined-ui">
+        <div class="simple-hero-card pet-showcase-card">
           <div class="simple-hero-main">
-            <div class="simple-hero-icon">${bestMeta ? bestMeta.icon : '🐾'}</div>
+            <div class="simple-hero-icon pet-showcase-icon">${bestMeta ? bestMeta.icon : '🐾'}</div>
             <div>
               <div class="simple-kicker">等级最高灵宠</div>
               <div class="simple-title">${bestMeta ? `${bestMeta.name} <span style="color:${bestMeta.qc || QUALITY_COLOR[bestMeta.quality] || '#7a5b2a'}">${bestMeta.quality}</span>` : '尚未拥有灵宠'}</div>
@@ -1373,7 +1373,7 @@ const UI = {
           <div class="simple-stat-line">${bestStats}</div>
           <div class="simple-mini-line">出战：${equippedMeta ? `${equippedMeta.icon} ${equippedMeta.name} ★${equipped.star || 1} · Lv.${equipped.level || 1}` : '未出战'}　喂养：🥩${s.bag.shouliang || 0} 💊${s.bag.lingshou_dan || 0}</div>
         </div>
-        <div class="simple-actions-grid">
+        <div class="simple-actions-grid pet-quick-actions">
           <button class="ink-btn" onclick="UI.openPetCodex()">📖 灵宠图鉴</button>
           <button class="ink-btn" onclick="UI.openGiftCodex()">🎁 礼物图鉴</button>
           <button class="ink-btn" onclick="LB.open(); LB.switchTab('pet')">👑 灵宠榜</button>
@@ -1400,7 +1400,7 @@ const UI = {
       const trait = getPetTrait(p);
       const chance = Math.round(getPetSkillChance(p) * 100);
       html += `
-        <div class="simple-list-card pet-simple-card${isEquipped ? ' equipped' : ''}">
+        <div class="simple-list-card pet-simple-card refined-pet-card${isEquipped ? ' equipped' : ''}">
           <div class="simple-list-head">
             <div class="simple-list-icon">${pet.icon}</div>
             <div class="simple-list-main">
@@ -1412,7 +1412,7 @@ const UI = {
           <div class="simple-desc">${pet.desc}</div>
           <div class="simple-stat-line">物攻+${getPetStatBonus(s, p, 'atk')}　法攻+${getPetStatBonus(s, p, 'matk')}　物抗+${getPetStatBonus(s, p, 'def')}　法抗+${getPetStatBonus(s, p, 'mdef')}　穿透+${getPetStatBonus(s, p, 'pen')}</div>
           <div class="simple-skill">技能【${pet.skill}】：${pet.id === 'tuntunshu' ? `闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 偷Boss装备 ${(getTuntunshuBossStealRate(p) * 100).toFixed(3)}%` : `${chance}% 概率追加伤害`}${trait ? `　天赋【${trait.name}】` : ''}</div>
-          <div class="simple-card-actions">
+          <div class="simple-card-actions pet-card-actions">
             ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
             ${isMax ? `<button class="ink-btn disabled" disabled>已满级</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">升1级 ${feedCost}</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">喂丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">喂粮</button>`}
             <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">升星</button>
@@ -1996,9 +1996,9 @@ const UI = {
     const hundredPurchase = getGachaPurchaseInfo(s, 'equipment', 100);
     const thousandPurchase = getGachaPurchaseInfo(s, 'equipment', 1000);
     const wrap = document.createElement('div');
-    wrap.className = 'simple-panel gacha-simple';
+    wrap.className = 'simple-panel gacha-simple refined-ui';
     wrap.innerHTML = `
-      <div class="simple-hero-card gacha-simple-hero">
+      <div class="simple-hero-card gacha-simple-hero gacha-banner-card">
         <div class="simple-kicker">藏宝阁</div>
         <div class="simple-title">本期机缘 · 仙品法器</div>
         <div class="simple-sub">消耗灵石抽取装备、丹药与稀有机缘</div>
@@ -2009,7 +2009,7 @@ const UI = {
         <div class="simple-progress"><div style="width:${Math.min(100, Math.round(sinceXian / GACHA_PITY * 100))}%"></div></div>
         <small>${shenText}</small>
       </div>
-      <div class="simple-gacha-buttons">
+      <div class="simple-gacha-buttons gacha-main-buttons">
         <button class="ink-btn" data-draw="1">抽一次<br><small>${singlePurchase.cost}灵石${singlePurchase.discounted ? ` · 八折剩${singlePurchase.remaining}` : ''}</small></button>
         <button class="ink-btn" data-draw="10">十连抽<br><small>${tenPurchase.cost}灵石${tenPurchase.discounted ? ` · 八折剩${tenPurchase.remaining}` : ''}</small></button>
         <button class="ink-btn" data-draw="100">百连抽<br><small>${hundredPurchase.cost}灵石${hundredPurchase.discounted ? ` · 八折剩${hundredPurchase.remaining}` : ''}</small></button>
@@ -2017,7 +2017,7 @@ const UI = {
       </div>
       <div class="gacha-info simple-rate-row">${GACHA_POOL.map(t => `<span class="gacha-rate" style="color:${t.color}">${t.rarity} ${t.weight}%</span>`).join('')}</div>
       <div class="simple-pity-card simple-discount-card"><b>独立八折次数</b><small>${[1, 10, 100, 1000].map(count => `${({ 1: '单抽', 10: '十连', 100: '百连', 1000: '千连' })[count]}${getGachaPurchaseInfo(s, 'equipment', count).remaining}`).join(' · ')}</small></div>
-      <div class="simple-actions-grid"><button class="ink-btn" data-codex="1">📖 图鉴</button><button class="ink-btn" data-back="1">返回坊市</button></div>
+      <div class="simple-actions-grid pet-quick-actions"><button class="ink-btn" data-codex="1">📖 图鉴</button><button class="ink-btn" data-back="1">返回坊市</button></div>
     `;
     el.appendChild(wrap);
     wrap.querySelector('[data-draw="1"]').addEventListener('click', () => {
