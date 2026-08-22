@@ -931,7 +931,7 @@ function getEquipMCritDmgBonus(s) {
 }
 
 function getMCritRate(s) {
-  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + (getEquipMCritBonus(s) + getActiveSetBonuses(s).mcrit) / 100);
+  return Math.min(CRIT_RATE_CAP, CRIT_RATE_BASE + (getEquipMCritBonus(s) + getActiveSetBonuses(s).mcrit + getSectBonus(s, 'mcrit')) / 100);
 }
 
 function getMCritDmg(s) {
@@ -1112,6 +1112,7 @@ function upgradeCave(s) {
 function migrateSect(s) {
   if (!s.sect || !SECTS[s.sect]) s.sect = null;
   if (typeof s.contribution !== 'number') s.contribution = 0;
+  migrateSectDungeon(s);
 }
 
 function getSectInfo(s) {
@@ -1129,7 +1130,7 @@ function joinSect(s, sectId) {
   autoSave();
 }
 
-const SECT_TRANSFER_COST = 1000;
+const SECT_TRANSFER_COST = 2000;
 
 function changeSect(s, sectId) {
   if (sectId && !SECTS[sectId]) return { ok: false, msg: '目标宗门不存在' };
@@ -1186,6 +1187,7 @@ function doSectTask(s, taskId) {
 function buySectItem(s, shopId) {
   const item = SECT_SHOP.find(x => x.id === shopId);
   if (!item) return { ok: false, msg: '未知商品' };
+  if (item.sect && item.sect !== s.sect) return { ok: false, msg: '非本门派专属，无法兑换' };
   if ((s.contribution || 0) < item.cost) return { ok: false, msg: `贡献不足（需 ${item.cost}）` };
   s.contribution -= item.cost;
   const r = item.reward;
@@ -1199,6 +1201,78 @@ function buySectItem(s, shopId) {
 }
 
 // 宗门讨伐任务：进入一场战斗，胜利后获得贡献
+function startSectDungeon(floor) {
+  const s = Game.state;
+  migrateSectDungeon(s);
+  if (!s.sect) { UI.showToast('尚未加入宗门'); return; }
+  const layer = getSectDungeonLayer(floor);
+  const conf = SECT_DUNGEONS[s.sect];
+  if (!layer || !conf) return;
+  const best = getSectDungeonBest(s);
+  if (floor > best + 1) { UI.showToast('需先通关上一层'); return; }
+  if (getRealmIndex(s) < (layer.minRealm || 0)) {
+    UI.showToast(`修为不足，需达到${getRealm(layer.minRealm).name}`);
+    return;
+  }
+  if ((s.sectDungeon.attempts || 0) <= 0) { UI.showToast('今日宗门禁地次数已用尽'); return; }
+  s.sectDungeon.attempts -= 1;
+  const enemyName = (conf.enemyNames && conf.enemyNames[floor - 1]) || `${conf.name}守关者`;
+  const orig = { atk: s.atk, def: s.def, matk: s.matk, mdef: s.mdef, pen: s.pen };
+  s.atk = getTotalAtk(s);
+  s.def = getTotalDef(s);
+  s.matk = getTotalMatk(s);
+  s.mdef = getTotalMdef(s);
+  s.pen = getTotalPen(s);
+  const restore = () => {
+    s.atk = orig.atk; s.def = orig.def; s.matk = orig.matk; s.mdef = orig.mdef; s.pen = orig.pen;
+  };
+  const winCb = () => {
+    restore();
+    s.contribution = (s.contribution || 0) + layer.reward;
+    s.stone = (s.stone || 0) + layer.stone;
+    if (layer.pill) grantItem(s, layer.pill, 1);
+    s.sectDungeon.best[s.sect] = Math.max(best, floor);
+    if (s.contribution >= 300) grantAchievement('sect_contrib');
+    checkAchievements();
+    autoSave();
+  };
+  const loseCb = () => {
+    restore();
+    s.hp = Math.max(1, Math.floor(s.maxHp * 0.3));
+    autoSave();
+  };
+  startBattle(layer.enemy, 1.0, winCb, loseCb, 'sect_dungeon', 'sect_dungeon', false, 0, enemyName);
+  UI.els.battleOverlay.classList.remove('hidden');
+  UI.updateBattle();
+}
+function getSectDungeonDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function migrateSectDungeon(s) {
+  if (!s.sectDungeon || typeof s.sectDungeon !== 'object') s.sectDungeon = {};
+  if (!s.sectDungeon.best || typeof s.sectDungeon.best !== 'object') s.sectDungeon.best = {};
+  const today = getSectDungeonDateKey();
+  if (s.sectDungeon.date !== today) {
+    s.sectDungeon.date = today;
+    s.sectDungeon.attempts = SECT_DUNGEON_DAILY_LIMIT;
+  }
+  if (typeof s.sectDungeon.attempts !== 'number') s.sectDungeon.attempts = SECT_DUNGEON_DAILY_LIMIT;
+  s.sectDungeon.attempts = Math.max(0, Math.min(SECT_DUNGEON_DAILY_LIMIT, Math.floor(s.sectDungeon.attempts)));
+}
+
+function getSectDungeonBest(s) {
+  migrateSectDungeon(s);
+  return Math.max(0, Math.floor(Number(s.sectDungeon.best[s.sect]) || 0));
+}
+
+function getSectDungeonLayer(floor) {
+  return SECT_DUNGEON_LAYERS.find(layer => layer.floor === floor) || null;
+}
 function startSectHunt(taskId) {
   const s = Game.state;
   if (!s.sect) return;
@@ -2981,14 +3055,14 @@ function scaleBossForPlayer(enemy, s) {
   enemy.mdef = Math.max(enemy.mdef, targetDef);
 }
 
-function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNext, loseNext, tribulation = false, turns = 0) {
+function startBattle(enemyId, multiplier = 1.0, winCallback, loseCallback, winNext, loseNext, tribulation = false, turns = 0, nameOverride = null) {
   const enemyData = ENEMIES[enemyId];
   if (!enemyData) return;
 
   const mult = multiplier;
   const enemy = {
     id: enemyId,
-    name: enemyData.name,
+    name: nameOverride || enemyData.name,
     maxHp: Math.floor(enemyData.hp * mult),
     hp: Math.floor(enemyData.hp * mult),
     atk: Math.floor(enemyData.atk * mult),

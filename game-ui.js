@@ -374,6 +374,12 @@ const UI = {
       return;
     }
 
+    // 如果是宗门禁地
+    if (node.sectDungeon) {
+      this.renderSectDungeon();
+      return;
+    }
+
     // 如果是转换门派
     if (node.sectTransfer) {
       this.renderSectTransfer();
@@ -620,6 +626,58 @@ const UI = {
     el.appendChild(backBtn);
   },
 
+  // ========== 宗门禁地 ==========
+  renderSectDungeon() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    migrateSectDungeon(s);
+    const sect = SECTS[s.sect];
+    const dungeon = sect && SECT_DUNGEONS[s.sect];
+    if (!sect || !dungeon) {
+      const hint = document.createElement('div');
+      hint.className = 'gacha-pity';
+      hint.textContent = '尚未加入宗门。';
+      el.appendChild(hint);
+      return;
+    }
+    const best = getSectDungeonBest(s);
+    const info = document.createElement('div');
+    info.className = 'gacha-pity';
+    info.textContent = `${sect.icon} ${dungeon.name} · 今日剩余 ${s.sectDungeon.attempts}/${SECT_DUNGEON_DAILY_LIMIT} 次 · 已通关 ${best}/5 层`;
+    el.appendChild(info);
+
+    SECT_DUNGEON_LAYERS.forEach(layer => {
+      const btn = document.createElement('button');
+      btn.className = 'ink-btn';
+      const unlocked = layer.floor <= best + 1;
+      const realmLocked = getRealmIndex(s) < (layer.minRealm || 0);
+      const noAttempts = (s.sectDungeon.attempts || 0) <= 0;
+      const enemyName = (dungeon.enemyNames && dungeon.enemyNames[layer.floor - 1]) || '守关者';
+      const pillName = layer.pill && ITEMS[layer.pill] ? ITEMS[layer.pill].name : '丹药';
+      const cleared = best >= layer.floor ? ' · 已通关' : '';
+      let suffix = '';
+      if (!unlocked) suffix = '（需先通关上一层）';
+      else if (realmLocked) suffix = `（需${getRealm(layer.minRealm).name}）`;
+      else if (noAttempts) suffix = '（今日次数已尽）';
+      btn.textContent = `${layer.floor}层 ${layer.name} · ${enemyName} · 贡献+${layer.reward} 灵石+${layer.stone} ${pillName}×1${cleared}${suffix}`;
+      if (!unlocked || realmLocked || noAttempts) {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+      }
+      btn.addEventListener('click', () => {
+        playClickSound();
+        startSectDungeon(layer.floor);
+      });
+      el.appendChild(btn);
+    });
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'ink-btn';
+    backBtn.textContent = '返回';
+    backBtn.addEventListener('click', () => goToNode('sect_home'));
+    el.appendChild(backBtn);
+  },
   // ========== 贡献商店 ==========
   renderSectShop() {
     const s = Game.state;

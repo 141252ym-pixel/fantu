@@ -2,6 +2,16 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v57',
+    date: '2026-08-22',
+    title: '无情道 · 宗门禁地',
+    items: [
+      '新增门派「无情道」：偏法攻与法术暴击，配套斩念心印、太上忘情诀、天心无情三门绝学',
+      '新增宗门副本「宗门禁地」：各门派拥有不同副本名，每日 3 次挑战，5 层递进产出宗门贡献',
+      '普通宗门任务贡献下调，转门派成本提高，宗门绝学兑换价格上调，让门派养成更有分量',
+    ],
+  },
+  {
     version: 'v56',
     date: '2026-08-22',
     title: '藏宝阁补充法攻装备',
@@ -970,6 +980,9 @@ const GONGFA = {
   gong_tianmo_bloodflame: { id: 'gong_tianmo_bloodflame', name: '血焰焚天诀', grade: '仙级', icon: '🔥', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧15%气血，轰出血焰重击（物攻3.6倍，灵力15%，冷却5回合）', combat: { kind: 'blood_strike', hpPct: 0.15, mult: 3.6, manaPct: 0.15, cd: 5 } },
   gong_tianmo_bloodescape: { id: 'gong_tianmo_bloodescape', name: '血遁大法', grade: '天级', icon: '💨', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血血遁逃离（95%成功；失败则爆体战败，不耗灵力）', combat: { kind: 'blood_escape', hpPct: 0.20, manaPct: 0, cd: 0 } },
   gong_tianmo_bloodplunder: { id: 'gong_tianmo_bloodplunder', name: '燃血夺宝诀', grade: '仙级', icon: '💰', color: '#e0473c', sect: 'tianmo', desc: '主动·燃烧20%气血，本场经验、灵石、名望及掉落概率提高20%（每场一次，不耗灵力）', combat: { kind: 'reward_boost', hpPct: 0.20, rewardBoost: 0.20, onceBattle: true, manaPct: 0, cd: 0 } },
+  gong_wuqing_zhannian: { id: 'gong_wuqing_zhannian', name: '斩念心印', grade: '天级', icon: '🧊', color: '#9b59b6', sect: 'wuqing', desc: '主动·法攻提高80%，持续3回合（灵力28%，冷却6回合）', combat: { kind: 'buff', boost: 0.80, turns: 3, manaPct: 0.28, cd: 6 } },
+  gong_wuqing_wangqing: { id: 'gong_wuqing_wangqing', name: '太上忘情诀', grade: '仙级', icon: '❄️', color: '#e6a23c', sect: 'wuqing', desc: '主动·忘情寒光（法攻3.2倍，灵力35%，冷却5回合）', combat: { name: '太上忘情诀', mult: 3.2, manaPct: 0.35, cd: 5 } },
+  gong_wuqing_tianxin: { id: 'gong_wuqing_tianxin', name: '天心无情', grade: '神级', icon: '💠', color: '#e0473c', sect: 'wuqing', desc: '主动·天心降罚（法攻5.0倍，灵力50%，冷却9回合）', combat: { name: '天心无情', mult: 5.0, manaPct: 0.50, cd: 9 } },
 };
 // 重复获得同一本功法时的灵石补偿
 const GONGFA_REFUND = { '黄级': 100, '玄级': 300, '地级': 800, '天级': 2000, '仙级': 5000, '神级': 12000 };
@@ -1000,6 +1013,9 @@ const QYU_POOL = [
   { id: 'qyu_tianmo_bloodflame', title: '血焰魔窟', text: '你在魔窟深处见血焰焚空，参悟血焰焚天诀。', weight: 2, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodflame' } },
   { id: 'qyu_tianmo_bloodescape', title: '血影秘遁', text: '残碑上留有一道血影遁法，你悟得血遁大法。', weight: 2, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodescape' } },
   { id: 'qyu_tianmo_bloodplunder', title: '魔君宝录', text: '一册以精血书就的魔君宝录，记载着燃血夺宝之法。', weight: 1.5, sect: 'tianmo', reward: { type: 'gongfa', id: 'gong_tianmo_bloodplunder' } },
+  { id: 'qyu_wuqing_zhannian', title: '寒潭斩念', text: '万籁俱寂的寒潭中，你斩去杂念，悟得斩念心印。', weight: 3, sect: 'wuqing', reward: { type: 'gongfa', id: 'gong_wuqing_zhannian' } },
+  { id: 'qyu_wuqing_wangqing', title: '忘情石刻', text: '无名石壁上刻着忘情二字，寒意入骨，你参透太上忘情诀。', weight: 2, sect: 'wuqing', reward: { type: 'gongfa', id: 'gong_wuqing_wangqing' } },
+  { id: 'qyu_wuqing_tianxin', title: '天心照影', text: '天光落入识海，万情俱灭，只余一道无情天心。', weight: 1.2, sect: 'wuqing', reward: { type: 'gongfa', id: 'gong_wuqing_tianxin' } },
   { id: 'qyu_lingkuang', title: '灵脉矿脉', text: '你发现一处裸露的灵脉，采得不少灵石。', weight: 14, reward: { type: 'stone', value: 500 } },
   { id: 'qyu_yaoyuan',   title: '药香引路', text: '一阵异香引你来到一株灵药前，你小心采下。', weight: 10, reward: { type: 'item', id: 'lingshou_dan', count: 2 } },
   { id: 'qyu_daoyun',    title: '天道垂青', text: '你抬头望天，忽觉天道运转自有其理，道韵顿生。', weight: 10, reward: { type: 'dao', value: 20 } },
@@ -1061,39 +1077,59 @@ const CAVE_LEVELS = Array.from({ length: 30 }, (_, i) => {
 // 宗门：加入后获得被动加成，可接宗门任务赚贡献、在贡献商店兑换
 const SECTS = {
   qingyun: { id: 'qingyun', name: '青云宗', icon: '☁️', color: '#4a90d9',
-    desc: '名门正派，剑修云集。宗门加成：物攻+25、物抗+15。',
-    bonus: { atk: 25, def: 15 } },
+    desc: '名门正派，剑气法诀兼修。宗门加成：物攻+25、法攻+15、物抗+10。',
+    bonus: { atk: 25, matk: 15, def: 10 } },
   danxia: { id: 'danxia', name: '丹霞谷', icon: '🌅', color: '#e6a23c',
-    desc: '炼丹圣地，富甲一方。宗门加成：法攻+25、法抗+15。',
-    bonus: { matk: 25, mdef: 15 } },
+    desc: '炼丹圣地，擅长续航护身。宗门加成：法攻+25、法抗+25。',
+    bonus: { matk: 25, mdef: 25 } },
   tianmo: { id: 'tianmo', name: '天魔教', icon: '🩸', color: '#e0473c',
     desc: '魔道宗门，速成霸道。宗门加成：物攻+40、穿透+20。',
     bonus: { atk: 40, pen: 20 } },
+  wuqing: { id: 'wuqing', name: '无情道', icon: '❄️', color: '#8fd3ff',
+    desc: '斩情念，证大道，心若寒霜，法如天罚。宗门加成：法攻+40、法术暴击率+5%。',
+    bonus: { matk: 40, mcrit: 5 } },
 };
 
 // 宗门任务：完成后获得贡献（cost 为 null 表示点击即完成；item 需交付材料；battle 需战斗）
 const SECT_TASKS = [
-  { id: 'sect_patrol', name: '巡守山门', icon: '🚶', desc: '巡视外门山道，驱赶宵小。', tier: 'outer', minRealm: 0, reward: 15, cost: null },
-  { id: 'sect_gather', name: '采集灵草', icon: '🌿', desc: '上交药王谷灵草。', tier: 'outer', minRealm: 0, reward: 30, cost: { item: 'yaowanggu_lingzhi', count: 1 } },
-  { id: 'sect_wolf', name: '清剿狼患', icon: '🐺', desc: '讨伐炼气期野狼。', tier: 'outer', minRealm: 0, reward: 25, cost: { battle: true, enemy: 'wolf' } },
-  { id: 'sect_bandit', name: '缉拿山贼', icon: '⚔️', desc: '讨伐炼气后期山贼。', tier: 'outer', minRealm: 4, reward: 40, cost: { battle: true, enemy: 'bandit' } },
-  { id: 'sect_snake', name: '蛇窟除妖', icon: '🐍', desc: '讨伐筑基期蛇妖。', tier: 'outer', minRealm: 8, reward: 55, cost: { battle: true, enemy: 'snake_demon' } },
-  { id: 'sect_monkey', name: '黑岭镇乱', icon: '🐒', desc: '讨伐筑基期石猴。', tier: 'outer', minRealm: 10, reward: 70, cost: { battle: true, enemy: 'stone_monkey' } },
-  { id: 'sect_blood', name: '血教缉凶', icon: '🩸', desc: '讨伐金丹期血教弟子。', tier: 'inner', minRealm: 14, reward: 100, cost: { battle: true, enemy: 'blood_cultist' } },
-  { id: 'sect_bifang', name: '镇压毕方', icon: '🦅', desc: '讨伐金丹期灵禽毕方。', tier: 'inner', minRealm: 14, reward: 125, cost: { battle: true, enemy: 'bifuluan' } },
-  { id: 'sect_qiongqi', name: '巡猎穷奇', icon: '🐯', desc: '讨伐元婴期凶兽穷奇。', tier: 'inner', minRealm: 18, reward: 170, cost: { battle: true, enemy: 'qiongqi' } },
-  { id: 'sect_taotie', name: '荒原诛饕餮', icon: '👹', desc: '讨伐元婴后期饕餮。', tier: 'inner', minRealm: 20, reward: 210, cost: { battle: true, enemy: 'taotie' } },
-  { id: 'sect_taowu', name: '禁地战梼杌', icon: '🦴', desc: '讨伐化神期梼杌。', tier: 'inner', minRealm: 22, reward: 280, cost: { battle: true, enemy: 'taowu' } },
-  { id: 'sect_hundun', name: '混沌镇封', icon: '🌑', desc: '讨伐化神后期混沌。', tier: 'inner', minRealm: 24, reward: 350, cost: { battle: true, enemy: 'hundun' } },
+  { id: 'sect_patrol', name: '巡守山门', icon: '🚶', desc: '巡视外门山道，驱赶宵小。', tier: 'outer', minRealm: 0, reward: 10, cost: null },
+  { id: 'sect_gather', name: '采集灵草', icon: '🌿', desc: '上交药王谷灵草。', tier: 'outer', minRealm: 0, reward: 20, cost: { item: 'yaowanggu_lingzhi', count: 1 } },
+  { id: 'sect_wolf', name: '清剿狼患', icon: '🐺', desc: '讨伐炼气期野狼。', tier: 'outer', minRealm: 0, reward: 20, cost: { battle: true, enemy: 'wolf' } },
+  { id: 'sect_bandit', name: '缉拿山贼', icon: '⚔️', desc: '讨伐炼气后期山贼。', tier: 'outer', minRealm: 4, reward: 30, cost: { battle: true, enemy: 'bandit' } },
+  { id: 'sect_snake', name: '蛇窟除妖', icon: '🐍', desc: '讨伐筑基期蛇妖。', tier: 'outer', minRealm: 8, reward: 40, cost: { battle: true, enemy: 'snake_demon' } },
+  { id: 'sect_monkey', name: '黑岭镇乱', icon: '🐒', desc: '讨伐筑基期石猴。', tier: 'outer', minRealm: 10, reward: 50, cost: { battle: true, enemy: 'stone_monkey' } },
+  { id: 'sect_blood', name: '血教缉凶', icon: '🩸', desc: '讨伐金丹期血教弟子。', tier: 'inner', minRealm: 14, reward: 70, cost: { battle: true, enemy: 'blood_cultist' } },
+  { id: 'sect_bifang', name: '镇压毕方', icon: '🦅', desc: '讨伐金丹期灵禽毕方。', tier: 'inner', minRealm: 14, reward: 85, cost: { battle: true, enemy: 'bifuluan' } },
+  { id: 'sect_qiongqi', name: '巡猎穷奇', icon: '🐯', desc: '讨伐元婴期凶兽穷奇。', tier: 'inner', minRealm: 18, reward: 110, cost: { battle: true, enemy: 'qiongqi' } },
+  { id: 'sect_taotie', name: '荒原诛饕餮', icon: '👹', desc: '讨伐元婴后期饕餮。', tier: 'inner', minRealm: 20, reward: 130, cost: { battle: true, enemy: 'taotie' } },
+  { id: 'sect_taowu', name: '禁地战梼杌', icon: '🦴', desc: '讨伐化神期梼杌。', tier: 'inner', minRealm: 22, reward: 160, cost: { battle: true, enemy: 'taowu' } },
+  { id: 'sect_hundun', name: '混沌镇封', icon: '🌑', desc: '讨伐化神后期混沌。', tier: 'inner', minRealm: 24, reward: 190, cost: { battle: true, enemy: 'hundun' } },
 ];
 
+const SECT_DUNGEON_DAILY_LIMIT = 3;
+const SECT_DUNGEON_LAYERS = [
+  { floor: 1, name: '外门试炼', enemy: 'sect_dungeon_1', minRealm: 0,  reward: 40,  stone: 120, pill: 'huiqi_pill' },
+  { floor: 2, name: '内门试炼', enemy: 'sect_dungeon_2', minRealm: 8,  reward: 70,  stone: 240, pill: 'huiling_pill' },
+  { floor: 3, name: '长老幻身', enemy: 'sect_dungeon_3', minRealm: 14, reward: 110, stone: 420, pill: 'huichun_pill' },
+  { floor: 4, name: '镇派灵阵', enemy: 'sect_dungeon_4', minRealm: 18, reward: 160, stone: 700, pill: 'yuling_pill' },
+  { floor: 5, name: '秘藏守卫', enemy: 'sect_dungeon_5', minRealm: 22, reward: 250, stone: 1200, pill: 'dahuan_pill' },
+];
+const SECT_DUNGEONS = {
+  qingyun: { name: '剑冢试炼', enemyNames: ['守冢剑影', '内门剑魄', '青云长老幻身', '九霄剑阵', '剑冢秘藏守卫'] },
+  danxia: { name: '丹霞药境', enemyNames: ['药境灵傀', '丹火灵影', '丹霞长老幻身', '霞光灵阵', '药境秘藏守卫'] },
+  tianmo: { name: '血池魔窟', enemyNames: ['血池魔影', '魔窟护法', '天魔长老幻身', '血煞魔阵', '魔窟秘藏守卫'] },
+  wuqing: { name: '忘情寒渊', enemyNames: ['寒渊冰影', '斩念道侍', '无情长老幻身', '忘情寒阵', '寒渊秘藏守卫'] },
+};
 // 宗门贡献商店
 const SECT_SHOP = [
-  { id: 'ss_stone',  name: '灵石礼包',     icon: '💰', cost: 50,  reward: { stone: 200 } },
-  { id: 'ss_juqi',   name: '聚气丹',       icon: '🧪', cost: 80,  reward: { item: 'juqi_pill', count: 2 } },
-  { id: 'ss_huiqi',  name: '回气丹',       icon: '💊', cost: 40,  reward: { item: 'huiqi_pill', count: 1 } },
-  { id: 'ss_gongfa', name: '功法·金刚不坏', icon: '💪', cost: 300, reward: { gongfa: 'gong_jingang' } },
-  { id: 'ss_dao',    name: '道韵玉牌',     icon: '☯️', cost: 200, reward: { dao: 15 } },
+  { id: 'ss_stone',  name: '灵石礼包',     icon: '💰', cost: 80,   reward: { stone: 200 } },
+  { id: 'ss_juqi',   name: '聚气丹',       icon: '🧪', cost: 120,  reward: { item: 'juqi_pill', count: 2 } },
+  { id: 'ss_huiqi',  name: '回气丹',       icon: '💊', cost: 60,   reward: { item: 'huiqi_pill', count: 1 } },
+  { id: 'ss_gongfa', name: '功法·金刚不坏', icon: '💪', cost: 800,  reward: { gongfa: 'gong_jingang' } },
+  { id: 'ss_wuqing_zhannian', name: '功法·斩念心印', icon: '🧊', cost: 800,  sect: 'wuqing', reward: { gongfa: 'gong_wuqing_zhannian' } },
+  { id: 'ss_wuqing_wangqing', name: '功法·太上忘情诀', icon: '❄️', cost: 1800, sect: 'wuqing', reward: { gongfa: 'gong_wuqing_wangqing' } },
+  { id: 'ss_wuqing_tianxin', name: '功法·天心无情', icon: '💠', cost: 3600, sect: 'wuqing', reward: { gongfa: 'gong_wuqing_tianxin' } },
+  { id: 'ss_dao',    name: '道韵玉牌',     icon: '☯️', cost: 350,  reward: { dao: 15 } },
 ];
 
 // ========== 竞技斗法 ==========
@@ -1196,6 +1232,13 @@ const ENEMIES = {
   taotie:      { id: 'taotie',     name: '饕餮',      hp: 4500, atk: 380, def: 52, xp: 1100, stone: [500,750], drops: [{id:'hanbingxue',chance:1},{id:'dahuiling_pill',chance:0.5}], boss: true, special: { name: '吞天噬元', type: 'percent', pct: 0.07, chance: 0.24, cd: 3 } },
   nine_tails:  { id: 'nine_tails', name: '九尾天狐',  hp: 3200, atk: 330, def: 48, matk: 460, mdef: 60, xp: 950, stone: [400,700], drops: [{id:'dao_compass',chance:1}], boss: true, special: { name: '魅影摄魂', type: 'weaken', rate: 0.30, turns: 2, chance: 0.24, cd: 3 } },
   yinglong:    { id: 'yinglong',   name: '应龙',      hp: 6400, atk: 470, def: 72, xp: 1600, stone: [750,1100], drops: [{id:'tieyijia',chance:0.5}], boss: true, special: { name: '雷云震魄', type: 'stun', chance: 0.20, cd: 4 } },
+
+  // 宗门禁地
+  sect_dungeon_1:{ id:'sect_dungeon_1',name:'禁地守卫', hp: 260, atk: 30, def: 8,  matk: 36,  mdef: 10, xp: 120, stone: [60,100], drops: [{id:'huiqi_pill',chance:0.35}] },
+  sect_dungeon_2:{ id:'sect_dungeon_2',name:'禁地精英', hp: 900, atk: 74, def: 22, matk: 96,  mdef: 28, xp: 320, stone: [130,220], drops: [{id:'huiling_pill',chance:0.4}], boss: true },
+  sect_dungeon_3:{ id:'sect_dungeon_3',name:'长老幻身', hp: 3200, atk: 280, def: 48, matk: 360, mdef: 62, xp: 900, stone: [300,520], drops: [{id:'huichun_pill',chance:0.45}], boss: true, special: { name: '灵压震慑', type: 'weaken', rate: 0.25, turns: 2, chance: 0.20, cd: 3 } },
+  sect_dungeon_4:{ id:'sect_dungeon_4',name:'镇派灵阵', hp: 15000, atk: 950, def: 180, matk: 1200, mdef: 220, xp: 2600, stone: [800,1300], drops: [{id:'yuling_pill',chance:0.5}], boss: true, special: { name: '阵纹锁魂', type: 'stun', chance: 0.18, cd: 4 } },
+  sect_dungeon_5:{ id:'sect_dungeon_5',name:'秘藏守卫', hp: 65000, atk: 2400, def: 460, matk: 3000, mdef: 560, xp: 8000, stone: [2600,4200], drops: [{id:'dahuan_pill',chance:0.6},{id:'dahuiling_pill',chance:0.4}], boss: true, special: { name: '秘藏威压', type: 'percent', pct: 0.08, chance: 0.22, cd: 3 } },
 
   // 论道
   dao_competitor:{ id:'dao_competitor',name:'论道对手',hp: 250, atk: 30, def: 10, xp: 150, stone: [60,100], drops: [{id:'daopei',chance:0.3}], untouchable: false },
@@ -2915,9 +2958,11 @@ const STORY_NODES = {
       { label: '加入青云宗', action: (s) => joinSect(s, 'qingyun'), next: 'sect_home', req: (s) => !s.sect },
       { label: '加入丹霞谷', action: (s) => joinSect(s, 'danxia'), next: 'sect_home', req: (s) => !s.sect },
       { label: '加入天魔教', action: (s) => joinSect(s, 'tianmo'), next: 'sect_home', req: (s) => !s.sect },
+      { label: '加入无情道', action: (s) => joinSect(s, 'wuqing'), next: 'sect_home', req: (s) => !s.sect },
       { label: '宗门任务', next: 'sect_tasks', req: (s) => !!s.sect },
+      { label: '宗门禁地', next: 'sect_dungeon', req: (s) => !!s.sect },
       { label: '贡献商店', next: 'sect_shop', req: (s) => !!s.sect },
-      { label: '转换门派 / 成为散修（1000贡献）', next: 'sect_transfer', req: (s) => !!s.sect },
+      { label: '转换门派 / 成为散修（2000贡献）', next: 'sect_transfer', req: (s) => !!s.sect },
       { label: '返回洞府', next: 'cave_home' },
     ],
   },
@@ -2936,7 +2981,7 @@ const STORY_NODES = {
 
   sect_transfer: {
     title: '转换门派',
-    text: '消耗 1000 宗门贡献可改投其他宗门，或脱离宗门成为散修。旧宗门绝学将保留但被封禁，改投后将获得新宗门绝学。',
+    text: '消耗 2000 宗门贡献可改投其他宗门，或脱离宗门成为散修。旧宗门绝学将保留但被封禁，改投后将获得新宗门绝学。',
     sectTransfer: true,
   },
 
