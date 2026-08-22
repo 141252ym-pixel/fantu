@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v56',
+    date: '2026-08-22',
+    title: '藏宝阁补充法攻装备',
+    items: [
+      '藏宝阁新增一批法攻武器：从凡品到仙品均有机会抽出，法修前中后期都有更顺手的装备选择',
+      '新增装备按原有品质数值节奏投放，不改战斗公式、不影响已有装备与套装',
+    ],
+  },
+  {
     version: 'v55',
     date: '2026-08-21',
     title: '存档安全强化',
@@ -598,9 +607,15 @@ const ITEMS = {
   s_taijiyupei:    { id: 's_taijiyupei',    name: '太极玉佩', type: 'artifact', slot: 'trinket', icon: '☯️', desc: '仙品·法抗+280，法术暴击伤害+30%', effect: 'mdef280', mcritDmg: 30, sell: 2500, rarity: '仙品' },
 
   // ===== 抽卡装备（第四批：法攻/法抗/穿透） =====
+  g_ningqizhang: { id: 'g_ningqizhang', name: '凝气杖',  type: 'weapon', icon: '🪄', desc: '凡品·法攻+14',   effect: 'matk14',  sell: 30,   rarity: '凡品' },
+  g_qinglingzhang:{ id:'g_qinglingzhang',name: '青灵杖',  type: 'weapon', icon: '🪄', desc: '良品·法攻+29',   effect: 'matk29',  sell: 70,   rarity: '良品' },
   g_xuanmuzhang: { id: 'g_xuanmuzhang', name: '玄木杖',  type: 'weapon', icon: '🪄', desc: '中品·法攻+58',   effect: 'matk58',  sell: 180,  rarity: '中品' },
+  g_yuehuazhang: { id: 'g_yuehuazhang', name: '月华杖',  type: 'weapon', icon: '🌙', desc: '中品·法攻+62',   effect: 'matk62',  sell: 180,  rarity: '中品' },
   g_yanlingzhu:  { id: 'g_yanlingzhu',  name: '炎灵珠',  type: 'weapon', icon: '🔮', desc: '上品·法攻+115',  effect: 'matk115', sell: 450,  rarity: '上品' },
+  g_zidianling:  { id: 'g_zidianling',  name: '紫电令',  type: 'weapon', icon: '⚡', desc: '上品·法攻+125',  effect: 'matk125', sell: 450,  rarity: '上品' },
   g_wuleizhu:    { id: 'g_wuleizhu',    name: '五雷珠',  type: 'weapon', icon: '⚡', desc: '极品·法攻+225',  effect: 'matk225', sell: 1100, rarity: '极品' },
+  g_fentianfan:  { id: 'g_fentianfan',  name: '焚天幡',  type: 'weapon', icon: '🔥', desc: '极品·法攻+238',  effect: 'matk238', sell: 1100, rarity: '极品' },
+  g_taixuzhang:  { id: 'g_taixuzhang',  name: '太虚法杖',type: 'weapon', icon: '🌌', desc: '仙品·法攻+500',  effect: 'matk500', sell: 2500, rarity: '仙品' },
   g_susefapao:   { id: 'g_susefapao',   name: '素色法袍',type: 'armor', slot: 'armor', icon: '🥼', desc: '中品·法抗+38',   effect: 'mdef38',  sell: 180,  rarity: '中品' },
   g_yunwenfapao: { id: 'g_yunwenfapao', name: '云纹法袍',type: 'armor', slot: 'armor', icon: '👘', desc: '上品·法抗+78',   effect: 'mdef78',  sell: 450,  rarity: '上品' },
   g_tianluofapao:{ id: 'g_tianluofapao',name: '天罗法袍',type: 'armor', slot: 'armor', icon: '🧥', desc: '极品·法抗+145',  effect: 'mdef145', sell: 1100, rarity: '极品' },
@@ -645,34 +660,34 @@ const GACHA_POOL = [
     'shuzhi', 'shitou', 'pobu', 'lanyez', 'powan',
   ]},
   { rarity: '凡品', weight: 30, color: '#c9c9c9', items: [
-    'g_qingfeng', 'g_taomu', 'g_qingbu', 'g_cubu',
+    'g_qingfeng', 'g_taomu', 'g_ningqizhang', 'g_qingbu', 'g_cubu',
     { id: 'huiqi_pill', count: 3 }, { id: 'huiling_pill', count: 3 }, { id: 'juqi_pill', count: 2 },
   ]},
   { rarity: '良品', weight: 17, color: '#4caf50', items: [
-    'g_jinggang', 'g_tiejidao', 'g_suozijia', 'g_niupijia', 'g_niupixue', 'g_huixinfu', 'g_lingwenfu',
+    'g_jinggang', 'g_tiejidao', 'g_qinglingzhang', 'g_suozijia', 'g_niupijia', 'g_niupixue', 'g_huixinfu', 'g_lingwenfu',
     's_tongjie', 's_muzhulian',
     { id: 'huichun_pill', count: 2 }, { id: 'yuling_pill', count: 2 }, { id: 'juqi_pill', count: 4 },
   ]},
   { rarity: '中品', weight: 10, color: '#4a90d9', items: [
     'g_lingwen', 'g_hantieqiang', 'g_lingwenjia', 'g_jinsijia',
-    'g_xuanmuzhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_bingcanxue', 'g_tianxingzhu', 'g_xingchenzhu',
+    'g_xuanmuzhang', 'g_yuehuazhang', 'g_susefapao', 'g_pojiazhui', 'g_lupixue', 'g_bingcanxue', 'g_tianxingzhu', 'g_xingchenzhu',
     's_yinhuan', 's_yuzhui',
     { id: 'dahuan_pill', count: 1 }, { id: 'dahuiling_pill', count: 1 }, { id: 'juqi_pill', count: 6 },
   ]},
   { rarity: '上品', weight: 5, color: '#9b59b6', items: [
     'g_xuantie', 'g_zixiaodao', 'g_xuantiejia', 'g_yudaijia',
-    'g_yanlingzhu', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_shuangwenxue', 'g_zhuxinfu', 'g_shehunfu',
+    'g_yanlingzhu', 'g_zidianling', 'g_yunwenfapao', 'g_chuanxinci', 'g_liuyunxue', 'g_shuangwenxue', 'g_zhuxinfu', 'g_shehunfu',
     's_jinwuhuan', 's_xuanguipei', 's_pojunzhihuan',
     { id: 'jiuzhuan_pill', count: 1 }, { id: 'jiuzhuanling_pill', count: 1 },
   ]},
   { rarity: '极品', weight: 1.5, color: '#e6a23c', items: [
     'g_chixiao', 'g_longyuanqiang', 'g_chiyanjia', 'g_tiancanjia',
-    'g_wuleizhu', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_xuanmingxue', 'g_mieshizhu', 'g_jimiezhu',
+    'g_wuleizhu', 'g_fentianfan', 'g_tianluofapao', 'g_pojunzhui', 'g_fengxingxue', 'g_xuanmingxue', 'g_mieshizhu', 'g_jimiezhu',
     's_longwenjie', 's_fengyupei',
     { id: 'jiuzhuan_pill', count: 2 }, { id: 'jiuzhuanling_pill', count: 2 },
   ]},
   { rarity: '仙品', weight: 0.45, color: '#e0473c', items: [
-    'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian',
+    'g_zhuxian', 'g_xuanyuan', 'g_zhanxiandao', 'g_shishenqiang', 'g_dashenbian', 'g_taixuzhang',
     'g_xianlingjia', 'g_hundunjia', 'g_taijitu', 'g_zishou',
     'g_zhuxianzhui', 'g_shenxingxue', 'g_taiyinxue',
     's_hundunzhihuan', 's_taijiyupei',
