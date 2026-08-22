@@ -1,4 +1,7 @@
 // ========== UI 模块 ==========
+// 轻量版界面开关：如玩家反馈不好，改为 false 即可回到旧版灵宠/抽奖界面。
+const UI_USE_SIMPLE_PANELS = true;
+
 const UI = {
   els: {},
 
@@ -291,11 +294,18 @@ const UI = {
   renderScene(node) {
     if (!node) return;
     const s = Game.state;
+    const isFeatureNode = !!(node.shop || node.craft || node.alchemy || node.tame || node.gacha || node.battle || node.cave || node.sectTasks || node.sectShop || node.sectDungeon || node.sectTransfer || node.arena || node.xinmo || node.xinmoBattle);
+    const useSimpleScene = UI_USE_SIMPLE_PANELS && !isFeatureNode;
 
     // 先隐藏战斗
     if (!Game.battle) {
       this.els.battleOverlay.classList.add('hidden');
     }
+
+    const storyBox = document.getElementById('story-box');
+    if (storyBox) storyBox.classList.toggle('simple-story', useSimpleScene);
+    this.els.actionArea.classList.toggle('simple-action-grid', useSimpleScene);
+    this.els.sceneText.classList.toggle('simple-scene-text', useSimpleScene);
 
     this.els.sceneTitle.textContent = node.title || '';
 
@@ -303,6 +313,7 @@ const UI = {
     const text = getNodeText(node);
     const paragraphs = text.split('\n').filter(p => p.trim());
     this.els.sceneText.innerHTML = '';
+    if (useSimpleScene) this.renderSceneSummary();
     paragraphs.forEach(p => {
       const div = document.createElement('p');
       // 简单处理 <b> 标签
@@ -434,6 +445,24 @@ const UI = {
     });
 
     this.updateStats();
+  },
+
+
+  renderSceneSummary() {
+    const s = Game.state;
+    const realm = getRealm(s.realmIndex || 0);
+    const sect = s.sect && typeof SECTS !== 'undefined' ? SECTS[s.sect] : null;
+    const power = Math.floor((s.atk || 0) + (s.matk || 0) + (s.def || 0) + (s.mdef || 0) + (s.hpMax || 0) / 10 + (s.mpMax || 0) / 10 + (s.pen || 0));
+    const title = s.title ? `「${s.title}」` : '暂未获得称号';
+    const card = document.createElement('div');
+    card.className = 'simple-home-summary';
+    card.innerHTML = `
+      <div class="simple-home-chip"><b>${realm.name}</b><span>当前境界</span></div>
+      <div class="simple-home-chip"><b>${sect ? sect.icon + ' ' + sect.name : '散修'}</b><span>所属门派</span></div>
+      <div class="simple-home-chip"><b>${power}</b><span>综合战力</span></div>
+      <div class="simple-home-chip"><b>${title}</b><span>称号</span></div>
+    `;
+    this.els.sceneText.appendChild(card);
   },
 
   // ========== 洞府经营 ==========
@@ -1202,6 +1231,11 @@ const UI = {
   },
 
   renderPetOverlay() {
+    if (UI_USE_SIMPLE_PANELS) return this.renderPetOverlaySimple();
+    return this.renderPetOverlayLegacy();
+  },
+
+  renderPetOverlayLegacy() {
     const s = Game.state;
     const el = document.getElementById('pet-overlay-body');
     if (!el) return;
@@ -1295,6 +1329,108 @@ const UI = {
     el.innerHTML = html;
   },
 
+  renderPetOverlaySimple() {
+    const s = Game.state;
+    const el = document.getElementById('pet-overlay-body');
+    if (!el) return;
+    const QUALITY_COLOR = { '废品': '#7a7a7a', '凡品': '#8b8b8b', '良品': '#3f8f55', '中品': '#3f78b8', '上品': '#8e56b5', '极品': '#c1842d', '神品': '#c94539' };
+    const QUALITY_ORDER = ['神品', '极品', '上品', '中品', '良品', '凡品', '废品'];
+    const filter = this._petFilter || 'all';
+    const allPets = (s.pets || []).slice().sort((a, b) => {
+      const qa = PET_QUALITY_RANK[(PETS[a.id] || {}).quality] || 0;
+      const qb = PET_QUALITY_RANK[(PETS[b.id] || {}).quality] || 0;
+      if ((b.level || 1) !== (a.level || 1)) return (b.level || 1) - (a.level || 1);
+      if ((b.star || 1) !== (a.star || 1)) return (b.star || 1) - (a.star || 1);
+      return qb - qa;
+    });
+    const best = allPets[0];
+    const bestMeta = best ? PETS[best.id] : null;
+    const equipped = (s.pets || []).find(p => p.uid === s.pet);
+    const equippedMeta = equipped ? PETS[equipped.id] : null;
+    const pets = allPets.filter(p => filter === 'all' || (PETS[p.id] && PETS[p.id].quality === filter));
+    const starCounts = getPetStarCounts(s);
+    const maxStar = Object.keys(starCounts).length ? Math.max(...Object.keys(starCounts).map(Number)) : 1;
+    const starChips = [];
+    for (let i = 1; i <= maxStar; i++) if (starCounts[i]) starChips.push(`<span>★${i} ×${starCounts[i]}</span>`);
+    const autoPreview = previewAutoStarUp(s);
+    const canAuto = autoPreview.steps.length > 0;
+    const bestStats = best ? `物攻+${getPetStatBonus(s, best, 'atk')} 法攻+${getPetStatBonus(s, best, 'matk')} 物抗+${getPetStatBonus(s, best, 'def')} 法抗+${getPetStatBonus(s, best, 'mdef')} 穿透+${getPetStatBonus(s, best, 'pen')}` : '暂无灵宠属性';
+    let html = `
+      <div class="simple-panel pet-simple">
+        <div class="simple-hero-card">
+          <div class="simple-hero-main">
+            <div class="simple-hero-icon">${bestMeta ? bestMeta.icon : '🐾'}</div>
+            <div>
+              <div class="simple-kicker">等级最高灵宠</div>
+              <div class="simple-title">${bestMeta ? `${bestMeta.name} <span style="color:${bestMeta.qc || QUALITY_COLOR[bestMeta.quality] || '#7a5b2a'}">${bestMeta.quality}</span>` : '尚未拥有灵宠'}</div>
+              <div class="simple-sub">${best ? `★${best.star || 1} · Lv.${best.level || 1}/${getPetMaxLevel(best)} · ${getPetStage(best)}阶` : '去坊市·灵兽谷抽取第一只灵宠'}</div>
+            </div>
+          </div>
+          <div class="simple-stat-line">${bestStats}</div>
+          <div class="simple-mini-line">出战：${equippedMeta ? `${equippedMeta.icon} ${equippedMeta.name} ★${equipped.star || 1} · Lv.${equipped.level || 1}` : '未出战'}　喂养：🥩${s.bag.shouliang || 0} 💊${s.bag.lingshou_dan || 0}</div>
+        </div>
+        <div class="simple-actions-grid">
+          <button class="ink-btn" onclick="UI.openPetCodex()">📖 灵宠图鉴</button>
+          <button class="ink-btn" onclick="UI.openGiftCodex()">🎁 礼物图鉴</button>
+          <button class="ink-btn" onclick="LB.open(); LB.switchTab('pet')">👑 灵宠榜</button>
+          <button class="ink-btn" ${canAuto ? '' : 'disabled'} onclick="UI.openAutoStarUp()">⚡ 一键升星${canAuto ? ` ${autoPreview.steps.length}次` : ''}</button>
+        </div>
+        <div class="pet-auto-release simple-auto-release"><div>自动放生</div>${Object.keys(PET_QUALITY_RANK).filter(q => q !== '神品').map(q => `<label><input type="checkbox" ${s.petAutoRelease && s.petAutoRelease[q] ? 'checked' : ''} onchange="UI.togglePetAutoRelease('${q}', this.checked)">${q}</label>`).join('')}<button class="ink-btn danger" onclick="UI.releaseSelectedPetQualities()">放生已选</button><small>神品与出战灵宠会保留。</small></div>
+        <div class="pet-star-summary simple-star-summary">${starChips.length ? starChips.join('') : '暂无灵宠'}</div>
+        <div class="pet-filter simple-tabs"><button class="pet-filter-btn${filter === 'all' ? ' active' : ''}" onclick="UI.setPetFilter('all')">全部</button>${QUALITY_ORDER.map(q => `<button class="pet-filter-btn${filter === q ? ' active' : ''}" onclick="UI.setPetFilter('${q}')"><span style="color:${QUALITY_COLOR[q]}">●</span>${q}</button>`).join('')}</div>
+    `;
+    if (!s.pets || !s.pets.length) html += '<div class="pet-empty simple-empty">尚未拥有灵宠，可前往坊市·灵兽谷抽取。</div>';
+    else if (!pets.length) html += `<div class="pet-empty simple-empty">没有「${filter}」品质的灵宠。</div>`;
+    pets.forEach(p => {
+      const pet = PETS[p.id];
+      if (!pet) return;
+      const lv = p.level || 1;
+      const star = p.star || 1;
+      const maxLv = getPetMaxLevel(p);
+      const isMax = lv >= maxLv;
+      const exp = p.exp || 0;
+      const expNeed = getPetExpToNext(lv);
+      const feedCost = isMax ? 0 : expNeed - exp;
+      const isEquipped = s.pet === p.uid;
+      const fi = getPetFavorInfo(p);
+      const trait = getPetTrait(p);
+      const chance = Math.round(getPetSkillChance(p) * 100);
+      html += `
+        <div class="simple-list-card pet-simple-card${isEquipped ? ' equipped' : ''}">
+          <div class="simple-list-head">
+            <div class="simple-list-icon">${pet.icon}</div>
+            <div class="simple-list-main">
+              <div class="simple-list-title"><span style="color:${pet.qc}">${pet.name}</span> <em>${pet.quality}</em>${isEquipped ? '<b>出战中</b>' : ''}</div>
+              <div class="simple-list-sub">★${star} · Lv.${lv}/${maxLv} · ${getPetStage(p)}阶 · 好感 Lv.${fi.favor}/${fi.max}</div>
+            </div>
+          </div>
+          <div class="simple-progress"><div style="width:${isMax ? 100 : Math.max(2, Math.round(exp / expNeed * 100))}%"></div></div>
+          <div class="simple-desc">${pet.desc}</div>
+          <div class="simple-stat-line">物攻+${getPetStatBonus(s, p, 'atk')}　法攻+${getPetStatBonus(s, p, 'matk')}　物抗+${getPetStatBonus(s, p, 'def')}　法抗+${getPetStatBonus(s, p, 'mdef')}　穿透+${getPetStatBonus(s, p, 'pen')}</div>
+          <div class="simple-skill">技能【${pet.skill}】：${pet.id === 'tuntunshu' ? `闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 偷Boss装备 ${(getTuntunshuBossStealRate(p) * 100).toFixed(3)}%` : `${chance}% 概率追加伤害`}${trait ? `　天赋【${trait.name}】` : ''}</div>
+          <div class="simple-card-actions">
+            ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
+            ${isMax ? `<button class="ink-btn disabled" disabled>已满级</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">升1级 ${feedCost}</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">喂丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">喂粮</button>`}
+            <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">升星</button>
+            <button class="ink-btn" onclick="UI.togglePetGift('${p.uid}')">送礼</button>
+            <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
+          </div>
+        </div>
+      `;
+      if (this._giftPetId === p.uid) {
+        const treats = Object.values(ITEMS).filter(it => it.favor && (s.bag[it.id] || 0) > 0);
+        html += `<div class="treat-list simple-treat-list">`;
+        if (!treats.length) html += `<div class="treat-empty">暂无零食/装饰，可去「🎡 零食转盘」抽取</div>`;
+        treats.forEach(it => {
+          const liked = (it.cat === 'food' && petLikeFood(pet, it.taste)) || (it.cat === 'decor' && petLikeDecor(pet, it.style));
+          html += `<button class="treat-item${liked ? ' liked' : ''}" onclick="UI.giveTreat('${p.uid}', '${it.id}')"><span>${it.icon} ${it.name}×${s.bag[it.id]}</span><span class="treat-gain">${liked ? '❤️+' + Math.floor(it.favor * 2) : '+' + Math.floor(it.favor * 0.5)}</span></button>`;
+        });
+        html += `</div>`;
+      }
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  },
   setPetFilter(q) {
     this._petFilter = q;
     this.renderPetOverlay();
@@ -1696,6 +1832,11 @@ const UI = {
 
   // ========== 抽卡（藏宝阁） ==========
   renderGacha() {
+    if (UI_USE_SIMPLE_PANELS) return this.renderGachaSimple();
+    return this.renderGachaLegacy();
+  },
+
+  renderGachaLegacy() {
     const s = Game.state;
     const el = this.els.actionArea;
     el.innerHTML = '';
@@ -1793,6 +1934,70 @@ const UI = {
     el.appendChild(backBtn);
   },
 
+  renderGachaSimple() {
+    const s = Game.state;
+    const el = this.els.actionArea;
+    el.innerHTML = '';
+    const sinceXian = s.gachaSinceXian || 0;
+    const xianCount = s.gachaXianCount || 0;
+    const shenLeft = s.gachaShenPityRemaining || 0;
+    const shenText = shenLeft > 0 ? `神品保底窗口剩 ${shenLeft} 抽` : `再获 ${Math.max(0, 3 - xianCount)} 件仙品开启神品保底`;
+    const singlePurchase = getGachaPurchaseInfo(s, 'equipment', 1);
+    const tenPurchase = getGachaPurchaseInfo(s, 'equipment', 10);
+    const hundredPurchase = getGachaPurchaseInfo(s, 'equipment', 100);
+    const thousandPurchase = getGachaPurchaseInfo(s, 'equipment', 1000);
+    const wrap = document.createElement('div');
+    wrap.className = 'simple-panel gacha-simple';
+    wrap.innerHTML = `
+      <div class="simple-hero-card gacha-simple-hero">
+        <div class="simple-kicker">藏宝阁</div>
+        <div class="simple-title">本期机缘 · 仙品法器</div>
+        <div class="simple-sub">消耗灵石抽取装备、丹药与稀有机缘</div>
+        <div class="simple-resource-row"><span>💎 灵石 ${s.stone || 0}</span><span>已抽 ${s.gachaCount || 0}</span></div>
+      </div>
+      <div class="simple-pity-card">
+        <div><b>仙品保底</b><span>距保底 ${Math.max(0, GACHA_PITY - sinceXian)} 抽</span></div>
+        <div class="simple-progress"><div style="width:${Math.min(100, Math.round(sinceXian / GACHA_PITY * 100))}%"></div></div>
+        <small>${shenText}</small>
+      </div>
+      <div class="simple-gacha-buttons">
+        <button class="ink-btn" data-draw="1">抽一次<br><small>${singlePurchase.cost}灵石${singlePurchase.discounted ? ` · 八折剩${singlePurchase.remaining}` : ''}</small></button>
+        <button class="ink-btn" data-draw="10">十连抽<br><small>${tenPurchase.cost}灵石${tenPurchase.discounted ? ` · 八折剩${tenPurchase.remaining}` : ''}</small></button>
+        <button class="ink-btn" data-draw="100">百连抽<br><small>${hundredPurchase.cost}灵石${hundredPurchase.discounted ? ` · 八折剩${hundredPurchase.remaining}` : ''}</small></button>
+        <button class="ink-btn" data-draw="1000">千连抽<br><small>${thousandPurchase.cost}灵石${thousandPurchase.discounted ? ` · 八折剩${thousandPurchase.remaining}` : ''}</small></button>
+      </div>
+      <div class="gacha-info simple-rate-row">${GACHA_POOL.map(t => `<span class="gacha-rate" style="color:${t.color}">${t.rarity} ${t.weight}%</span>`).join('')}</div>
+      <div class="simple-pity-card simple-discount-card"><b>独立八折次数</b><small>${[1, 10, 100, 1000].map(count => `${({ 1: '单抽', 10: '十连', 100: '百连', 1000: '千连' })[count]}${getGachaPurchaseInfo(s, 'equipment', count).remaining}`).join(' · ')}</small></div>
+      <div class="simple-actions-grid"><button class="ink-btn" data-codex="1">📖 图鉴</button><button class="ink-btn" data-back="1">返回坊市</button></div>
+    `;
+    el.appendChild(wrap);
+    wrap.querySelector('[data-draw="1"]').addEventListener('click', () => {
+      playClickSound();
+      const r = gachaDraw();
+      if (r) { this.showGachaResult(r); this.renderGacha(); }
+    });
+    wrap.querySelector('[data-draw="10"]').addEventListener('click', () => {
+      playClickSound();
+      const rs = gachaDrawTen();
+      if (rs) { this.showGachaTen(rs); this.renderGacha(); }
+    });
+    wrap.querySelector('[data-draw="100"]').addEventListener('click', () => {
+      playClickSound();
+      const purchase = getGachaPurchaseInfo(s, 'equipment', 100);
+      if (!window.confirm(`百连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
+      const rs = gachaDrawHundred();
+      if (rs) { this.showGachaHundred(rs); this.renderGacha(); }
+    });
+    wrap.querySelector('[data-draw="1000"]').addEventListener('click', () => {
+      playClickSound();
+      const purchase = getGachaPurchaseInfo(s, 'equipment', 1000);
+      if (!window.confirm(`千连抽将消耗 ${purchase.cost} 灵石${purchase.discounted ? '（八折）' : ''}，确定继续吗？`)) return;
+      const rs = gachaDrawThousand();
+      if (rs) { this.showGachaHundred(rs, 1000); this.renderGacha(); }
+    });
+    wrap.querySelector('[data-codex="1"]').addEventListener('click', () => { playClickSound(); this.openCodex(); });
+    wrap.querySelector('[data-back="1"]').addEventListener('click', () => goToNode('fangshi'));
+  },
   showGachaResult(r) {
     this.els.gachaRarity.textContent = r.rarity;
     this.els.gachaRarity.style.color = r.color;

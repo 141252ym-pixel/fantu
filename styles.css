@@ -1556,3 +1556,205 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .loadout-set-bonus { font-size: 11px; color: #7a6a4a; line-height: 1.4; }
 .loadout-set.active .loadout-set-bonus { color: #5c3a1a; }
+
+/* ========== 轻量版灵宠 / 藏宝阁界面（旧界面仍保留，见 UI_USE_SIMPLE_PANELS） ========== */
+.simple-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #4b351c;
+}
+.simple-hero-card,
+.simple-list-card,
+.simple-pity-card {
+  border: 1px solid rgba(139, 107, 61, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 250, 231, 0.96), rgba(237, 222, 185, 0.92));
+  box-shadow: 0 2px 8px rgba(78, 50, 20, 0.12), inset 0 1px rgba(255, 255, 255, 0.72);
+  padding: 12px;
+}
+.simple-hero-main,
+.simple-list-head,
+.simple-resource-row,
+.simple-pity-card > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.simple-hero-main { justify-content: flex-start; }
+.simple-hero-icon,
+.simple-list-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(139, 107, 61, 0.34);
+  font-size: 34px;
+  flex-shrink: 0;
+}
+.simple-list-icon { width: 46px; height: 46px; border-radius: 10px; font-size: 28px; }
+.simple-kicker { color: #9a7c45; font-size: 12px; letter-spacing: 1px; margin-bottom: 3px; }
+.simple-title { color: #3b2816; font-weight: 800; font-size: 18px; line-height: 1.35; }
+.simple-sub,
+.simple-mini-line,
+.simple-list-sub,
+.simple-desc,
+.simple-skill,
+.simple-pity-card small {
+  color: #7a6845;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.simple-stat-line {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(139, 107, 61, 0.35);
+  color: #5a4225;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.simple-actions-grid,
+.simple-gacha-buttons,
+.simple-card-actions {
+  display: grid;
+  gap: 8px;
+}
+.simple-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.simple-gacha-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.simple-gacha-buttons .ink-btn { min-height: 58px; line-height: 1.45; }
+.simple-gacha-buttons small { color: rgba(255,255,255,0.78); font-size: 11px; }
+.simple-card-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 9px; }
+.simple-card-actions .ink-btn,
+.simple-actions-grid .ink-btn { width: 100%; padding-left: 6px; padding-right: 6px; }
+.simple-auto-release {
+  background: rgba(255, 250, 231, 0.9);
+  color: #5c4224;
+  border-color: rgba(139, 107, 61, 0.42);
+}
+.simple-star-summary,
+.simple-tabs { margin: 0; }
+.simple-list-card.equipped { border-color: #c9a24a; box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.15), 0 2px 8px rgba(78, 50, 20, 0.12); }
+.simple-list-title { color: #3b2816; font-weight: 700; }
+.simple-list-title em { color: #8b7651; font-style: normal; font-size: 12px; margin-left: 4px; }
+.simple-list-title b { color: #b47a1d; font-size: 12px; margin-left: 6px; }
+.simple-progress {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(92, 66, 36, 0.16);
+  border: 1px solid rgba(139, 107, 61, 0.28);
+  margin: 8px 0 6px;
+}
+.simple-progress > div {
+  height: 100%;
+  background: linear-gradient(90deg, #7aa06a, #c4a45a);
+  border-radius: inherit;
+}
+.simple-empty { color: #7a6845; background: rgba(255, 250, 231, 0.74); }
+.simple-treat-list {
+  background: rgba(255, 250, 231, 0.74);
+  border-color: rgba(139, 107, 61, 0.38);
+}
+.gacha-simple-hero { text-align: center; }
+.gacha-simple-hero .simple-resource-row { margin-top: 10px; color: #5a4225; font-size: 13px; }
+.simple-rate-row { padding: 8px; border-radius: 10px; background: rgba(255, 250, 231, 0.74); }
+.simple-discount-card { text-align: center; }
+@media (max-width: 420px) {
+  .simple-card-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .simple-title { font-size: 17px; }
+}
+
+/* ========== 轻量版主页 / 普通剧情页 ========== */
+.story-box.simple-story {
+  gap: 12px;
+  border-radius: 14px;
+  border-color: rgba(139, 107, 61, 0.42);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(201, 169, 98, 0.22), transparent 30%),
+    linear-gradient(145deg, rgba(255, 250, 231, 0.96), rgba(239, 224, 185, 0.9));
+  box-shadow: 0 4px 14px rgba(78, 50, 20, 0.12), inset 0 1px rgba(255, 255, 255, 0.76);
+}
+.story-box.simple-story .scene-title {
+  padding: 2px 0 10px;
+  border-bottom: 0;
+  color: #3b2816;
+  font-size: 20px;
+  letter-spacing: 3px;
+  position: relative;
+}
+.story-box.simple-story .scene-title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 2px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #b89345, transparent);
+}
+.simple-scene-text {
+  text-indent: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.simple-scene-text p {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 107, 61, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.38);
+  color: #3d3122;
+  line-height: 1.75;
+  text-indent: 0;
+}
+.simple-home-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.simple-home-chip {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(139, 107, 61, 0.32);
+  border-radius: 10px;
+  background: rgba(255, 250, 231, 0.72);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.62);
+}
+.simple-home-chip b {
+  display: block;
+  color: #4a321a;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.simple-home-chip span {
+  display: block;
+  margin-top: 3px;
+  color: #9a7c45;
+  font-size: 11px;
+}
+.action-area.simple-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border-top: 0;
+  padding-top: 0;
+  max-height: none;
+}
+.action-area.simple-action-grid .ink-btn {
+  min-height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff7df, #ead8aa);
+  box-shadow: 0 2px 6px rgba(92, 58, 26, 0.1);
+}
+@media (max-width: 380px) {
+  .simple-home-summary,
+  .action-area.simple-action-grid { grid-template-columns: 1fr; }
+}
