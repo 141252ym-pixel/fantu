@@ -1758,3 +1758,38 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .simple-home-summary,
   .action-area.simple-action-grid { grid-template-columns: 1fr; }
 }
+
+/* ========== 灵宠送礼弹窗 ========== */
+.pet-gift-card { max-height: min(82vh, 720px); }
+.pet-gift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 48vh;
+  overflow-y: auto;
+  margin: 10px 0;
+  padding-right: 2px;
+}
+.pet-gift-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 107, 61, 0.45);
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255, 250, 231, 0.98), rgba(236, 221, 184, 0.94));
+  color: #4b351c;
+  font-family: inherit;
+  text-align: left;
+}
+.pet-gift-item.liked {
+  border-color: #c49a3d;
+  box-shadow: 0 0 0 2px rgba(196, 154, 61, 0.12);
+}
+.pet-gift-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pet-gift-main b { font-size: 14px; color: #3d2814; }
+.pet-gift-main small { color: #8b7651; font-size: 12px; }
+.pet-gift-like { color: #b47a1d; font-weight: 700; }
+.pet-gift-normal { color: #7a6845; }

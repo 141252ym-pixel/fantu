@@ -66,6 +66,10 @@ const UI = {
       petAutoStarOverlay: document.getElementById('pet-auto-star-overlay'),
       petAutoStarDesc: document.getElementById('pet-auto-star-desc'),
       petAutoStarList: document.getElementById('pet-auto-star-list'),
+      petGiftOverlay: document.getElementById('pet-gift-overlay'),
+      petGiftTitle: document.getElementById('pet-gift-title'),
+      petGiftDesc: document.getElementById('pet-gift-desc'),
+      petGiftList: document.getElementById('pet-gift-list'),
       bossLootOverlay: document.getElementById('boss-loot-overlay'),
       bossLootIcon: document.getElementById('boss-loot-icon'),
       bossLootName: document.getElementById('boss-loot-name'),
@@ -1412,7 +1416,7 @@ const UI = {
             ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
             ${isMax ? `<button class="ink-btn disabled" disabled>已满级</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">升1级 ${feedCost}</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">喂丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">喂粮</button>`}
             <button class="ink-btn" onclick="UI.starUpPetFromPanel('${p.uid}')">升星</button>
-            <button class="ink-btn" onclick="UI.togglePetGift('${p.uid}')">送礼</button>
+            <button class="ink-btn" onclick="UI.openPetGiftOverlay('${p.uid}')">送礼</button>
             <button class="ink-btn danger" onclick="UI.releasePetFromPanel('${p.uid}')">放生</button>
           </div>
         </div>
@@ -1436,6 +1440,51 @@ const UI = {
     this.renderPetOverlay();
   },
 
+  openPetGiftOverlay(uid) {
+    this._giftPetId = uid;
+    this.renderPetGiftOverlay();
+    if (this.els.petGiftOverlay) this.els.petGiftOverlay.classList.remove('hidden');
+  },
+
+  closePetGiftOverlay() {
+    if (this.els.petGiftOverlay) this.els.petGiftOverlay.classList.add('hidden');
+  },
+
+  renderPetGiftOverlay() {
+    const s = Game.state;
+    const uid = this._giftPetId;
+    const entry = (s.pets || []).find(p => p.uid === uid);
+    const pet = entry && PETS[entry.id];
+    if (!this.els.petGiftList) return;
+    if (!entry || !pet) {
+      this.els.petGiftTitle.textContent = '🎁 赠予灵宠';
+      this.els.petGiftDesc.textContent = '未找到这只灵宠。';
+      this.els.petGiftList.innerHTML = '';
+      return;
+    }
+    const fi = getPetFavorInfo(entry);
+    this.els.petGiftTitle.textContent = `🎁 赠予 ${pet.name}`;
+    this.els.petGiftDesc.textContent = `当前好感 Lv.${fi.favor}/${fi.max}${fi.favor >= fi.max ? '（已满）' : ` · 进度 ${fi.favorExp}/${fi.expPerLevel}`}。投其所好的礼物好感加倍。`;
+    const treats = Object.values(ITEMS).filter(it => it.favor && (s.bag[it.id] || 0) > 0);
+    if (!treats.length) {
+      this.els.petGiftList.innerHTML = '<div class="treat-empty">暂无零食/装饰，可去「🎡 零食转盘」抽取。</div>';
+      return;
+    }
+    this.els.petGiftList.innerHTML = treats.map(it => {
+      const liked = (it.cat === 'food' && petLikeFood(pet, it.taste)) || (it.cat === 'decor' && petLikeDecor(pet, it.style));
+      const gain = liked ? Math.floor(it.favor * 2) : Math.floor(it.favor * 0.5);
+      const tag = liked ? '<span class="pet-gift-like">投其所好</span>' : '<span class="pet-gift-normal">普通</span>';
+      return `<button class="pet-gift-item${liked ? ' liked' : ''}" onclick="UI.giveTreatFromOverlay('${uid}', '${it.id}')"><span class="pet-gift-main"><b>${it.icon} ${it.name}</b><small>${tag} · 拥有 ×${s.bag[it.id]}</small></span><span class="treat-gain">❤️+${gain}</span></button>`;
+    }).join('');
+  },
+
+  giveTreatFromOverlay(uid, itemId) {
+    if (feedPetTreat(Game.state, uid, itemId)) {
+      this.renderPetOverlay();
+      this.renderPetGiftOverlay();
+      this.updateStats();
+    }
+  },
   togglePetGift(uid) {
     this._giftPetId = (this._giftPetId === uid) ? null : uid;
     this.renderPetOverlay();
