@@ -677,7 +677,7 @@ const UI = {
     const best = getSectDungeonBest(s);
     const info = document.createElement('div');
     info.className = 'gacha-pity';
-    info.textContent = `${sect.icon} ${dungeon.name} · 今日剩余 ${s.sectDungeon.attempts}/${SECT_DUNGEON_DAILY_LIMIT} 次 · 已通关 ${best}/5 层`;
+    info.textContent = `${sect.icon} ${dungeon.name} · 今日可败 ${s.sectDungeon.attempts}/${SECT_DUNGEON_DAILY_LIMIT} 次 · 已通关 ${best}/5 层`;
     el.appendChild(info);
 
     SECT_DUNGEON_LAYERS.forEach(layer => {
@@ -692,7 +692,7 @@ const UI = {
       let suffix = '';
       if (!unlocked) suffix = '（需先通关上一层）';
       else if (realmLocked) suffix = `（需${getRealm(layer.minRealm).name}）`;
-      else if (noAttempts) suffix = '（今日次数已尽）';
+      else if (noAttempts) suffix = '（今日失败次数已尽）';
       btn.textContent = `${layer.floor}层 ${layer.name} · ${enemyName} · 贡献+${layer.reward} 灵石+${layer.stone} ${pillName}×1${cleared}${suffix}`;
       if (!unlocked || realmLocked || noAttempts) {
         btn.classList.add('disabled');

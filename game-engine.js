@@ -1214,8 +1214,7 @@ function startSectDungeon(floor) {
     UI.showToast(`修为不足，需达到${getRealm(layer.minRealm).name}`);
     return;
   }
-  if ((s.sectDungeon.attempts || 0) <= 0) { UI.showToast('今日宗门禁地次数已用尽'); return; }
-  s.sectDungeon.attempts -= 1;
+  if ((s.sectDungeon.attempts || 0) <= 0) { UI.showToast('今日宗门禁地失败次数已用尽'); return; }
   const enemyName = (conf.enemyNames && conf.enemyNames[floor - 1]) || `${conf.name}守关者`;
   const orig = { atk: s.atk, def: s.def, matk: s.matk, mdef: s.mdef, pen: s.pen };
   s.atk = getTotalAtk(s);
@@ -1238,7 +1237,9 @@ function startSectDungeon(floor) {
   };
   const loseCb = () => {
     restore();
+    s.sectDungeon.attempts = Math.max(0, (s.sectDungeon.attempts || 0) - 1);
     s.hp = Math.max(1, Math.floor(s.maxHp * 0.3));
+    UI.showToast('禁地挑战失败，今日剩余失败次数 ' + s.sectDungeon.attempts + '/' + SECT_DUNGEON_DAILY_LIMIT);
     autoSave();
   };
   startBattle(layer.enemy, 1.0, winCb, loseCb, 'sect_dungeon', 'sect_dungeon', false, 0, enemyName);

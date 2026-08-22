@@ -2,6 +2,15 @@
 // 每次更新在此追加一条（放在数组最前面），游戏内「📢 公告」与自动弹窗会展示最新内容
 const UPDATE_LOG = [
   {
+    version: 'v59',
+    date: '2026-08-22',
+    title: '宗门禁地难度调整',
+    items: [
+      '宗门禁地次数改为「每日最多失败 3 次」：胜利不再扣次数，失败才会消耗失败次数',
+      '整体提高宗门禁地守卫强度，尤其后几层血量、攻击与特殊技能压迫感更高',
+    ],
+  },
+  {
     version: 'v58',
     date: '2026-08-22',
     title: '灵宠与藏宝阁界面整理',
@@ -1243,11 +1252,11 @@ const ENEMIES = {
   yinglong:    { id: 'yinglong',   name: '应龙',      hp: 6400, atk: 470, def: 72, xp: 1600, stone: [750,1100], drops: [{id:'tieyijia',chance:0.5}], boss: true, special: { name: '雷云震魄', type: 'stun', chance: 0.20, cd: 4 } },
 
   // 宗门禁地
-  sect_dungeon_1:{ id:'sect_dungeon_1',name:'禁地守卫', hp: 260, atk: 30, def: 8,  matk: 36,  mdef: 10, xp: 120, stone: [60,100], drops: [{id:'huiqi_pill',chance:0.35}] },
-  sect_dungeon_2:{ id:'sect_dungeon_2',name:'禁地精英', hp: 900, atk: 74, def: 22, matk: 96,  mdef: 28, xp: 320, stone: [130,220], drops: [{id:'huiling_pill',chance:0.4}], boss: true },
-  sect_dungeon_3:{ id:'sect_dungeon_3',name:'长老幻身', hp: 3200, atk: 280, def: 48, matk: 360, mdef: 62, xp: 900, stone: [300,520], drops: [{id:'huichun_pill',chance:0.45}], boss: true, special: { name: '灵压震慑', type: 'weaken', rate: 0.25, turns: 2, chance: 0.20, cd: 3 } },
-  sect_dungeon_4:{ id:'sect_dungeon_4',name:'镇派灵阵', hp: 15000, atk: 950, def: 180, matk: 1200, mdef: 220, xp: 2600, stone: [800,1300], drops: [{id:'yuling_pill',chance:0.5}], boss: true, special: { name: '阵纹锁魂', type: 'stun', chance: 0.18, cd: 4 } },
-  sect_dungeon_5:{ id:'sect_dungeon_5',name:'秘藏守卫', hp: 65000, atk: 2400, def: 460, matk: 3000, mdef: 560, xp: 8000, stone: [2600,4200], drops: [{id:'dahuan_pill',chance:0.6},{id:'dahuiling_pill',chance:0.4}], boss: true, special: { name: '秘藏威压', type: 'percent', pct: 0.08, chance: 0.22, cd: 3 } },
+  sect_dungeon_1:{ id:'sect_dungeon_1',name:'禁地守卫', hp: 360, atk: 42, def: 12,  matk: 50,  mdef: 15, xp: 120, stone: [60,100], drops: [{id:'huiqi_pill',chance:0.35}] },
+  sect_dungeon_2:{ id:'sect_dungeon_2',name:'禁地精英', hp: 1400, atk: 112, def: 34, matk: 145,  mdef: 42, xp: 320, stone: [130,220], drops: [{id:'huiling_pill',chance:0.4}], boss: true },
+  sect_dungeon_3:{ id:'sect_dungeon_3',name:'长老幻身', hp: 5200, atk: 430, def: 74, matk: 550, mdef: 94, xp: 900, stone: [300,520], drops: [{id:'huichun_pill',chance:0.45}], boss: true, special: { name: '灵压震慑', type: 'weaken', rate: 0.30, turns: 2, chance: 0.24, cd: 3 } },
+  sect_dungeon_4:{ id:'sect_dungeon_4',name:'镇派灵阵', hp: 24000, atk: 1450, def: 270, matk: 1820, mdef: 330, xp: 2600, stone: [800,1300], drops: [{id:'yuling_pill',chance:0.5}], boss: true, special: { name: '阵纹锁魂', type: 'stun', chance: 0.22, cd: 4 } },
+  sect_dungeon_5:{ id:'sect_dungeon_5',name:'秘藏守卫', hp: 105000, atk: 3700, def: 690, matk: 4600, mdef: 840, xp: 8000, stone: [2600,4200], drops: [{id:'dahuan_pill',chance:0.6},{id:'dahuiling_pill',chance:0.4}], boss: true, special: { name: '秘藏威压', type: 'percent', pct: 0.10, chance: 0.26, cd: 3 } },
 
   // 论道
   dao_competitor:{ id:'dao_competitor',name:'论道对手',hp: 250, atk: 30, def: 10, xp: 150, stone: [60,100], drops: [{id:'daopei',chance:0.3}], untouchable: false },
