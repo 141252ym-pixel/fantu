@@ -2982,6 +2982,12 @@ const STORY_NODES = {
     sectTasks: true,
   },
 
+
+  sect_dungeon: {
+    title: '宗门禁地',
+    text: '宗门深处设有禁地试炼，阵法会映照出不同层级的守卫。每日可挑战 3 次，通关后可获得贡献、灵石与丹药奖励。',
+    sectDungeon: true,
+  },
   sect_shop: {
     title: '贡献商店',
     text: '用宗门贡献兑换珍稀资源。',
