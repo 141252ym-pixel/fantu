@@ -1411,7 +1411,7 @@ const UI = {
           <div class="simple-progress"><div style="width:${isMax ? 100 : Math.max(2, Math.round(exp / expNeed * 100))}%"></div></div>
           <div class="simple-desc">${pet.desc}</div>
           <div class="simple-stat-line">物攻+${getPetStatBonus(s, p, 'atk')}　法攻+${getPetStatBonus(s, p, 'matk')}　物抗+${getPetStatBonus(s, p, 'def')}　法抗+${getPetStatBonus(s, p, 'mdef')}　穿透+${getPetStatBonus(s, p, 'pen')}</div>
-          <div class="simple-skill">技能【${pet.skill}】：${pet.id === 'tuntunshu' ? `闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 偷Boss装备 ${(getTuntunshuBossStealRate(p) * 100).toFixed(3)}%` : `${chance}% 概率追加伤害`}${trait ? `　天赋【${trait.name}】` : ''}</div>
+          <div class="simple-skill">技能【${pet.skill}】：${pet.id === 'tuntunshu' ? `闪避 ${Math.round(getTuntunshuDodgeRate(p) * 100)}% · 偷Boss装备 ${(getTuntunshuBossStealRate(p) * 100).toFixed(3)}% · 神藏保底 ${Math.max(0, p.bossStealMisses || 0)}/${TUNTUNSHU_BOSS_STEAL_PITY}（再胜${Math.max(0, TUNTUNSHU_BOSS_STEAL_PITY - (p.bossStealMisses || 0))}次）` : `${chance}% 概率追加伤害`}${trait ? `　天赋【${trait.name}】` : ''}</div>
           <div class="simple-card-actions pet-card-actions">
             ${!isEquipped ? `<button class="ink-btn" onclick="UI.equipPetFromPanel('${p.uid}')">出战</button>` : ''}
             ${isMax ? `<button class="ink-btn disabled" disabled>已满级</button>` : `<button class="ink-btn" onclick="UI.feedPetFromPanel('${p.uid}')">升1级 ${feedCost}</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'lingshou_dan')">喂丹</button><button class="ink-btn" onclick="UI.feedPetItemFromPanel('${p.uid}', 'shouliang')">喂粮</button>`}
